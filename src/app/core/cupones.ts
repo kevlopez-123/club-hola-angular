@@ -25,7 +25,7 @@ export interface ReglaCupon {
 }
 export const REGLA_GENERAL_POR_DEFECTO: ReglaCupon = { horas: 3, limite: 0, meses: 3 };
 
-/** Valores propios de un beneficio; lo que no se define usa la regla general del programa. */
+/** Valores propios de un beneficio; lo que no se define parte de los valores por defecto (3 h, sin límite, 3 meses). */
 export interface ReglaPropia {
   horas?: number | undefined;
   limite?: number | undefined;

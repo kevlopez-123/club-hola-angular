@@ -128,7 +128,7 @@ Cada beneficio puede tener **fecha de inicio y de vencimiento**. Fuera de ese ra
 
 ## Regla del cupón
 
-Define **cuánto dura** el cupón, **cuántas veces** puede canjearlo cada participante y **cuánto debe esperar** para volver a hacerlo (contado desde su último canje). Hay una **regla general** en *Cupones y códigos* y cada beneficio puede tener la suya.
+Define **cuánto dura** el cupón, **cuántas veces** puede canjearlo cada participante y **cuánto debe esperar** para volver a hacerlo (contado desde su último canje). La regla se define **en cada beneficio** (al crearlo o editarlo), no hay una regla general.
 
 ## Código compartido
 

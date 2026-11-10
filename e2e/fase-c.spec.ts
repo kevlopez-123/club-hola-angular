@@ -139,7 +139,6 @@ test.describe("Fase C: reglas de los beneficios", () => {
     const d = page.getByRole("dialog");
     await d.getByLabel("Inicio", { exact: true }).fill(dia(-2));
     await d.getByLabel("Vencimiento", { exact: true }).fill(dia(30));
-    await d.getByRole("switch", { name: "Usar la regla general" }).click(); // regla propia
     await d.getByLabel("Dura (horas)").fill("24");
     await d.getByLabel("Se puede canjear (veces)").fill("1");
     await d.getByLabel("Espera (meses)").fill("3");
@@ -170,24 +169,22 @@ test.describe("Fase C: reglas de los beneficios", () => {
     await expect(page.locator("tbody tr").filter({ hasText: "Vigente" })).toHaveCount(0);
   });
 
-  test("panel: la regla general del cupón se guarda y el servidor rechaza valores fuera de rango", async ({ page }) => {
+  test("panel: la regla del cupón es de cada beneficio y no deja guardar valores fuera de rango", async ({ page }) => {
     await page.goto("/admin/beneficios");
-    await page.getByRole("button", { name: "Cupones y códigos" }).click();
-    await page.getByLabel("Dura (horas)").fill("48");
-    await page.getByLabel("Se puede canjear (veces)").fill("2");
-    await page.getByLabel("Espera para volver a canjear (meses)").fill("6");
-    await expect(page.getByText("El cupón dura 48 horas. Cada participante puede canjearlo 2 veces; después debe esperar 6 meses desde su último canje para volver a hacerlo.")).toBeVisible();
-    await page.getByRole("button", { name: "Guardar", exact: true }).click();
-    await expect(page.getByText("Regla general del cupón actualizada")).toBeVisible();
-    expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!).config.cupon, K)).toEqual({ horas: 48, limite: 2, meses: 6 });
-    await page.getByLabel("Espera para volver a canjear (meses)").fill("0");
-    await expect(page.getByRole("alert")).toContainText("1 a 60 meses");
-    await expect(page.getByRole("button", { name: "Guardar", exact: true })).toBeDisabled();
-    // volver a la regla original
-    await page.getByLabel("Dura (horas)").fill("3");
-    await page.getByLabel("Se puede canjear (veces)").fill("0");
-    await page.getByLabel("Espera para volver a canjear (meses)").fill("3");
-    await page.getByRole("button", { name: "Guardar", exact: true }).click();
-    await expect(page.getByText("Regla general del cupón actualizada")).toBeVisible();
+    await esperarCarga(page);
+    await expect(page.getByText("Regla general del cupón")).toHaveCount(0);
+    await page.getByRole("button", { name: "Editar" }).first().click();
+    const d = page.getByRole("dialog");
+    await expect(d.getByText("Regla del cupón de este beneficio")).toBeVisible();
+    await d.getByLabel("Espera (meses)").fill("0");
+    await expect(d.getByRole("alert")).toContainText("1 a 60 meses");
+    await expect(d.getByRole("button", { name: "Guardar beneficio" })).toBeDisabled();
+    await d.getByLabel("Espera (meses)").fill("6");
+    await d.getByLabel("Dura (horas)").fill("48");
+    await d.getByRole("button", { name: "Guardar beneficio" }).click();
+    await expect(page.getByText("Beneficio guardado")).toBeVisible();
+    expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!).admin.beneficios[0].cupon, K)).toMatchObject({ horas: 48, meses: 6 });
+    // el segundo beneficio conserva su propia regla
+    expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!).admin.beneficios[1].cupon?.horas, K)).not.toBe(48);
   });
 });

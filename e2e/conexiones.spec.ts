@@ -207,9 +207,11 @@ test.describe("Beneficios: cupones", () => {
   test("los códigos cargados se asignan a los cupones y se agotan", async ({ page }) => {
     await entrarAdmin(page);
     await page.goto("/admin/beneficios");
+    await page.getByRole("button", { name: "Editar" }).first().click(); // la regla es del beneficio (Pollo Gus)
+    await page.getByRole("dialog").getByLabel("Dura (horas)").fill("5");
+    await page.getByRole("dialog").getByRole("button", { name: "Guardar beneficio" }).click();
+    await expect(page.getByText("Beneficio guardado")).toBeVisible();
     await page.getByRole("button", { name: "Cupones y códigos" }).click();
-    await page.getByLabel("Dura (horas)").fill("5"); // regla general del cupón
-    await page.getByRole("button", { name: "Guardar", exact: true }).click();
     await page.getByRole("button", { name: "Cargar códigos" }).click();
     const csv = ["codigo", ...Array.from({ length: 250 }, (_, i) => `BSP-${(48213 + i * 7).toString(36).toUpperCase()}`)].join("\n");
     await page.getByRole("dialog").locator('input[type="file"]').setInputFiles({ name: "codigos.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });

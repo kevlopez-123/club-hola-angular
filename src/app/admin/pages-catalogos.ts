@@ -765,6 +765,7 @@ type Lote = {
                 <th>Tipo</th>
                 <th>Vigencia</th>
                 <th>Provincias</th>
+                <th>Cupón</th>
                 <th>Categoría</th>
                 <th>Descuento</th>
                 <th>Valor</th>
@@ -793,6 +794,7 @@ type Lote = {
                     <p class="mt-1 text-xs text-muted-foreground">{{ rangoVigencia(r) }}</p>
                   </td>
                   <td class="text-sm">{{ textoProvincias(r) }}</td>
+                  <td class="text-sm">{{ textoCupon(r) }}</td>
                   <td>{{ r.categoria }}</td>
                   <td>{{ r.descuento }}</td>
                   <td>
@@ -808,7 +810,7 @@ type Lote = {
                   <td>
                     <a-toggle label="Activo" [on]="r.activo" (onChange)="toggle(r.id, $event)" />
                   </td>
-                  <td><button aBtn variant="ghost" (click)="edit.set({ ...r })">Editar</button></td>
+                  <td><button aBtn variant="ghost" (click)="edit.set(conRegla(r))">Editar</button></td>
                 </tr>
               }
             </tbody>
@@ -849,26 +851,6 @@ type Lote = {
       }
       @case ('cupones') {
         <div class="grid gap-6 lg:grid-cols-2">
-          <a-panel title="Regla general del cupón">
-            <p class="mb-3 text-sm text-muted-foreground">Se aplica a todos los beneficios que no tengan una regla propia (se define al editar cada beneficio).</p>
-            <div class="grid gap-3 sm:grid-cols-3">
-              <a-field label="Dura (horas)"
-                ><input [class]="input" type="number" min="1" max="720" [value]="general().horas" (input)="setGeneral({ horas: +$any($event.target).value })"
-              /></a-field>
-              <a-field label="Se puede canjear (veces)"
-                ><input [class]="input" type="number" min="0" max="99" [value]="general().limite" (input)="setGeneral({ limite: +$any($event.target).value })"
-              /></a-field>
-              <a-field label="Espera para volver a canjear (meses)"
-                ><input [class]="input" type="number" min="1" max="60" [value]="general().meses" (input)="setGeneral({ meses: +$any($event.target).value })"
-              /></a-field>
-            </div>
-            <p class="mt-3 rounded-xl bg-muted/60 p-3 text-sm" aria-live="polite">{{ resumenRegla(general()) }}</p>
-            @if (errGeneral()) { <p role="alert" class="mt-2 text-xs font-medium text-destructive">{{ errGeneral() }}</p> }
-            <button aBtn class="mt-4" [disabled]="!!errGeneral()" (click)="guardarGeneral()">Guardar</button>
-            <p class="mt-2 text-xs text-muted-foreground">
-              Aplica a los cupones que se generen desde ahora. «Se puede canjear» en 0 significa sin límite. La espera cuenta desde el último canje.
-            </p>
-          </a-panel>
           <a-panel title="Carga de códigos de beneficios" class="lg:col-span-2">
             <button actions aBtn (click)="cargaCodigos.set(true)">
               <app-icon name="Upload" class="h-4 w-4" /> Cargar códigos
@@ -1049,24 +1031,19 @@ type Lote = {
                 <p class="mt-2 text-xs text-muted-foreground">Cada participante recibe un código distinto de los lotes que se cargan en «Cupones y códigos».</p>
               }
 
-              <div class="mt-4 flex items-center justify-between gap-3">
-                <span class="text-sm font-medium">Usar la regla general del programa</span>
-                <a-toggle label="Usar la regla general" [on]="!e.cupon" (onChange)="usarReglaGeneral($event)" />
+              <p class="mb-2 mt-4 text-sm font-bold">Regla del cupón de este beneficio</p>
+              <div class="grid gap-3 sm:grid-cols-3">
+                <a-field label="Dura (horas)">
+                  <input [class]="input" type="number" min="1" max="720" [value]="reglaDe(e).horas" (input)="setRegla({ horas: +$any($event.target).value })" />
+                </a-field>
+                <a-field label="Se puede canjear (veces)">
+                  <input [class]="input" type="number" min="0" max="99" [value]="reglaDe(e).limite" (input)="setRegla({ limite: +$any($event.target).value })" />
+                </a-field>
+                <a-field label="Espera (meses)">
+                  <input [class]="input" type="number" min="1" max="60" [value]="reglaDe(e).meses" (input)="setRegla({ meses: +$any($event.target).value })" />
+                </a-field>
               </div>
-              @if (e.cupon) {
-                <div class="mt-3 grid gap-3 sm:grid-cols-3">
-                  <a-field label="Dura (horas)">
-                    <input [class]="input" type="number" min="1" max="720" [value]="e.cupon.horas ?? general().horas" (input)="setRegla({ horas: +$any($event.target).value })" />
-                  </a-field>
-                  <a-field label="Se puede canjear (veces)">
-                    <input [class]="input" type="number" min="0" max="99" [value]="e.cupon.limite ?? general().limite" (input)="setRegla({ limite: +$any($event.target).value })" />
-                  </a-field>
-                  <a-field label="Espera (meses)">
-                    <input [class]="input" type="number" min="1" max="60" [value]="e.cupon.meses ?? general().meses" (input)="setRegla({ meses: +$any($event.target).value })" />
-                  </a-field>
-                </div>
-              }
-              <p class="mt-3 rounded-xl bg-muted/60 p-3 text-sm" aria-live="polite">{{ resumenRegla(reglaEfectiva(e)) }}</p>
+              <p class="mt-3 rounded-xl bg-muted/60 p-3 text-sm" aria-live="polite">{{ resumenRegla(reglaDe(e)) }}</p>
             </fieldset>
           }
 
@@ -1173,9 +1150,6 @@ export class BeneficiosAdminPage {
   /** Avisa antes de descartar si hay cambios sin guardar. */
   protected readonly sucio = usarSucio(() => this.edit());
   protected readonly editCat = signal<CategoriaEdit | null>(null);
-  /** Regla general del cupón (Cupones y códigos): la que usan los beneficios sin regla propia. */
-  protected readonly general = signal<ReglaCupon>({ horas: 3, limite: 0, meses: 3 });
-  protected readonly errGeneral = computed(() => errorReglasBeneficio({ cupon: this.general() }));
   protected readonly cargaCodigos = signal(false);
   private readonly brand = inject(BrandService);
   /** Provincias oficiales del país (el beneficio puede limitarse a algunas). */
@@ -1198,20 +1172,21 @@ export class BeneficiosAdminPage {
     this.admin.lista<{ nombre: string }>('marcas').subscribe((m) => this.marcas.set(m.map((x) => x.nombre)));
     this.admin.lista<CategoriaEdit>('categoriasBeneficio').subscribe((c) => this.cats.set(c));
     this.admin.lista<Lote>('lotes').subscribe((l) => this.lotes.set(l));
-    abrirDesdeUrl((id) => this.api.get<BeneficioRow>(`admin/c/beneficios/${id}`).subscribe((b) => this.edit.set({ ...b })));
-    this.api
-      .get<{ cupon: Partial<ReglaCupon> }>('config')
-      .subscribe((c) => this.general.set(reglaDe(undefined, c.cupon)));
+    abrirDesdeUrl((id) => this.api.get<BeneficioRow>(`admin/c/beneficios/${id}`).subscribe((b) => this.edit.set(this.conRegla(b))));
   }
 
-  protected setGeneral(p: Partial<ReglaCupon>) {
-    this.general.update((g) => ({ ...g, ...p }));
+  /** Cada beneficio tiene su propia regla de cupón: al abrirlo siempre trae los tres valores (los que no tenía parten de 3 h, sin límite y 3 meses). */
+  protected conRegla(b: BeneficioRow): BeneficioRow {
+    return { ...b, cupon: { ...reglaDe(b.cupon, undefined) } };
   }
-  protected guardarGeneral() {
-    this.api.put('admin/config', { cupon: this.general() }).subscribe({
-      next: () => this.toast.show('Regla general del cupón actualizada'),
-      error: (e) => this.toast.error(e?.error?.message ?? 'No pudimos guardar la regla.'),
-    });
+  protected reglaDe(b: BeneficioRow): ReglaCupon {
+    return reglaDe(b.cupon, undefined);
+  }
+  /** Resumen corto para la lista: «24 h · 1 vez, espera 3 meses». */
+  protected textoCupon(b: BeneficioRow): string {
+    if (b.tipo === 'compra') return '—';
+    const r = reglaDe(b.cupon, undefined);
+    return r.limite <= 0 ? ` h · sin límite` : ` h ·  , espera  `;
   }
 
   /** "El cupón dura 24 horas. Se puede canjear 1 vez; para volver a hacerlo hay que esperar 3 meses desde el último canje." */
@@ -1221,14 +1196,8 @@ export class BeneficiosAdminPage {
     const veces = r.limite === 1 ? '1 vez' : `${r.limite} veces`;
     return `${horas} Cada participante puede canjearlo ${veces}; después debe esperar ${r.meses} ${r.meses === 1 ? 'mes' : 'meses'} desde su último canje para volver a hacerlo.`;
   }
-  protected reglaEfectiva(e: BeneficioRow): ReglaCupon {
-    return reglaDe(e.cupon, this.general());
-  }
-  protected usarReglaGeneral(usar: boolean) {
-    this.setE({ cupon: usar ? undefined : { ...this.general() } });
-  }
   protected setRegla(p: Partial<ReglaCupon>) {
-    this.edit.update((e) => (e ? { ...e, cupon: { ...(e.cupon ?? {}), ...p } } : e));
+    this.edit.update((e) => (e ? { ...e, cupon: { ...reglaDe(e.cupon, undefined), ...p } } : e));
   }
 
   protected vigenciaPill(r: BeneficioRow) {
@@ -1282,12 +1251,12 @@ export class BeneficiosAdminPage {
       // Un beneficio nuevo parte sin reglas heredadas del primero de la lista.
       desde: undefined,
       hasta: undefined,
-      cupon: undefined,
       modoCodigo: 'unico',
       codigoCompartido: undefined,
       usosMaximos: undefined,
       usos: 0,
       provincias: [],
+      cupon: { horas: 3, limite: 0, meses: 3 },
     };
   }
   protected setE(p: Partial<BeneficioRow>) {

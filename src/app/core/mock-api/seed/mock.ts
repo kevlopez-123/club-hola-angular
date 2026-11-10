@@ -647,7 +647,7 @@ export type Beneficio = {
   /** Vigencia (AAAA-MM-DD, inclusive). Sin fecha = sin límite por ese lado. */
   desde?: string | undefined;
   hasta?: string | undefined;
-  /** Regla propia del cupón; lo que falte usa la regla general del programa (Beneficios → Cupones y códigos). */
+  /** Regla propia del cupón; lo que falte parte de 3 h, sin límite y 3 meses. */
   cupon?: { horas?: number | undefined; limite?: number | undefined; meses?: number | undefined } | undefined;
   /** "unico" (por defecto): códigos del comercio, uno por participante. "compartido": un mismo código para todos. */
   modoCodigo?: "unico" | "compartido" | undefined;
