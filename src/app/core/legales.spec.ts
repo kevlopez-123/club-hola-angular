@@ -20,9 +20,9 @@ describe("textos legales: versiones", () => {
 
 describe("textos legales: quién debe aceptar", () => {
   const ac = (version: number) => ({ version, fecha: "2026-01-01T00:00:00Z", canal: "Web" });
-  it("quien nunca aceptó debe aceptar", () => expect(debeAceptar(v(1, "2026-01-01"), undefined)).toBe(true));
-  it("quien aceptó una versión anterior debe aceptar la nueva si la exige", () => expect(debeAceptar(v(2, "2026-01-01"), ac(1))).toBe(true));
-  it("una versión informativa no vuelve a pedir aceptación", () => expect(debeAceptar(v(2, "2026-01-01", false), ac(1))).toBe(false));
+  it("quien nunca aceptó debe aceptar (primer ingreso)", () => expect(debeAceptar(v(1, "2026-01-01"), undefined)).toBe(true));
+  it("quien aceptó una versión anterior NO debe aceptar la nueva: se pide solo en el primer ingreso", () => expect(debeAceptar(v(2, "2026-01-01"), ac(1))).toBe(false));
+  it("tampoco si la versión nueva viene marcada como exigente (campo en desuso)", () => expect(debeAceptar(v(3, "2026-01-01", true), ac(1))).toBe(false));
   it("quien ya aceptó la vigente está al día", () => expect(debeAceptar(v(2, "2026-01-01"), ac(2))).toBe(false));
   it("sin versión en vigor no hay nada que aceptar", () => expect(debeAceptar(undefined, undefined)).toBe(false));
 });

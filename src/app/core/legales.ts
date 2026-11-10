@@ -1,7 +1,8 @@
 /**
  * Textos legales con control de versiones: Términos y condiciones y Política de privacidad.
- * Cada publicación crea una versión nueva (nunca se edita una publicada). Si la versión exige aceptación, los participantes
- * que no la han aceptado ven un aviso que bloquea el sitio hasta que la acepten, y se les notifica por correo y en el sitio.
+ * Cada publicación crea una versión nueva (nunca se edita una publicada). Los participantes aceptan Términos y Política de privacidad
+ * (uso y tratamiento de datos) UNA SOLA VEZ, en su primer ingreso: hasta que lo hacen ven un aviso que bloquea el sitio. Publicar una versión
+ * nueva no les pide aceptar de nuevo ni les avisa; la versión que aceptaron queda registrada con su fecha y canal.
  */
 export type TipoLegal = "terminos" | "privacidad";
 export const TIPOS_LEGALES: TipoLegal[] = ["terminos", "privacidad"];
@@ -16,7 +17,7 @@ export interface VersionLegal {
   intro: string;
   /** Resumen de lo que cambió: es lo que leen los participantes. */
   notas: string;
-  /** Si es true, los participantes deben aceptarla de nuevo. */
+  /** En desuso: la aceptación se pide solo en el primer ingreso. Se conserva por compatibilidad con datos guardados (siempre false). */
   exigeAceptacion: boolean;
   /** Fecha (aaaa-mm-dd) desde la que rige; una fecha futura deja la versión "programada" y avisa con anticipación. */
   vigenteDesde: string;
@@ -55,11 +56,12 @@ export function versionProgramada(doc: DocLegal, hoy: string): VersionLegal | un
   return [...doc.versiones].filter((v) => v.vigenteDesde > hoy).sort((a, b) => a.version - b.version)[0];
 }
 
-/** Lo que un participante debe aceptar de un documento: la versión en vigor si nunca aceptó nada, o si hay una más nueva que exige aceptación. */
+/**
+ * ¿Debe aceptar este documento? Solo si nunca lo aceptó (primer ingreso). Una versión nueva no vuelve a pedirlo: quien ya aceptó
+ * una versión no ve el aviso otra vez.
+ */
 export function debeAceptar(vigente: VersionLegal | undefined, aceptada: AceptacionLegal | undefined): boolean {
-  if (!vigente) return false;
-  if (!aceptada) return true;
-  return vigente.exigeAceptacion && aceptada.version < vigente.version;
+  return !!vigente && !aceptada;
 }
 
 export interface PendienteLegal {

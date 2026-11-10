@@ -55,19 +55,17 @@ export async function entrarAdmin(page: Page, rol = "Administrador") {
   await expect(page.getByRole("button", { name: "Menú de usuario" })).toBeVisible();
 }
 
-/** Publica una versión nueva de Términos o de Privacidad desde Admin → Textos legales (hay que haber entrado al panel). */
+/** Publica una versión nueva de Términos o de Privacidad desde Admin → Textos legales (hay que haber entrado al panel). No pide aceptar de nuevo: la aceptación es solo en el primer ingreso. */
 export async function publicarLegal(
   page: Page,
   documento: "Términos y condiciones" | "Política de privacidad",
-  o: { texto: string; intro?: string; notas?: string; exigeAceptacion?: boolean },
+  o: { texto: string; intro?: string; notas?: string },
 ) {
   await page.goto("/admin/legales");
   await page.getByRole("tab", { name: documento }).click();
   await page.getByLabel(`Texto de ${documento}`).fill(o.texto);
   if (o.intro !== undefined) await page.getByLabel(/^Subtítulo de la página/).fill(o.intro);
   await page.getByLabel(/^Qué cambió/).fill(o.notas ?? "Cambio de prueba en el texto.");
-  const exige = page.getByRole("checkbox", { name: /deben aceptarla de nuevo/ });
-  if ((o.exigeAceptacion ?? true) !== (await exige.isChecked())) await exige.click();
   await page.getByRole("button", { name: "Publicar versión" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Publicar", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -101,4 +99,14 @@ export async function descargarListado(page: Page, abrir: () => Promise<unknown>
 export async function textoDeArchivo(d: { path(): Promise<string | null> }) {
   const { readFileSync } = await import("node:fs");
   return readFileSync((await d.path())!, "utf8");
+}
+
+/** Deja a la participante demo sin haber aceptado nada: es su primer ingreso (en la base simulada del navegador). */
+export async function primerIngreso(page: Page) {
+  await page.evaluate(() => {
+    const k = "bancosolidario_mockdb_v11";
+    const d = JSON.parse(localStorage.getItem(k) ?? "{}");
+    d.aceptaciones = { ...(d.aceptaciones ?? {}), p1: {} };
+    localStorage.setItem(k, JSON.stringify(d));
+  });
 }

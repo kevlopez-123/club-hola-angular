@@ -5,20 +5,20 @@ import { IconComponent } from "../shared/icon.component";
 import { MarkdownComponent } from "../shared/markdown.component";
 import { AdminModalComponent, BtnDirective, ConfirmComponent, FieldComponent, INPUT_CLS, PageHeaderComponent, PanelComponent, PillComponent, ToastService } from "./kit";
 
-type Formulario = { texto: string; intro: string; notas: string; exigeAceptacion: boolean; vigenteDesde: string };
+type Formulario = { texto: string; intro: string; notas: string; vigenteDesde: string };
 const hoy = () => new Date().toISOString().slice(0, 10);
 const fechaCorta = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
 
 /**
  * Textos legales con control de versiones. Nada publicado se edita: cada cambio es una versión nueva con su resumen, su fecha de
- * vigencia y, si corresponde, la obligación de que los participantes la acepten de nuevo (se les avisa por correo y en el sitio).
+ * vigencia. Los participantes aceptan Términos y Política de privacidad una sola vez, en su primer ingreso; una versión nueva no se les vuelve a pedir.
  */
 @Component({
   selector: "a-legales-page",
   imports: [PageHeaderComponent, PanelComponent, BtnDirective, FieldComponent, PillComponent, IconComponent, AdminModalComponent, ConfirmComponent, MarkdownComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a-header title="Textos legales" desc="Términos y condiciones y Política de privacidad, con historial de versiones y aceptación de los participantes." />
+    <a-header title="Textos legales" desc="Términos y condiciones y Política de privacidad, con historial de versiones. Los participantes los aceptan una sola vez, en su primer ingreso." />
 
     <div role="tablist" aria-label="Texto legal" class="mb-5 inline-flex rounded-xl border border-border p-0.5">
       @for (t of tipos; track t) {
@@ -42,12 +42,12 @@ const fechaCorta = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse()
             <p class="mt-3 rounded-xl bg-muted/50 p-3 text-sm"><b>Qué cambió:</b> {{ v.notas }}</p>
           }
           @if (r.programada; as p) {
-            <p role="status" class="mt-3 rounded-xl border border-border bg-accent/40 p-3 text-sm">La versión <b>v{{ p.version }}</b> está programada: entra en vigor el {{ fecha(p.vigenteDesde) }}. Ya se avisó a los participantes.</p>
+            <p role="status" class="mt-3 rounded-xl border border-border bg-accent/40 p-3 text-sm">La versión <b>v{{ p.version }}</b> está programada: entra en vigor el {{ fecha(p.vigenteDesde) }}. No se pide aceptarla de nuevo: quienes ya aceptaron quedan con la versión que aceptaron.</p>
           }
           <div class="mt-4" role="group" [attr.aria-label]="'Aceptación de ' + r.nombre">
             <div class="flex items-baseline justify-between text-sm"><span class="font-semibold">{{ r.aceptaron.toLocaleString('es') }} de {{ r.total.toLocaleString('es') }} participantes activos</span><span class="text-muted-foreground">{{ porcentaje(r) }} %</span></div>
             <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-muted" role="img" [attr.aria-label]="'Aceptación: ' + porcentaje(r) + ' %'"><div class="h-full bg-primary" [style.width.%]="porcentaje(r)"></div></div>
-            <p class="mt-1.5 text-xs text-muted-foreground">{{ r.pendientes.toLocaleString('es') }} pendientes de aceptar la versión vigente. Se les pide al ingresar.</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">{{ r.pendientes.toLocaleString('es') }} todavía no aceptan: se les pide en su primer ingreso, una sola vez.</p>
           </div>
         </a-panel>
 
@@ -64,17 +64,14 @@ const fechaCorta = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse()
             <div><span class="mb-1.5 block text-sm font-medium">Vista previa</span><div class="h-80 overflow-y-auto rounded-xl border border-border bg-card p-4"><app-markdown [texto]="form().texto" /></div></div>
           </div>
           <div class="mt-4 grid gap-4 sm:grid-cols-2">
-            <a-field label="Qué cambió (lo leerán los participantes)" [requerido]="true">
+            <a-field label="Qué cambió (queda en el historial)" [requerido]="true">
               <textarea [class]="input + ' h-24 py-2'" [value]="form().notas" placeholder="Ej. Se aclara la vigencia de los puntos." (input)="set({ notas: $any($event.target).value })"></textarea>
             </a-field>
             <div class="space-y-3">
               <a-field label="Vigente desde">
                 <input type="date" [class]="input" [attr.min]="hoy" [value]="form().vigenteDesde" (input)="set({ vigenteDesde: $any($event.target).value })" />
               </a-field>
-              <label class="flex cursor-pointer items-start gap-3 text-sm">
-                <input type="checkbox" class="mt-0.5 h-4 w-4" [checked]="form().exigeAceptacion" (change)="set({ exigeAceptacion: $any($event.target).checked })" />
-                <span><b>Los participantes deben aceptarla de nuevo</b><span class="block text-xs text-muted-foreground">Se les avisa por correo y en el sitio, y al ingresar no podrán continuar hasta aceptar.</span></span>
-              </label>
+              <p class="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">Publicar una versión nueva <b class="text-foreground">no pide aceptar de nuevo</b> ni envía avisos: la aceptación se registra una sola vez, en el primer ingreso de cada participante.</p>
             </div>
           </div>
           @if (errorPublicar()) { <p role="alert" class="mt-3 text-sm font-semibold text-destructive">{{ errorPublicar() }}</p> }
@@ -90,7 +87,7 @@ const fechaCorta = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse()
       <a-panel title="Historial de versiones" class="mt-5 block">
         <div class="adm-wrap">
           <table class="adm-table" [attr.aria-label]="'Historial de ' + r.nombre">
-            <thead><tr><th>Versión</th><th>Estado</th><th>Vigente desde</th><th>Publicada</th><th>Aceptación</th><th>Qué cambió</th><th aria-label="Ver"></th><th aria-label="Acciones"></th></tr></thead>
+            <thead><tr><th>Versión</th><th>Estado</th><th>Vigente desde</th><th>Publicada</th><th>Qué cambió</th><th aria-label="Ver"></th><th aria-label="Acciones"></th></tr></thead>
             <tbody>
               @for (v of r.versiones; track v.version) {
                 <tr>
@@ -98,7 +95,6 @@ const fechaCorta = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse()
                   <td class="det-completo det-chip"><a-pill [tone]="estadoDe(r, v) === 'Vigente' ? 'ok' : estadoDe(r, v) === 'Programada' ? 'warn' : 'muted'">{{ estadoDe(r, v) }}</a-pill></td>
                   <td>{{ fecha(v.vigenteDesde) }}</td>
                   <td>{{ v.publicadaPor }}<span class="block text-xs text-muted-foreground">{{ fecha(v.publicadaEl) }}</span></td>
-                  <td>{{ v.exigeAceptacion ? 'Exige aceptar' : 'Solo informativa' }}</td>
                   <td class="adm-ancha">{{ v.notas }}</td>
                   <td class="det-ojo"><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" [attr.aria-label]="'Ver la versión ' + v.version" title="Ver el texto" (click)="ver.set(v)"><app-icon name="Eye" class="h-4 w-4" /></button></td>
                   <td>
@@ -141,11 +137,7 @@ const fechaCorta = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse()
     </a-modal>
 
     <a-confirm [open]="confirmar()" [title]="'¿Publicar la versión ' + siguiente() + ' de ' + (a()?.nombre ?? '') + '?'" confirmLabel="Publicar" (closed)="confirmar.set(false)" (confirmed)="publicar()">
-      @if (form().exigeAceptacion) {
-        Se avisará por correo y en el sitio a unos <b class="text-foreground">{{ avisos().toLocaleString('es') }}</b> participantes activos, y {{ form().vigenteDesde > hoy ? 'desde el ' + fecha(form().vigenteDesde) : 'desde ahora' }} tendrán que aceptarla para seguir canjeando y comprando puntos.
-      } @else {
-        Será solo informativa: no se pedirá una nueva aceptación.
-      }
+      {{ form().vigenteDesde > hoy ? 'Entrará en vigor el ' + fecha(form().vigenteDesde) + '.' : 'Entra en vigor desde ahora.' }} Los participantes que ya aceptaron no tendrán que aceptarla de nuevo; la leerán en la página {{ a()?.nombre }} del sitio.
       <span class="mt-2 block text-xs">Una versión publicada no se puede editar: para corregirla, publica otra.</span>
     </a-confirm>
   `,
@@ -163,14 +155,13 @@ export class LegalesPage {
   private readonly res = signal<Record<TipoLegal, ResumenLegal> | null>(null);
   protected readonly error = signal("");
   protected readonly a = computed(() => this.res()?.[this.tipo()] ?? null);
-  protected readonly form = signal<Formulario>({ texto: "", intro: "", notas: "", exigeAceptacion: true, vigenteDesde: hoy() });
+  protected readonly form = signal<Formulario>({ texto: "", intro: "", notas: "", vigenteDesde: hoy() });
   /** Estado del formulario tal como se cargó (para saber si hay algo sin guardar). */
   private readonly base = signal("");
   protected readonly errorPublicar = signal("");
   protected readonly ver = signal<VersionLegal | null>(null);
   protected readonly comparacion = signal<{ titulo: string; lineas: LineaDiff[]; resumen: { agregadas: number; quitadas: number }; completo: boolean } | null>(null);
   protected readonly confirmar = signal(false);
-  protected readonly avisos = signal(0);
 
   protected readonly sucio = computed(() => JSON.stringify(this.form()) !== this.base());
   protected readonly hayCambios = computed(() => {
@@ -188,8 +179,8 @@ export class LegalesPage {
       untracked(() => {
         if (!r) return;
         const b = r.borrador;
-        const f: Formulario = b ? { texto: b.texto, intro: b.intro, notas: b.notas, exigeAceptacion: b.exigeAceptacion, vigenteDesde: b.vigenteDesde < hoy() ? hoy() : b.vigenteDesde }
-          : { texto: r.vigente?.texto ?? "", intro: r.vigente?.intro ?? "", notas: "", exigeAceptacion: true, vigenteDesde: hoy() };
+        const f: Formulario = b ? { texto: b.texto, intro: b.intro, notas: b.notas, vigenteDesde: b.vigenteDesde < hoy() ? hoy() : b.vigenteDesde }
+          : { texto: r.vigente?.texto ?? "", intro: r.vigente?.intro ?? "", notas: "", vigenteDesde: hoy() };
         this.form.set(f);
         this.base.set(JSON.stringify(f));
         this.errorPublicar.set("");
@@ -200,7 +191,6 @@ export class LegalesPage {
   protected cargar() {
     this.error.set("");
     this.api.get<Record<TipoLegal, ResumenLegal>>("admin/legales").subscribe({ next: (r) => this.res.set(r), error: () => this.error.set("No pudimos cargar los textos legales. Revisa tu conexión e inténtalo otra vez.") });
-    this.api.get<{ aAvisar: number }>("admin/legales/avisos").subscribe({ next: (x) => this.avisos.set(x.aAvisar), error: () => undefined });
   }
 
   protected set(c: Partial<Formulario>) {
@@ -230,13 +220,13 @@ export class LegalesPage {
     this.api.post<ResumenLegal>(`admin/legales/${this.tipo()}/restaurar/${v.version}`, {}).subscribe((r) => { this.actualizar(r); this.toast.show(`La versión ${v.version} quedó como borrador`); });
   }
   protected pedirPublicar() {
-    if (this.form().notas.trim().length < 10) { this.errorPublicar.set("Explica en pocas palabras qué cambió (mínimo 10 caracteres): es lo que leerán los participantes."); return; }
+    if (this.form().notas.trim().length < 10) { this.errorPublicar.set("Explica en pocas palabras qué cambió (mínimo 10 caracteres): queda en el historial."); return; }
     this.errorPublicar.set("");
     this.confirmar.set(true);
   }
   protected publicar() {
-    this.api.post<ResumenLegal & { avisados: number }>(`admin/legales/${this.tipo()}/publicar`, this.form()).subscribe({
-      next: (r) => { this.actualizar(r); this.toast.show(`Versión ${r.versiones[0]!.version} publicada${r.avisados ? ` · se avisó a ${r.avisados.toLocaleString('es')} participantes` : ""}`); },
+    this.api.post<ResumenLegal>(`admin/legales/${this.tipo()}/publicar`, this.form()).subscribe({
+      next: (r) => { this.actualizar(r); this.toast.show(`Versión ${r.versiones[0]!.version} publicada`); },
       error: (e) => this.errorPublicar.set(e?.error?.message ?? "No se pudo publicar."),
     });
   }

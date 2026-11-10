@@ -1,17 +1,13 @@
 import {
-  debeAceptar, NOMBRE_LEGAL, RUTA_LEGAL, TIPOS_LEGALES, versionEnVigor, versionProgramada,
+  debeAceptar, NOMBRE_LEGAL, TIPOS_LEGALES, versionEnVigor, versionProgramada,
   type AceptacionLegal, type DocLegal, type EstadoLegalesParticipante, type PendienteLegal, type ResumenLegal, type TipoLegal, type VersionLegal,
 } from "../legales";
 import { contexto } from "./contexto";
-import { enviarCorreo } from "./correos";
 import { db } from "./db";
 import { ApiError } from "./types";
 
 /** Fecha de hoy (aaaa-mm-dd): con ella se decide qué versión rige y cuándo entra una programada. */
 export const hoyISO = () => new Date().toISOString().slice(0, 10);
-
-/** Tope de correos de aviso por publicación en la demo (un backend real los encola todos). */
-const MAX_AVISOS = 2000;
 
 const legales = () => (db as any).legales as Record<TipoLegal, DocLegal>;
 const aceptaciones = () => ((db as any).aceptaciones ??= {}) as Record<string, Partial<Record<TipoLegal, AceptacionLegal>>>;
@@ -98,7 +94,7 @@ export function guardarBorrador(tipo: TipoLegal, body: any, usuario: string) {
   if (texto.length > 200_000) throw new ApiError(422, "El texto es demasiado largo.");
   legales()[tipo].borrador = {
     texto, intro: String(body?.intro ?? "").slice(0, 300), notas: String(body?.notas ?? "").slice(0, 1000),
-    exigeAceptacion: body?.exigeAceptacion !== false, vigenteDesde: /^\d{4}-\d{2}-\d{2}$/.test(String(body?.vigenteDesde)) ? String(body.vigenteDesde) : hoyISO(),
+    exigeAceptacion: false, vigenteDesde: /^\d{4}-\d{2}-\d{2}$/.test(String(body?.vigenteDesde)) ? String(body.vigenteDesde) : hoyISO(),
     actualizadoEl: new Date().toISOString(), por: usuario,
   };
   return resumen(tipo);
@@ -110,7 +106,7 @@ export function descartarBorrador(tipo: TipoLegal) {
 export function restaurar(tipo: TipoLegal, version: number, usuario: string) {
   const v = legales()[tipo].versiones.find((x) => x.version === version);
   if (!v) throw new ApiError(404, "Esa versión no existe.");
-  return guardarBorrador(tipo, { texto: v.texto, intro: v.intro, notas: `Basada en la versión ${v.version}. `, exigeAceptacion: true, vigenteDesde: hoyISO() }, usuario);
+  return guardarBorrador(tipo, { texto: v.texto, intro: v.intro, notas: `Basada en la versión ${v.version}. `, vigenteDesde: hoyISO() }, usuario);
 }
 
 /** Cuántas personas recibirían el aviso de una publicación que exige aceptación (participantes activos con correo). */
@@ -123,28 +119,18 @@ export function publicar(tipo: TipoLegal, body: any, usuario: string) {
   const hoy = hoyISO();
   const vigenteDesde = String(body?.vigenteDesde ?? hoy);
   if (!texto) throw new ApiError(422, "El texto no puede estar vacío.");
-  if (notas.length < 10) throw new ApiError(422, "Explica en pocas palabras qué cambió (mínimo 10 caracteres): es lo que leerán los participantes.");
+  if (notas.length < 10) throw new ApiError(422, "Explica en pocas palabras qué cambió (mínimo 10 caracteres): queda en el historial.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(vigenteDesde) || vigenteDesde < hoy) throw new ApiError(422, "La fecha de vigencia no puede ser anterior a hoy.");
   const actual = [...doc.versiones].sort((a, b) => b.version - a.version)[0];
   if (actual && actual.texto.trim() === texto && actual.intro === String(body?.intro ?? "")) throw new ApiError(422, "No hay cambios respecto a la última versión publicada.");
   if (doc.versiones.some((v) => v.vigenteDesde > hoy) && vigenteDesde > hoy) throw new ApiError(409, "Ya hay una versión programada: espera a que entre en vigor o publica con fecha de hoy.");
   const v: VersionLegal = {
-    version: (actual?.version ?? 0) + 1, texto, intro: String(body?.intro ?? "").slice(0, 300), notas, exigeAceptacion: body?.exigeAceptacion !== false,
+    version: (actual?.version ?? 0) + 1, texto, intro: String(body?.intro ?? "").slice(0, 300), notas, exigeAceptacion: false,
     vigenteDesde, publicadaEl: new Date().toISOString(), publicadaPor: usuario,
   };
   doc.versiones.push(v);
   doc.borrador = null;
   sincronizarContenido();
-  let avisados = 0;
-  if (v.exigeAceptacion) {
-    const nombre = NOMBRE_LEGAL[tipo];
-    const entrada = vigenteDesde > hoy ? `Entra en vigor el ${vigenteDesde.split("-").reverse().join("/")}.` : "Ya está en vigor.";
-    for (const p of db.admin.participantes as any[]) {
-      if (avisados >= MAX_AVISOS) break;
-      if (p.estado !== "Activo" || !p.email) continue;
-      enviarCorreo("legales-actualizados", p.email, { documento: nombre, version: v.version, entrada, notas, ruta: RUTA_LEGAL[tipo] }, { destinatario: p.nombre, participanteId: p.id, referencia: `${nombre} v${v.version}` });
-      avisados++;
-    }
-  }
-  return { ...resumen(tipo), avisados };
+  // Los participantes ya registraron su aceptación en el primer ingreso: una versión nueva no se vuelve a pedir ni se les avisa por correo.
+  return { ...resumen(tipo), avisados: 0 };
 }

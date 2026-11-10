@@ -416,7 +416,7 @@ export class WhatsappFabComponent {
 }
 
 /* ------------------------------------------------------------------ */
-/* Aviso que bloquea el sitio hasta aceptar los textos legales nuevos  */
+/* Aceptación de Términos y Política de privacidad: solo en el primer ingreso */
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-legales-gate",
@@ -428,8 +428,8 @@ export class WhatsappFabComponent {
       <div class="fixed inset-0 z-[80] grid place-items-center bg-foreground/60 p-4" role="alertdialog" aria-modal="true" aria-labelledby="legales-titulo" aria-describedby="legales-desc">
         <div #caja tabindex="-1" class="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-card shadow-2xl outline-none">
           <div class="shrink-0 border-b border-border px-6 py-4">
-            <h2 id="legales-titulo" class="text-xl font-bold text-foreground">{{ titulo() }}</h2>
-            <p id="legales-desc" class="mt-1 text-sm text-muted-foreground">{{ subtitulo() }}</p>
+            <h2 id="legales-titulo" class="text-xl font-bold text-foreground">{{ titulo }}</h2>
+            <p id="legales-desc" class="mt-1 text-sm text-muted-foreground">{{ subtitulo }}</p>
           </div>
           <div class="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
             @for (p of legales.pendientes(); track p.tipo) {
@@ -438,24 +438,23 @@ export class WhatsappFabComponent {
                   <h3 class="font-semibold text-foreground">{{ p.nombre }}</h3>
                   <span class="text-xs text-muted-foreground">Versión {{ p.version }} · vigente desde {{ fecha(p.vigenteDesde) }}</span>
                 </div>
-                @if (!p.primera && p.notas) { <p class="mt-2 rounded-lg bg-muted/50 p-3 text-sm"><b>Qué cambió:</b> {{ p.notas }}</p> }
                 <button type="button" class="mt-3 text-sm font-semibold text-primary underline-offset-2 hover:underline" [attr.aria-expanded]="abierto() === p.tipo" (click)="abierto.set(abierto() === p.tipo ? '' : p.tipo)">
                   {{ abierto() === p.tipo ? 'Ocultar el texto' : 'Leer el texto completo' }}
                 </button>
                 @if (abierto() === p.tipo) {
                   <div class="mt-3 max-h-64 overflow-y-auto rounded-lg border border-border bg-background p-4"><app-markdown [texto]="p.texto" /></div>
                 }
+                <label class="mt-3 flex cursor-pointer items-start gap-3 rounded-lg bg-muted/40 p-3 text-sm">
+                  <input type="checkbox" class="mt-0.5 h-5 w-5 shrink-0" [checked]="aceptados().has(p.tipo)" (change)="marcar(p.tipo, $any($event.target).checked)" />
+                  <span>{{ declaracion(p.tipo) }}</span>
+                </label>
               </section>
             }
-            <label class="flex cursor-pointer items-start gap-3 text-sm">
-              <input type="checkbox" class="mt-0.5 h-5 w-5 shrink-0" [checked]="acepto()" (change)="acepto.set($any($event.target).checked)" />
-              <span>He leído y acepto {{ legales.pendientes().length > 1 ? 'los textos indicados' : 'el texto indicado' }}.</span>
-            </label>
             @if (legales.error()) { <p role="alert" class="text-sm font-semibold text-destructive">{{ legales.error() }}</p> }
           </div>
           <div class="flex shrink-0 flex-wrap justify-end gap-2 border-t border-border px-6 py-4">
             <button type="button" class="inline-flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted" (click)="sesion.salir()">Cerrar sesión</button>
-            <button type="button" class="inline-flex h-11 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50" [disabled]="!acepto() || legales.enviando()" (click)="aceptar()">
+            <button type="button" class="inline-flex h-11 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50" [disabled]="!todoAceptado() || legales.enviando()" (click)="aceptar()">
               {{ legales.enviando() ? 'Guardando…' : 'Aceptar y continuar' }}
             </button>
           </div>
@@ -467,22 +466,32 @@ export class WhatsappFabComponent {
 export class LegalesGateComponent {
   protected readonly legales = inject(LegalesService);
   protected readonly sesion = inject(SesionService);
-  protected readonly acepto = signal(false);
+  /** Cada documento se acepta por separado: hace falta marcar todos para continuar. */
+  protected readonly aceptados = signal<ReadonlySet<string>>(new Set());
+  protected readonly todoAceptado = computed(() => this.legales.pendientes().length > 0 && this.legales.pendientes().every((p) => this.aceptados().has(p.tipo)));
   protected readonly abierto = signal("");
+  protected marcar(tipo: string, si: boolean) {
+    this.aceptados.update((s) => { const n = new Set(s); if (si) n.add(tipo); else n.delete(tipo); return n; });
+  }
+  protected declaracion(tipo: string) {
+    return tipo === "privacidad"
+      ? "He leído y acepto la Política de privacidad y autorizo el uso y tratamiento de mis datos personales."
+      : "He leído y acepto los Términos y condiciones de uso.";
+  }
   private readonly caja = viewChild<ElementRef<HTMLElement>>("caja");
-  protected readonly titulo = computed(() => (this.legales.pendientes().every((p) => p.primera) ? "Antes de continuar" : "Actualizamos nuestros textos legales"));
-  protected readonly subtitulo = computed(() =>
-    this.legales.pendientes().every((p) => p.primera) ? "Para usar tu cuenta necesitamos que aceptes lo siguiente." : "Para seguir usando tu cuenta necesitas aceptar la nueva versión.");
+  /** Solo aparece en el primer ingreso: una vez aceptado, no vuelve a salir. */
+  protected readonly titulo = "Antes de continuar";
+  protected readonly subtitulo = "Es tu primer ingreso: para usar tu cuenta necesitamos que aceptes los Términos y condiciones y la Política de privacidad (uso y tratamiento de tus datos). Solo te lo pediremos esta vez.";
   protected fecha = (iso: string) => (iso ? iso.split("-").reverse().join("/") : "");
 
   constructor() {
     effect(() => {
       if (this.legales.hayPendientes()) setTimeout(() => this.caja()?.nativeElement.focus({ preventScroll: true }));
-      else this.acepto.set(false);
+      else this.aceptados.set(new Set());
     });
   }
   protected aceptar() {
-    if (this.acepto()) this.legales.aceptar();
+    if (this.todoAceptado()) this.legales.aceptar();
   }
   /** El foco no sale del aviso mientras esté abierto. */
   protected atrapar(e: KeyboardEvent) {
