@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /carrito
+Disallow: /gracias
+Disallow: /favoritos
+Disallow: /mi-nivel
+Disallow: /notificaciones
+Disallow: /mis-beneficios
+Disallow: /mis-compras
+Disallow: /mis-puntos
+Disallow: /perfil
+Disallow: /contacto
+Disallow: /vuelos/cotizaciones
+Disallow: /buscar
+
+Sitemap: http://localhost:4200/sitemap.xml

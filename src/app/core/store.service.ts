@@ -1,0 +1,210 @@
+import { Injectable, computed, inject, signal } from "@angular/core";
+import type { Observable } from "rxjs";
+import { map, tap } from "rxjs/operators";
+import { ToastService } from "../shared/toast";
+import { ApiService } from "./api.service";
+import { AnaliticaService } from "./analitica.service";
+import { SesionService } from "./sesion.service";
+import { Router } from "@angular/router";
+import { codigoAleatorio, fechaLarga } from "./format";
+import type { CartItem, Cupon, Direccion, Orden, Perfil, Usuario, Notificacion } from "./models";
+
+type UltimaCompraPuntos = { cantidad: number; monto: number; codigo: string };
+/** Lo que informa la pasarela de pago. */
+export type ResultadoPasarela = { resultado: "aprobado" | "rechazado" | "pendiente"; motivo?: string; referencia?: string };
+export type ResultadoCompraPuntos = { estado: "Aprobada" | "Pendiente" | "Fallida"; codigo: string; motivo?: string; puntos: number; monto?: number };
+
+const LS_CART = "bs_carrito";
+const LS_FAV = "bs_favoritos";
+
+const leer = <T>(key: string, vacio: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : vacio;
+  } catch {
+    return vacio;
+  }
+};
+const guardar = (key: string, value: unknown) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* sin almacenamiento disponible */
+  }
+};
+
+/**
+ * Estado de la sesión del participante (equivale al StoreProvider de la versión React).
+ * El carrito y los favoritos se guardan en el navegador; el resto se persiste vía la API.
+ */
+@Injectable({ providedIn: "root" })
+export class StoreService {
+  private readonly api = inject(ApiService);
+  private readonly falla = () => undefined; /* el aviso global de red ya informa; la sesión sigue con los datos que tenga */
+  private readonly toast = inject(ToastService);
+  private readonly sesion = inject(SesionService);
+  private readonly router = inject(Router);
+  private readonly analitica = inject(AnaliticaService);
+
+  /** Acciones de cuenta (favoritos, cupones…): sin sesión se pide ingresar y se vuelve a la página actual. */
+  exigirSesion(): boolean {
+    if (this.sesion.logged()) return true;
+    this.sesion.irAIngresar(this.router.url);
+    return false;
+  }
+
+  readonly usuario = signal<Usuario>({ nombre: "", nivel: "Oro", puntosNivel: 0, puntos: 0 });
+  readonly perfil = signal<Perfil | null>(null);
+  readonly puntos = signal(0);
+  readonly items = signal<CartItem[]>(leer<CartItem[]>(LS_CART, []));
+  readonly favoritos = signal<string[]>(leer<string[]>(LS_FAV, []));
+  readonly cupones = signal<Record<string, Cupon>>({});
+  readonly direcciones = signal<Direccion[]>([]);
+  readonly correos = signal<string[]>([]);
+  readonly ultimaOrden = signal<Orden | null>(null);
+  /** Avisos dentro del sitio (campanita), del más nuevo al más antiguo. */
+  readonly notificaciones = signal<Notificacion[]>([]);
+  readonly noLeidas = computed(() => this.notificaciones().filter((n) => !n.leida).length);
+  readonly ultimaCompraPuntos = signal<UltimaCompraPuntos | null>(null);
+
+  readonly totalItems = computed(() => this.items().reduce((a, i) => a + i.cantidad, 0));
+  readonly totalPuntos = computed(() => this.items().reduce((a, i) => a + i.puntos * i.cantidad, 0));
+
+  /** Carga el estado inicial desde la API (se ejecuta al arrancar la app). */
+  init() {
+    if (!this.sesion.logged()) return; // visitante: solo catálogo y páginas públicas
+    this.api.get<Usuario>("me").subscribe((u) => {
+      this.usuario.set(u);
+      this.puntos.set(u.puntos);
+    });
+    this.api.get<Perfil>("me/perfil").subscribe({ next: (p) => this.perfil.set(p), error: this.falla });
+    this.api.get<Direccion[]>("me/direcciones").subscribe({ next: (d) => this.direcciones.set(d), error: this.falla });
+    this.api.get<string[]>("me/correos").subscribe({ next: (c) => this.correos.set(c), error: this.falla });
+    this.api.get<Record<string, Cupon>>("me/cupones").subscribe({ next: (c) => this.cupones.set(c), error: this.falla });
+    this.cargarNotificaciones();
+  }
+
+  /* ---------------- Notificaciones ---------------- */
+  /** Cada lectura o cambio invalida las lecturas que seguían en camino (una respuesta vieja no debe pisar lo marcado). */
+  private versionNotificaciones = 0;
+  cargarNotificaciones() {
+    const v = ++this.versionNotificaciones;
+    this.api.get<Notificacion[]>("me/notificaciones").subscribe({ next: (n) => v === this.versionNotificaciones && this.notificaciones.set(n), error: this.falla });
+  }
+  /** Marca como leídas las indicadas o, sin argumento, todas. Se refleja al instante y se confirma con el servidor. */
+  marcarLeidas(ids?: string[]) {
+    this.notificaciones.update((l) => l.map((n) => (!ids || ids.includes(n.id) ? { ...n, leida: true } : n)));
+    this.versionNotificaciones++;
+    this.api.post("me/notificaciones/leer", ids ? { ids } : {}).subscribe({ error: this.falla });
+  }
+
+  /* ---------------- Carrito ---------------- */
+  private setItems(next: CartItem[]) {
+    this.items.set(next);
+    guardar(LS_CART, next);
+  }
+
+  add(item: Omit<CartItem, "cantidad">, cantidad = 1) {
+    this.analitica.registrar({ tipo: "agregar_carrito", itemId: item.id, itemTipo: item.tipo });
+    const prev = this.items();
+    const found = prev.find((i) => i.id === item.id);
+    this.setItems(
+      found
+        ? prev.map((i) => (i.id === item.id ? { ...i, cantidad: i.cantidad + cantidad } : i))
+        : [...prev, { ...item, cantidad }],
+    );
+  }
+  setCantidad(id: string, cantidad: number) {
+    this.setItems(this.items().map((i) => (i.id === id ? { ...i, cantidad: Math.max(1, cantidad) } : i)));
+  }
+  remove(id: string) {
+    this.setItems(this.items().filter((i) => i.id !== id));
+  }
+  clear() {
+    this.setItems([]);
+  }
+
+  /* ---------------- Favoritos y cupones ---------------- */
+  toggleFavorito(id: string) {
+    if (!this.exigirSesion()) return;
+    const prev = this.favoritos();
+    const next = prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id];
+    this.favoritos.set(next);
+    guardar(LS_FAV, next);
+    this.api.post<string[]>(`me/favoritos/${id}`).subscribe();
+  }
+  esFavorito(id: string) {
+    return this.favoritos().includes(id);
+  }
+
+  generarCupon(beneficioId: string) {
+    if (!this.exigirSesion()) return;
+    this.api.post<Cupon>("me/cupones", { beneficioId }).subscribe({
+      next: (c) => this.cupones.update((prev) => ({ ...prev, [beneficioId]: c })),
+      error: (e) => this.toast.error(this.mensajeError(e)),
+    });
+  }
+
+  /* ---------------- Direcciones y correos ---------------- */
+  addDireccion(d: Omit<Direccion, "id">): string {
+    const id = `d${Date.now()}`;
+    this.direcciones.update((prev) => [...prev, { ...d, id }]);
+    this.api.post("me/direcciones", { ...d, id }).subscribe();
+    return id;
+  }
+  updateDireccion(d: Direccion) {
+    this.direcciones.update((prev) => prev.map((x) => (x.id === d.id ? d : x)));
+    this.api.put(`me/direcciones/${d.id}`, d).subscribe();
+  }
+  removeDireccion(id: string) {
+    this.direcciones.update((prev) => prev.filter((x) => x.id !== id));
+    this.api.delete(`me/direcciones/${id}`).subscribe();
+  }
+  addCorreo(correo: string) {
+    this.correos.update((prev) => (prev.includes(correo) ? prev : [...prev, correo]));
+    this.api.post("me/correos", { correo }).subscribe();
+  }
+
+  /* ---------------- Operaciones con puntos ---------------- */
+  /** Mensaje legible de un error HTTP de la API. */
+  mensajeError(e: unknown, defecto = "No pudimos completar la operación. Inténtalo de nuevo.") {
+    return (e as { error?: { message?: string } })?.error?.message ?? defecto;
+  }
+
+  sumarPuntos(cantidad: number) {
+    this.api.post<{ puntos: number }>("me/puntos/sumar", { cantidad }).subscribe({
+      next: (r) => this.puntos.set(r.puntos),
+      error: (e) => this.toast.error(this.mensajeError(e)),
+    });
+  }
+
+  /** Confirma el canje en la API (valida saldo y cuenta) y solo entonces actualiza el estado local. */
+  finalizarCompra(o: Omit<Orden, "codigo" | "fecha" | "hora">): Observable<Orden> {
+    return this.api.post<{ codigo: string; fecha: string; hora: string; puntos: number }>("ordenes", o).pipe(
+      map((r): Orden => ({ ...o, codigo: r.codigo, fecha: r.fecha, hora: r.hora })),
+      tap((orden) => {
+        this.puntos.update((p) => Math.max(0, p - o.puntosUsados));
+        for (const i of o.items) this.analitica.registrar({ tipo: "canje", itemId: i.id, itemTipo: i.tipo });
+        this.setItems([]);
+        this.ultimaOrden.set(orden);
+      }),
+    );
+  }
+
+  /** Paso 1: crea la compra (queda pendiente de pago, sin acreditar nada). */
+  iniciarCompraPuntos(cantidad: number): Observable<{ codigo: string; cantidad: number; monto: number }> {
+    return this.api.post<{ codigo: string; cantidad: number; monto: number }>("me/puntos/compra", { cantidad });
+  }
+  /** Paso 2: registra lo que respondió la pasarela. Si se aprobó, el saldo ya viene actualizado. Una compra fallida se puede reintentar. */
+  pagarCompraPuntos(compra: { codigo: string; cantidad: number; monto: number }, pago: ResultadoPasarela): Observable<ResultadoCompraPuntos> {
+    return this.api.post<ResultadoCompraPuntos>(`me/puntos/compra/${compra.codigo}/pago`, pago).pipe(
+      tap((r) => {
+        if (r.estado === "Aprobada") {
+          this.puntos.set(r.puntos);
+          this.ultimaCompraPuntos.set({ cantidad: compra.cantidad, monto: compra.monto, codigo: compra.codigo });
+        }
+        this.cargarNotificaciones();
+      }),
+    );
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "angular-app",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "e2e": "playwright test",
+    "api:docs": "node scripts/generar-openapi.mjs",
+    "seo:archivos": "node scripts/generar-seo.mjs",
+    "e2e:ui": "playwright test --ui"
+  },
+  "private": true,
+  "packageManager": "npm@11.7.0",
+  "dependencies": {
+    "@angular/common": "^22.2.4",
+    "@angular/compiler": "^22.2.4",
+    "@angular/core": "^22.2.4",
+    "@angular/forms": "^22.2.4",
+    "@angular/platform-browser": "^22.2.4",
+    "@angular/router": "^22.2.4",
+    "chart.js": "^4.6.1",
+    "leaflet": "^1.9.4",
+    "lucide-angular": "^1.0.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.2.5",
+    "@angular/cli": "^22.2.5",
+    "@angular/compiler-cli": "^22.2.4",
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/leaflet": "^1.9.22",
+    "flag-icons": "^7.6.0",
+    "jsdom": "^29.1.1",
+    "node": "^24.22.2",
+    "postcss": "^8.5.32",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.12"
+  }
+}

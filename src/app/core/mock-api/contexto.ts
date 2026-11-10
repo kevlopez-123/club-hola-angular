@@ -1,0 +1,2 @@
+/** Quién hace la petición que se está atendiendo (la API simulada es síncrona: el interceptor lo fija antes de llamar a cada ruta). */
+export const contexto: { usuarioPanelId: string | null } = { usuarioPanelId: null };
