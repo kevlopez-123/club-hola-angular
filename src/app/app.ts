@@ -3,6 +3,7 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { filter, map } from "rxjs";
 import { ConexionService } from "./core/conexion.service";
+import { LegalesService } from "./core/legales.service";
 import { SesionService } from "./core/sesion.service";
 import { CookiesComponent } from "./shared/cookies";
 import { AvisoRedComponent } from "./shared/aviso-red";
@@ -18,6 +19,7 @@ export class App {
   private readonly router = inject(Router);
   private readonly conexion = inject(ConexionService);
   private readonly sesion = inject(SesionService);
+  private readonly legales = inject(LegalesService);
   /** Límite de caracteres en todos los campos de texto (ver shared/limites-campos). */
   private readonly limites = inject(LimitesCampos).iniciar();
   /** Un 401 del API en el sitio (token vencido o ausente): se pide ingresar de nuevo y se vuelve a la página actual. */
@@ -29,5 +31,6 @@ export class App {
   });
   private readonly url = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)), { initialValue: location.pathname });
   /** El aviso de cookies es del sitio del participante (incluye el ingreso); el panel interno no lo muestra. */
-  protected readonly conCookies = computed(() => !this.url().startsWith("/admin"));
+  /** En el primer ingreso se pide primero aceptar Términos y Privacidad: el aviso de cookies espera para no taparlo. */
+  protected readonly conCookies = computed(() => !this.url().startsWith("/admin") && !this.legales.hayPendientes());
 }
