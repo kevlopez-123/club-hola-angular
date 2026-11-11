@@ -90,16 +90,11 @@ export class EventoCardComponent {
   imports: [RouterLink, CategoryStripComponent, EventoCardComponent, SectionTitleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="relative overflow-hidden">
-      <img src="img/e-hero.jpg" alt="Eventos exclusivos" width="1600" height="700" class="h-[260px] w-full object-cover sm:h-[340px]" />
-      <div class="absolute inset-0 bg-gradient-to-r from-brand-dark/90 via-brand-dark/60 to-transparent"></div>
-      <div class="page-container absolute inset-0 flex flex-col justify-center">
-        <span class="badge-pill w-fit bg-lima px-5 py-1 text-sm font-bold text-ink">Eventos</span>
-        <h1 class="mt-3 max-w-xl text-2xl font-extrabold text-white sm:text-4xl">Experiencias exclusivas para tarjetahabientes</h1>
-        <p class="mt-3 max-w-lg text-base text-white/85">Cenas privadas, catas, funciones exclusivas y más. Pre-inscríbete o revive los eventos pasados en nuestra galería.</p>
-      </div>
+    <section class="overflow-hidden">
+      <img src="img/e-hero.jpg" alt="Eventos exclusivos para tarjetahabientes" width="1600" height="700" class="aspect-[16/9] w-full object-cover sm:aspect-[21/8] lg:aspect-[3/1]" />
     </section>
 
+    <h1 class="sr-only">Eventos exclusivos</h1>
     <section class="bg-background py-6">
       <div class="page-container">
         <div class="mx-auto flex w-fit rounded-full bg-secondary p-1" role="tablist" aria-label="Próximos o pasados">

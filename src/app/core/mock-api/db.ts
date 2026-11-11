@@ -34,7 +34,7 @@ import { presetPorId, TENANT_POR_DEFECTO } from "../../tenants/presets";
 const clone = <T>(v: T): T => structuredClone(v);
 
 /** Clave de localStorage donde se guarda la base simulada. Subir la versión invalida datos viejos. */
-export const DB_KEY = "bancosolidario_mockdb_v17";
+export const DB_KEY = "bancosolidario_mockdb_v18";
 
 /**
  * "Base de datos" del backend simulado. Cada petición a /api/* se resuelve contra este estado,

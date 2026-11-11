@@ -6,41 +6,25 @@ export const slidesClubHola: Slide[] = [
     "id": "edo",
     "imagen": "img/hero-sushi.jpg",
     "alt": "EDO SUSHI BAR · EDO SUSHI BAR",
-    "to": "/beneficios",
-    "marca": "EDO SUSHI BAR",
-    "titulo": "EDO SUSHI BAR",
-    "descuento": "25%",
-    "cta": "Conoce más"
+    "to": "/beneficios"
   },
   {
     "id": "cineplanet",
     "imagen": "img/hero-cine.jpg",
     "alt": "CINEPLANET · 2x1 EN ENTRADAS",
-    "to": "/beneficios",
-    "marca": "CINEPLANET",
-    "titulo": "2x1 EN ENTRADAS",
-    "descuento": "50%",
-    "cta": "Conoce más"
+    "to": "/beneficios"
   },
   {
     "id": "giftcards",
     "imagen": "img/hero-giftcard.jpg",
     "alt": "GIFT CARDS · GIFT CARDS CON DESCUENTO",
-    "to": "/beneficios",
-    "marca": "GIFT CARDS",
-    "titulo": "GIFT CARDS CON DESCUENTO",
-    "descuento": "2x1",
-    "cta": "Ver beneficio"
+    "to": "/beneficios"
   },
   {
     "id": "cineplanet-home",
     "imagen": "img/b-cine.jpg",
     "alt": "CINEPLANET · COMBO CANCHITA + GASEOSA",
-    "to": "/beneficios",
-    "marca": "CINEPLANET",
-    "titulo": "COMBO CANCHITA + GASEOSA",
-    "descuento": "2x1",
-    "cta": "Ver beneficio"
+    "to": "/beneficios"
   }
 ];
 
@@ -49,41 +33,25 @@ export const slidesBeneficiosClubHola: Slide[] = [
     "id": "pardos",
     "imagen": "img/b-polleria.jpg",
     "alt": "PARDOS CHICKEN · SABOR EN FAMILIA",
-    "to": "/beneficios",
-    "marca": "PARDOS CHICKEN",
-    "titulo": "SABOR EN FAMILIA",
-    "descuento": "30%",
-    "cta": "Ver beneficio"
+    "to": "/beneficios"
   },
   {
     "id": "giftcards-ben",
     "imagen": "img/hero-giftcard.jpg",
     "alt": "GIFT CARDS · BENEFICIOS EXCLUSIVOS EN GIFT CARDS",
-    "to": "/beneficios",
-    "marca": "GIFT CARDS",
-    "titulo": "BENEFICIOS EXCLUSIVOS EN GIFT CARDS",
-    "descuento": "2x1",
-    "cta": "Ver beneficio"
+    "to": "/beneficios"
   },
   {
     "id": "cineplanet-ben",
     "imagen": "img/b-cine.jpg",
     "alt": "CINEPLANET · 2X1 EN ENTRADAS 2D",
-    "to": "/beneficios",
-    "marca": "CINEPLANET",
-    "titulo": "2X1 EN ENTRADAS 2D",
-    "descuento": "2x1",
-    "cta": "Ver beneficio"
+    "to": "/beneficios"
   },
   {
     "id": "casaandina",
     "imagen": "img/b-hotel.jpg",
     "alt": "CASA ANDINA · ESCÁPATE A PARACAS",
-    "to": "/beneficios",
-    "marca": "CASA ANDINA",
-    "titulo": "ESCÁPATE A PARACAS",
-    "descuento": "15%",
-    "cta": "Ver beneficio"
+    "to": "/beneficios"
   }
 ];
 

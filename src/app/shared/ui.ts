@@ -103,7 +103,7 @@ export class SectionTitleComponent {
   template: `
     @if (items().length) {
       <section aria-label="Promociones destacadas" class="relative w-full overflow-hidden bg-surface" (mouseenter)="encima.set(true)" (mouseleave)="encima.set(false)" (focusin)="encima.set(true)" (focusout)="encima.set(false)">
-        <div [class]="conTexto() ? 'relative h-[480px] w-full lg:h-[460px]' : 'relative w-full sm:aspect-[21/8] lg:aspect-[3/1] ' + (hayMovil() ? 'aspect-square' : 'aspect-[16/9]')">
+        <div [class]="'relative w-full sm:aspect-[21/8] lg:aspect-[3/1] ' + (hayMovil() ? 'aspect-square' : 'aspect-[16/9]')">
           @for (slide of items(); track slide.id; let i = $index) {
             <div
               class="absolute inset-0 transition-opacity duration-700"
@@ -112,24 +112,7 @@ export class SectionTitleComponent {
               [class.pointer-events-none]="i !== index()"
               [class.opacity-0]="i !== index()"
             >
-              @if (slide.titulo) {
-                <div class="grid h-full grid-rows-[55%_45%] lg:grid-cols-[58%_42%] lg:grid-rows-1">
-                  <div class="relative overflow-hidden">
-                    <img [src]="slide.imagen" [alt]="slide.marca ?? slide.alt" width="1200" height="800" [attr.loading]="i === 0 ? 'eager' : 'lazy'" class="h-full w-full object-cover" />
-                    <div class="absolute inset-y-0 right-0 hidden w-24 bg-surface [clip-path:polygon(100%_0,100%_100%,0_100%)] lg:block"></div>
-                    @if (slide.descuento) {
-                      <div class="absolute bottom-4 right-4 grid h-24 w-24 place-items-center rounded-full bg-celeste text-center text-white shadow-lg lg:bottom-auto lg:right-10 lg:top-1/2 lg:h-28 lg:w-28 lg:-translate-y-1/2">
-                        <div><p class="text-2xl font-extrabold leading-none lg:text-3xl">{{ slide.descuento }}</p><p class="text-xs lg:text-sm">Dscto.</p></div>
-                      </div>
-                    }
-                  </div>
-                  <div class="flex flex-col items-center justify-center gap-3 px-6 py-8 pb-12 text-center">
-                    @if (slide.marca) { <p class="border-b border-ink/20 pb-1 text-xs font-semibold tracking-[0.2em] text-ink/70">{{ slide.marca }}</p> }
-                    <h2 class="text-2xl font-extrabold text-ink lg:text-4xl">{{ slide.titulo }}</h2>
-                    <a [routerLink]="slide.to || '/beneficios'" class="mt-2 inline-flex min-h-11 items-center rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.03]">{{ slide.cta || 'Conoce más' }}</a>
-                  </div>
-                </div>
-              } @else if (slide.to) {
+              @if (slide.to) {
                 <a [routerLink]="slide.to" class="block h-full w-full">
                   <picture>
                     @if (slide.imagenMovil) { <source media="(max-width: 639px)" [srcset]="slide.imagenMovil" /> }
@@ -170,8 +153,6 @@ export class SectionTitleComponent {
 export class HeroSliderComponent {
   readonly items = input<Slide[]>([]);
   /** Si algún banner trae versión para móvil, en celular la caja pasa de 16:9 a cuadrada para aprovecharla. */
-  /** Banners con marca, título y botón (estilo Club Hola) en lugar de solo imagen. */
-  protected readonly conTexto = computed(() => this.items().some((s) => !!s.titulo));
   protected readonly hayMovil = computed(() => this.items().some((s) => !!s.imagenMovil));
   protected readonly index = signal(0);
   /** El carrusel no avanza solo si la persona pidió menos movimiento. */

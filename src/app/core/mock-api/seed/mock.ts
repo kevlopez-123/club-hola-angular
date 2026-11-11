@@ -37,11 +37,6 @@ export type Slide = {
   imagenMovil?: string | undefined;
   alt: string;
   to?: string;
-  /** Marca, título, descuento y botón del banner (si faltan, es solo una imagen). */
-  marca?: string | undefined;
-  titulo?: string | undefined;
-  descuento?: string | undefined;
-  cta?: string | undefined;
 };
 
 export const slides: Slide[] = slidesClubHola;

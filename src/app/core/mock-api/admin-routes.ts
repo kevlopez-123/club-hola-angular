@@ -84,7 +84,7 @@ const sincronizar: Partial<Record<Lista, (anterior: any[]) => void>> = {
   },
   banners: () => {
     const web = db.admin.banners.filter((b) => b.canal === "Web" && vigente(b));
-    const por = (u: string) => web.filter((b) => b.ubicacion === u).map(({ id, imagen, imagenMovil, alt, to, marca, titulo, descuento, cta }: any) => ({ id: id ?? crypto.randomUUID(), imagen, imagenMovil, alt, to, marca, titulo, descuento, cta }));
+    const por = (u: string) => web.filter((b) => b.ubicacion === u).map(({ id, imagen, imagenMovil, alt, to }: any) => ({ id: id ?? crypto.randomUUID(), imagen, imagenMovil, alt, to }));
     db.catalogo.banners["home"] = por("Home");
     db.catalogo.banners["beneficios"] = por("Beneficios");
   },

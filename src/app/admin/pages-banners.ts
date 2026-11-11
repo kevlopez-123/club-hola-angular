@@ -29,11 +29,6 @@ type Banner = {
   imagenMovil?: string | undefined;
   alt: string;
   to?: string | undefined;
-  /** Texto del banner estilo Club Hola (opcional): si hay título, el banner muestra marca, título, descuento y botón. */
-  marca?: string | undefined;
-  titulo?: string | undefined;
-  descuento?: string | undefined;
-  cta?: string | undefined;
   canal: Canal;
   ubicacion: string;
   activo: boolean;
@@ -184,12 +179,6 @@ const estadoB = (b: Banner) =>
               />
             </a-field>
           }
-          <div class="grid grid-cols-2 gap-3">
-            <a-field label="Marca (opcional)"><input [class]="input" maxlength="40" [value]="e.marca ?? ''" (input)="setB({ marca: $any($event.target).value })" /></a-field>
-            <a-field label="Descuento (opcional)"><input [class]="input" maxlength="8" placeholder="25%" [value]="e.descuento ?? ''" (input)="setB({ descuento: $any($event.target).value })" /></a-field>
-            <a-field label="Título (activa el estilo con texto)"><input [class]="input" maxlength="60" [value]="e.titulo ?? ''" (input)="setB({ titulo: $any($event.target).value })" /></a-field>
-            <a-field label="Texto del botón"><input [class]="input" maxlength="24" placeholder="Conoce más" [value]="e.cta ?? ''" (input)="setB({ cta: $any($event.target).value })" /></a-field>
-          </div>
           <a-field label="Texto alternativo"
             ><input
               [class]="input"
