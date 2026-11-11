@@ -70,6 +70,7 @@ export const COLUMNAS: Record<TipoCarga, ColCarga[]> = {
     { clave: "descuento", titulo: "Descuento", tipo: "texto", obligatoria: true, limite: "etiqueta", ayuda: "Texto corto del descuento.", ejemplo: "30%" },
     { clave: "modalidad", titulo: "Modalidad", tipo: "opcion", opciones: ["Cupón", "Compra"], ayuda: "Cupón: se genera un código para el comercio. Compra: se agrega al carrito y se paga con tarjeta. Vacío: Cupón.", ejemplo: "Cupón" },
     { clave: "precio", titulo: "Precio US$", tipo: "decimal", min: 0, max: 1000000, ayuda: "Precio en dólares (solo si tiene costo).", ejemplo: 0, alias: ["precio", "precio usd"] },
+    { clave: "nivel", titulo: "Nivel mínimo", tipo: "opcion", opciones: ["Clásico", "Plata", "Oro", "Diamante"], ayuda: "Nivel desde el que se ve el beneficio. Vacío: todos los niveles (al crear) o sin cambios (al actualizar).", ejemplo: "Oro", alias: ["nivel minimo", "nivel"] },
     { clave: "descripcion", titulo: "Descripción", tipo: "texto", limite: "descripcion", ayuda: "Texto de la ficha.", ejemplo: "Combo familiar de pollo asado con papas y ensalada." },
     { clave: "pasos", titulo: "Pasos", tipo: "lista", limite: "breve", ayuda: "Pasos para usarlo, separados por punto y coma. Vacío: los pasos estándar.", ejemplo: "Genera el cupón; Preséntalo en el local" },
     { clave: "terminos", titulo: "Términos", tipo: "texto", limite: "descripcion", ayuda: "Términos y condiciones.", ejemplo: "Válido de lunes a jueves." },
@@ -119,7 +120,7 @@ const sn = (v: unknown) => (v === false ? "No" : "Sí");
 export function filaDeEntidad(tipo: TipoCarga, e: any): (string | number)[] {
   switch (tipo) {
     case "beneficios":
-      return [e.id, e.nombre ?? "", e.marca ?? "", e.categoria ?? "", e.descuento ?? "", e.tipo === "compra" ? "Compra" : "Cupón", e.precio ?? "", e.descripcion ?? "", lista(e.pasos), e.terminos ?? "", e.desde ?? "", e.hasta ?? "", lista(e.provincias), e.modoCodigo === "compartido" ? (e.codigoCompartido ?? "") : "", e.modoCodigo === "compartido" ? (e.usosMaximos ?? "") : "", e.cupon?.horas ?? "", e.cupon?.limite ?? "", e.cupon?.meses ?? "", soloUrls(e.imagenes?.length ? e.imagenes : e.galeria), sn(e.activo)];
+      return [e.id, e.nombre ?? "", e.marca ?? "", e.categoria ?? "", e.descuento ?? "", e.tipo === "compra" ? "Compra" : "Cupón", e.precio ?? "", e.nivelMinimo ?? "", e.descripcion ?? "", lista(e.pasos), e.terminos ?? "", e.desde ?? "", e.hasta ?? "", lista(e.provincias), e.modoCodigo === "compartido" ? (e.codigoCompartido ?? "") : "", e.modoCodigo === "compartido" ? (e.usosMaximos ?? "") : "", e.cupon?.horas ?? "", e.cupon?.limite ?? "", e.cupon?.meses ?? "", soloUrls(e.imagenes?.length ? e.imagenes : e.galeria), sn(e.activo)];
     case "marcas":
       return [e.nombre ?? "", e.web ?? "", e.descripcion ?? "", soloUrls([e.logo]), sn(e.activo)];
     default:
@@ -151,7 +152,7 @@ export function plantillaDe(tipo: TipoCarga): PlantillaDef {
   const ej: Record<TipoCarga, (string | number)[][]> = {
     participantes: [["0923456781", "Luis Mora", "luis.mora@correo.com", "Clásico"]],
     codigos: [["ABC-0002"], ["ABC-0003"]],
-    beneficios: [["CAFE-2X1", "2x1 en bebidas grandes", "Sweet & Coffee", "Cafeterías", "2x1", "Cupón", 0, "", "", "", "2026-12-01", "2027-03-31", "Pichincha; Azuay", "", 0, 24, 1, 3, "", "Sí"]],
+    beneficios: [["CAFE-2X1", "2x1 en bebidas grandes", "Sweet & Coffee", "Cafeterías", "2x1", "Cupón", 0, "Oro", "", "", "", "2026-12-01", "2027-03-31", "Pichincha; Azuay", "", 0, 24, 1, 3, "", "Sí"]],
     marcas: [["Sweet & Coffee", "https://www.sweetandcoffee.com", "Cafeterías", "sweet.png", "Sí"]],
   };
   return plantillaDeColumnas(d.columnas, { titulo: d.titulo, descripcion: base, ejemplos: ej[tipo], notas });
@@ -221,7 +222,7 @@ function construirBeneficio(v: Valores, ctx: CtxCarga, previo: any): { entidad?:
   const compartido = v["codigocompartido"] !== undefined;
   const cambios = quitarClave({
     nombre: v["nombre"], marca: marca?.nombre, marcaUrl: marca?.web ?? "", categoria: cat?.label, categoriaSlug: cat?.slug, descuento: v["descuento"],
-    tipo: modalidad, precio: v["precio"],
+    tipo: modalidad, precio: v["precio"], nivelMinimo: v["nivel"],
     descripcion: v["descripcion"], pasos: v["pasos"], terminos: v["terminos"],
     desde: v["desde"], hasta: v["hasta"], provincias, cupon,
     ...(compartido ? { modoCodigo: "compartido", codigoCompartido: String(v["codigocompartido"]).toUpperCase(), ...(v["usosmaximos"] !== undefined ? { usosMaximos: v["usosmaximos"] } : {}) } : {}),

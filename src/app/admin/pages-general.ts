@@ -218,6 +218,7 @@ export class ConfiguracionPage {
   protected readonly textosHomeBase = TEXTOS_HOME;
   protected readonly camposHome: { k: keyof TextosHome; l: string }[] = [
         { k: "beneficiosTitulo", l: "Beneficios: título" }, { k: "beneficiosResalte", l: "Beneficios: palabra destacada" },
+    { k: "nivelesTitulo", l: "Beneficios por nivel: título" }, { k: "nivelesResalte", l: "Beneficios por nivel: palabra destacada" },
     { k: "categoriasTitulo", l: "Categorías: título" }, { k: "categoriasResalte", l: "Categorías: palabra destacada" },
     { k: "ctaCatalogoTitulo", l: "Tarjeta Catálogo: título" }, { k: "ctaCatalogoBoton", l: "Tarjeta Catálogo: botón" },
     { k: "ctaCatalogoTexto", l: "Tarjeta Catálogo: texto" }, { k: "ctaContactoTitulo", l: "Tarjeta Contacto: título" },

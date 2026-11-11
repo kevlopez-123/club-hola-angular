@@ -9,6 +9,7 @@ import { CatalogService } from "../core/catalog.service";
 import { BrandService } from "../core/brand.service";
 import { StoreService } from "../core/store.service";
 import { formatUSD } from "../core/format";
+import { SesionService } from "../core/sesion.service";
 import type { Categoria } from "../core/models";
 
 export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
@@ -351,11 +352,65 @@ export class PaymentGatewayModalComponent {
 export class BenefitsSectionComponent {
   private readonly catalog = inject(CatalogService);
   private readonly scroller = viewChild.required<ElementRef<HTMLElement>>("scroller");
+  /** Los beneficios sin nivel mínimo (los de cada nivel se ven en su propia sección). */
   protected readonly ordenados = computed(() =>
-    [...this.catalog.beneficios()].sort((a, b) => Number(b.tipo === "compra") - Number(a.tipo === "compra")),
+    this.catalog.beneficios().filter((b) => !b.nivelMinimo).sort((a, b) => Number(b.tipo === "compra") - Number(a.tipo === "compra")),
   );
   protected scroll(dir: number) {
     this.scroller().nativeElement.scrollBy({ left: dir * 300, behavior: "smooth" });
+  }
+}
+
+@Component({
+  selector: "app-nivel-benefits-section",
+  imports: [IconComponent, SectionTitleComponent, BenefitCardComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <section class="bg-background py-14 sm:py-16">
+      <div class="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10">
+        <app-section-title [text]="catalog.textosHome().nivelesTitulo" [highlight]="catalog.textosHome().nivelesResalte" />
+        @for (n of filas(); track n.id) {
+          <section [attr.aria-label]="'Beneficios nivel ' + n.nombre" class="mt-10 border-t border-border pt-8">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <h2 class="flex items-center gap-2 text-2xl font-extrabold text-ink">
+                <app-icon name="Gem" class="h-6 w-6" [style.color]="n.color" /> Nivel {{ n.nombre }}
+                @if (sesion.logged() && esMio(n)) { <span class="text-sm font-semibold text-primary">Tu nivel</span> }
+              </h2>
+              <div class="flex shrink-0 gap-2">
+                <button type="button" [attr.aria-label]="'Beneficios anteriores de ' + n.nombre" (click)="scroll(carril, n.id, -1)"
+                  class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary transition-colors hover:bg-primary hover:text-primary-foreground"><app-icon name="ChevronLeft" class="h-4 w-4" /></button>
+                <button type="button" [attr.aria-label]="'Más beneficios de ' + n.nombre" (click)="scroll(carril, n.id, 1)"
+                  class="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105"><app-icon name="ChevronRight" class="h-4 w-4" /></button>
+              </div>
+            </div>
+            <div [attr.data-carril]="n.id" class="no-scrollbar scroll-gutter mt-4 flex snap-x gap-5 overflow-x-auto">
+              @for (b of n.lista; track b.id) { <app-benefit-card [beneficio]="b" class="w-[240px] shrink-0 snap-start sm:w-[260px]" /> }
+            </div>
+          </section>
+        }
+      </div>
+    </section>
+  `,
+})
+export class NivelBenefitsSectionComponent {
+  protected readonly catalog = inject(CatalogService);
+  protected readonly sesion = inject(SesionService);
+  private readonly store = inject(StoreService);
+  protected readonly carril = "carril";
+  /** Cada nivel con sus beneficios; los que no piden nivel se muestran en el primero (Clásico), como en el React. */
+  protected readonly filas = computed(() => {
+    const niveles = this.catalog.niveles();
+    const todos = this.catalog.beneficios();
+    return niveles
+      .map((n, i) => ({ ...n, lista: todos.filter((b) => (b.nivelMinimo ? b.nivelMinimo === n.id || b.nivelMinimo === n.nombre : i === 0)) }))
+      .filter((n) => n.lista.length > 0);
+  });
+  protected esMio(n: { id: string; nombre: string }) {
+    const u = this.store.usuario().nivel;
+    return n.id === u || n.nombre === u;
+  }
+  protected scroll(_: string, id: string, dir: number) {
+    document.querySelector<HTMLElement>(`[data-carril="${id}"]`)?.scrollBy({ left: dir * 300, behavior: "smooth" });
   }
 }
 

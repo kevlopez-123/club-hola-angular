@@ -19,7 +19,7 @@ import {
   SectionTitleComponent,
 } from "../shared/ui";
 import {
-  BenefitsSectionComponent, CategoryStripComponent, CtaDuoComponent, HomeCategoriesComponent,
+  BenefitsSectionComponent, NivelBenefitsSectionComponent, CategoryStripComponent, CtaDuoComponent, HomeCategoriesComponent,
   OrdenSelectComponent, SearchFilterBarComponent, type OrdenCatalogo,
 } from "../shared/widgets";
 import { Countdown } from "../shared/countdown";
@@ -29,7 +29,7 @@ import { Countdown } from "../shared/countdown";
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-home-page",
-  imports: [HeroSliderComponent, BenefitsSectionComponent, CtaDuoComponent, HomeCategoriesComponent],
+  imports: [HeroSliderComponent, BenefitsSectionComponent, NivelBenefitsSectionComponent, CtaDuoComponent, HomeCategoriesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="sr-only">{{ brand.programa() }}: beneficios y descuentos exclusivos para ti</h1>
@@ -37,6 +37,7 @@ import { Countdown } from "../shared/countdown";
       @switch (s.id) {
         @case ("banners") { <app-hero-slider [items]="catalog.bannersHome()" /> }
         @case ("categorias") { <app-home-categories /> }
+        @case ("niveles") { <div class="animate-fade-up"><app-nivel-benefits-section /></div> }
         @case ("beneficios") { <app-benefits-section /> }
         @case ("cta-duo") { <app-cta-duo /> }
       }
@@ -48,7 +49,7 @@ export class HomePage {
   protected readonly brand = inject(BrandService);
   /** Orden y visibilidad de la portada: se configuran en Admin → Contenido → Secciones del Home. */
   protected readonly secciones = computed(() => {
-    const porDefecto = ["banners", "beneficios", "cta-duo"].map((id) => ({ id, s: id, on: true }));
+    const porDefecto = ["banners", "niveles", "beneficios", "cta-duo"].map((id) => ({ id, s: id, on: true }));
     return (this.catalog.config()?.seccionesHome ?? porDefecto).filter((s) => s.on);
   });
 }

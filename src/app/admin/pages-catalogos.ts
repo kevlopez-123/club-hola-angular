@@ -1,3 +1,4 @@
+import { CatalogService } from '../core/catalog.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -551,7 +552,14 @@ type Lote = {
                 [value]="e.precio ?? 0"
                 (input)="setE({ precio: +$any($event.target).value })"
             /></a-field>
+            <a-field label="Nivel mínimo">
+              <select [class]="input" aria-label="Nivel mínimo" (change)="setE({ nivelMinimo: $any($event.target).value || undefined })">
+                <option value="" [selected]="!e.nivelMinimo">Todos los niveles</option>
+                @for (n of catalog.niveles(); track n.id) { <option [value]="n.nombre" [selected]="n.nombre === e.nivelMinimo || n.id === e.nivelMinimo">{{ n.nombre }}</option> }
+              </select>
+            </a-field>
           </div>
+          <p class="-mt-1 text-xs text-muted-foreground">Con un nivel mínimo, el beneficio aparece en la sección de ese nivel del inicio y se bloquea (con candado) para quienes tienen un nivel menor.</p>
           <a-field label="Pasos de uso (uno por línea)">
             <textarea
               [class]="input + ' h-28 py-2'"
@@ -700,6 +708,7 @@ export class BeneficiosAdminPage {
   protected readonly toast = inject(ToastService);
   private readonly admin = inject(AdminApi);
   private readonly api = inject(ApiService);
+  protected readonly catalog = inject(CatalogService);
   protected readonly input = INPUT_CLS;
   protected readonly usd = formatUSD;
   protected readonly tabs = [

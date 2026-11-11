@@ -32,12 +32,14 @@ export const TEXTOS_INGRESO: TextosIngreso = {
 /** Textos de las secciones de la portada. El título y la palabra destacada (en un recuadro de color) van por separado. */
 export type TextosHome = {
   beneficiosTitulo: string; beneficiosResalte: string;
+  nivelesTitulo: string; nivelesResalte: string;
   categoriasTitulo: string; categoriasResalte: string;
   ctaCatalogoTitulo: string; ctaCatalogoTexto: string; ctaCatalogoBoton: string;
   ctaContactoTitulo: string; ctaContactoTexto: string; ctaContactoBoton: string;
 };
 export const TEXTOS_HOME: TextosHome = {
   beneficiosTitulo: "Disfruta de grandiosos", beneficiosResalte: "beneficios",
+  nivelesTitulo: "Beneficios destacados por", nivelesResalte: "nivel",
   categoriasTitulo: "Explora por", categoriasResalte: "categorías",
   ctaCatalogoTitulo: "Beneficios para ti", ctaCatalogoTexto: "Explora descuentos y experiencias exclusivas con tu tarjeta", ctaCatalogoBoton: "Ver beneficios",
   ctaContactoTitulo: "Contáctanos", ctaContactoTexto: "¿Tienes dudas o necesitas ayuda?", ctaContactoBoton: "Obtener ayuda",

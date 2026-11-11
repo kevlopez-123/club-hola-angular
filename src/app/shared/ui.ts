@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inj
 import { RouterLink } from "@angular/router";
 import { IconComponent } from "./icon.component";
 import { StoreService } from "../core/store.service";
+import { CatalogService } from "../core/catalog.service";
+import { SesionService } from "../core/sesion.service";
+import { tieneAcceso } from "../core/mock-api/seed/niveles";
 import { BrandService } from "../core/brand.service";
 import { formatUSD } from "../core/format";
 import { claseEtiqueta } from "../core/promo";
@@ -198,7 +201,7 @@ const cardBase = "card-elevate group flex h-full flex-col overflow-hidden rounde
 
 @Component({
   selector: "app-benefit-card",
-  imports: [RouterLink, FavButtonComponent],
+  imports: [RouterLink, FavButtonComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: "block h-full" },
   template: `
@@ -212,7 +215,17 @@ const cardBase = "card-elevate group flex h-full flex-col overflow-hidden rounde
         <div class="absolute left-3 top-3 flex flex-col items-start gap-1">
           @if (beneficio().promoEtiqueta) { <span class="rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground">{{ beneficio().promoEtiqueta }}</span> }
           @if (beneficio().etiqueta) { <span [class]="'rounded-full px-3 py-1 text-xs font-bold ' + claseEtiqueta(beneficio().etiquetaColor)">{{ beneficio().etiqueta }}</span> }
+          @if (nivelDe(); as nv) {
+            <span class="inline-flex items-center gap-1 rounded-full bg-card/95 px-2.5 py-1 text-xs font-bold text-ink shadow-sm">
+              <app-icon name="Gem" class="h-3.5 w-3.5" [style.color]="nv.color" /> Nivel {{ nv.nombre }}
+            </span>
+          }
         </div>
+        @if (bloqueado()) {
+          <span class="absolute inset-0 grid place-items-center bg-ink/55 text-center text-sm font-bold text-white">
+            <span class="flex flex-col items-center gap-1"><app-icon name="Lock" class="h-6 w-6" /> Desbloquéalo en nivel {{ nivelDe()?.nombre }}</span>
+          </span>
+        }
       </a>
       <div class="flex flex-1 flex-col p-4">
         <p class="text-sm uppercase tracking-wide text-muted-foreground">{{ beneficio().marca }}</p>
@@ -221,7 +234,6 @@ const cardBase = "card-elevate group flex h-full flex-col overflow-hidden rounde
         </a>
         <p class="mt-2 text-base font-extrabold text-ink">{{ titulo() }}@if (original()) { <s class="ml-2 text-sm font-medium text-muted-foreground">{{ original() }}</s> }</p>
         <p class="text-sm text-muted-foreground">{{ subtitulo() }}</p>
-        @if (beneficio().nivelMinimo; as nv) { <p class="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-secondary px-3 py-0.5 text-xs font-semibold text-secondary-foreground">Nivel {{ nv }}</p> }
         <div class="mt-auto flex items-center gap-2 pt-5">
           <a [routerLink]="['/beneficios', beneficio().id]"
             class="flex min-h-11 flex-1 items-center justify-center rounded-full bg-primary px-4 text-center text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:scale-[1.03] lg:min-h-14">
@@ -234,7 +246,17 @@ const cardBase = "card-elevate group flex h-full flex-col overflow-hidden rounde
   `,
 })
 export class BenefitCardComponent {
+  private readonly store = inject(StoreService);
+  private readonly catalog = inject(CatalogService);
+  private readonly sesion = inject(SesionService);
   readonly beneficio = input.required<Beneficio>();
+  /** Nivel que pide el beneficio (con su color), o null si es para todos. */
+  protected readonly nivelDe = computed(() => {
+    const m = this.beneficio().nivelMinimo;
+    return m ? (this.catalog.niveles().find((n) => n.id === m || n.nombre === m) ?? null) : null;
+  });
+  /** Con sesión iniciada y un nivel menor al que pide: se muestra con candado. */
+  protected readonly bloqueado = computed(() => this.sesion.logged() && !!this.beneficio().nivelMinimo && !tieneAcceso(this.catalog.niveles(), this.store.usuario().nivel, this.beneficio().nivelMinimo));
   readonly nivel = input(3);
   protected readonly base = cardBase;
   protected readonly claseEtiqueta = claseEtiqueta;

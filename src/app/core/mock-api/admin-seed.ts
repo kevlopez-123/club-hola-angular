@@ -121,6 +121,7 @@ export const adminSeed = () => {
     /** Secciones de la portada. `id` lo usa el sitio; `s` es la etiqueta del admin. */
     seccionesHome: [
       { id: "banners", s: "Banners", on: true },
+      { id: "niveles", s: "Beneficios por nivel", on: true },
       { id: "beneficios", s: "Beneficios", on: true },
       { id: "cta-duo", s: "Accesos de la portada", on: true },
     ] as any[],
