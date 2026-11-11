@@ -6,11 +6,10 @@ import type { PlantillaDef } from "./plantillas-xlsx";
  * Definición de las cargas masivas del panel: qué columnas lleva cada plantilla, cómo se validan y cómo se convierte una fila en
  * el registro del catálogo (crear o actualizar). Las filas vacías de una actualización no cambian el dato.
  */
-export type TipoCarga = "productos" | "beneficios" | "marcas" | "ajustes" | "participantes" | "codigos";
+export type TipoCarga = "beneficios" | "marcas" | "participantes" | "codigos";
 
 export interface CtxCarga {
   marcas: { id: string; nombre: string; web?: string }[];
-  categoriasProducto: { slug: string; label: string; subcategorias?: { slug: string; label: string }[] }[];
   categoriasBeneficio: { slug: string; label: string }[];
   /** Provincias oficiales del país. */
   provincias: string[];
@@ -43,7 +42,7 @@ export interface Definicion {
   /** Columna que identifica cada fila. */
   clave: string;
   /** Colección del servidor donde se guarda (ajustes y códigos tienen su propio punto de entrada). */
-  coleccion?: "productos" | "beneficios" | "marcas" | "participantes";
+  coleccion?: "beneficios" | "marcas" | "participantes";
   /** Solo crea (no actualiza por clave): participantes y códigos. */
   soloCrear?: boolean;
   conImagenes: boolean;
@@ -63,31 +62,14 @@ const IMAGENES: ColCarga = {
 const ACTIVO: ColCarga = { clave: "activo", titulo: "Activo", tipo: "sino", ayuda: "Sí para publicarlo, No para dejarlo oculto. Vacío: Sí al crear, sin cambios al actualizar.", ejemplo: "Sí" };
 
 export const COLUMNAS: Record<TipoCarga, ColCarga[]> = {
-  productos: [
-    { clave: "codigo", titulo: "Código", tipo: "codigo", obligatoria: true, limite: "codigo", ayuda: "Identifica el producto (letras, números y guiones). Si ya existe, se actualiza; si no, se crea. También sirve de nombre para sus imágenes.", ejemplo: "LAP-001", alias: ["sku"] },
-    { clave: "nombre", titulo: "Nombre", tipo: "texto", obligatoria: true, limite: "nombre", ayuda: "Nombre que ve el participante.", ejemplo: "Laptop Pavilion 15" },
-    { clave: "marca", titulo: "Marca", tipo: "texto", obligatoria: true, limite: "nombre", ayuda: "Debe existir en Marcas aliadas (o venir en la carga de marcas).", ejemplo: "HP" },
-    { clave: "categoria", titulo: "Categoría", tipo: "texto", obligatoria: true, limite: "nombre", ayuda: "Nombre de una categoría de productos existente.", ejemplo: "Tecnología" },
-    { clave: "subcategoria", titulo: "Subcategoría", tipo: "texto", limite: "nombre", ayuda: "Subcategoría de esa categoría (opcional).", ejemplo: "Computadores" },
-    { clave: "puntos", titulo: "Puntos", tipo: "entero", obligatoria: true, min: 0, max: 100000000, ayuda: "Costo en puntos: número entero.", ejemplo: 25000 },
-    { clave: "precio", titulo: "Precio US$", tipo: "decimal", min: 0, max: 1000000, ayuda: "Precio en dólares para pagar con tarjeta (opcional). Usa punto decimal.", ejemplo: 850, alias: ["precio", "precio usd"] },
-    { clave: "tipo", titulo: "Tipo", tipo: "opcion", opciones: ["Físico", "Digital"], ayuda: "Físico (se envía) o Digital (se entrega por correo). Vacío: Físico.", ejemplo: "Físico" },
-    { clave: "descripcion", titulo: "Descripción", tipo: "texto", limite: "descripcion", ayuda: "Texto de la ficha.", ejemplo: "Laptop de 15 pulgadas, Core i5, 8 GB de RAM." },
-    { clave: "consideraciones", titulo: "Consideraciones", tipo: "lista", limite: "breve", ayuda: "Una o varias, separadas por punto y coma.", ejemplo: "No acumulable con otras promociones; Válido hasta el 31/12/2026" },
-    { clave: "especificaciones", titulo: "Especificaciones", tipo: "lista", limite: "breve", ayuda: "Una o varias, separadas por punto y coma.", ejemplo: "Garantía de 1 año; Incluye cargador" },
-    IMAGENES,
-    ACTIVO,
-  ],
   beneficios: [
     { clave: "codigo", titulo: "Código", tipo: "codigo", obligatoria: true, limite: "codigo", ayuda: "Identifica el beneficio. Si ya existe, se actualiza; si no, se crea. También sirve de nombre para sus imágenes.", ejemplo: "POLLO-30", alias: ["sku"] },
     { clave: "nombre", titulo: "Nombre", tipo: "texto", obligatoria: true, limite: "nombre", ayuda: "Título del beneficio.", ejemplo: "30% de descuento en combo familiar" },
     { clave: "comercio", titulo: "Comercio", tipo: "texto", obligatoria: true, limite: "nombre", ayuda: "Marca aliada que lo ofrece; debe existir en Marcas aliadas.", ejemplo: "Pollo Gus", alias: ["marca"] },
     { clave: "categoria", titulo: "Categoría", tipo: "texto", obligatoria: true, limite: "nombre", ayuda: "Categoría de beneficios existente.", ejemplo: "Restaurantes" },
     { clave: "descuento", titulo: "Descuento", tipo: "texto", obligatoria: true, limite: "etiqueta", ayuda: "Texto corto del descuento.", ejemplo: "30%" },
-    { clave: "modalidad", titulo: "Modalidad", tipo: "opcion", opciones: ["Cupón", "Compra"], ayuda: "Cupón: se genera un código para el comercio. Compra: se agrega al carrito. Vacío: Cupón.", ejemplo: "Cupón" },
-    { clave: "puntos", titulo: "Puntos", tipo: "entero", min: 0, max: 100000000, ayuda: "Costo en puntos (solo si tiene costo).", ejemplo: 0 },
+    { clave: "modalidad", titulo: "Modalidad", tipo: "opcion", opciones: ["Cupón", "Compra"], ayuda: "Cupón: se genera un código para el comercio. Compra: se agrega al carrito y se paga con tarjeta. Vacío: Cupón.", ejemplo: "Cupón" },
     { clave: "precio", titulo: "Precio US$", tipo: "decimal", min: 0, max: 1000000, ayuda: "Precio en dólares (solo si tiene costo).", ejemplo: 0, alias: ["precio", "precio usd"] },
-    { clave: "solodinero", titulo: "Solo dinero", tipo: "sino", ayuda: "Sí si no se puede pagar con puntos.", ejemplo: "No", alias: ["solo dinero"] },
     { clave: "descripcion", titulo: "Descripción", tipo: "texto", limite: "descripcion", ayuda: "Texto de la ficha.", ejemplo: "Combo familiar de pollo asado con papas y ensalada." },
     { clave: "pasos", titulo: "Pasos", tipo: "lista", limite: "breve", ayuda: "Pasos para usarlo, separados por punto y coma. Vacío: los pasos estándar.", ejemplo: "Genera el cupón; Preséntalo en el local" },
     { clave: "terminos", titulo: "Términos", tipo: "texto", limite: "descripcion", ayuda: "Términos y condiciones.", ejemplo: "Válido de lunes a jueves." },
@@ -110,26 +92,19 @@ export const COLUMNAS: Record<TipoCarga, ColCarga[]> = {
     ACTIVO,
   ],
   participantes: [
-    { clave: "documento", titulo: "Documento", tipo: "codigo", obligatoria: true, limite: "codigo", texto: true, ayuda: "Cédula o documento: solo letras y números, con los caracteres que define el país (en Ecuador, 10). No puede repetirse con un participante que ya exista.", ejemplo: "1712345678", alias: ["cedula"] },
+    { clave: "documento", titulo: "Documento", tipo: "codigo", obligatoria: true, limite: "codigo", texto: true, ayuda: "Cédula o documento: solo letras y números, con los caracteres que define el país (en Perú, 10). No puede repetirse con un participante que ya exista.", ejemplo: "1712345678", alias: ["cedula"] },
     { clave: "nombre", titulo: "Nombre", tipo: "texto", obligatoria: true, limite: "persona", ayuda: "Nombres y apellidos.", ejemplo: "Ana Torres" },
     { clave: "correo", titulo: "Correo", tipo: "correo", obligatoria: true, limite: "correo", ayuda: "Correo electrónico válido; ahí recibe su código de acceso y el correo de bienvenida.", ejemplo: "ana.torres@correo.com", alias: ["email"] },
-    { clave: "puntos", titulo: "Puntos", tipo: "entero", obligatoria: true, min: 0, max: 100000000, ayuda: "Puntos iniciales: número entero, 0 o más, sin puntos ni comas.", ejemplo: 1000 },
+    { clave: "nivel", titulo: "Nivel", tipo: "opcion", opciones: ["Clásico", "Plata", "Oro", "Diamante"], ayuda: "Nivel que le asigna el banco. Vacío: Clásico.", ejemplo: "Clásico" },
   ],
   codigos: [
     { clave: "codigo", titulo: "Código", tipo: "codigo", obligatoria: true, limite: "codigo", texto: true, ayuda: "Un código por fila (letras, números y guiones). Si ya está cargado en otro lote del mismo beneficio, se omite.", ejemplo: "ABC-0001" },
   ],
-  ajustes: [
-    { clave: "documento", titulo: "Documento", tipo: "codigo", obligatoria: true, limite: "codigo", texto: true, ayuda: "Cédula o documento del participante; debe estar registrado.", ejemplo: "1712345678", alias: ["cedula"] },
-    { clave: "puntos", titulo: "Puntos", tipo: "entero", obligatoria: true, noCero: true, min: -1000000, max: 1000000, ayuda: "Positivo suma, negativo resta (por ejemplo -500). No puede dejar el saldo por debajo de 0 ni ser 0.", ejemplo: 500 },
-    { clave: "motivo", titulo: "Motivo", tipo: "texto", obligatoria: true, limite: "motivo", ayuda: "Por qué se ajusta; queda en el historial del participante.", ejemplo: "Compensación por pedido demorado" },
-  ],
 };
 
 export const DEFINICIONES: Record<TipoCarga, Definicion> = {
-  productos: { tipo: "productos", nombre: "Productos", titulo: "Carga masiva de productos", columnas: COLUMNAS.productos, clave: "codigo", coleccion: "productos", conImagenes: true },
   beneficios: { tipo: "beneficios", nombre: "Beneficios", titulo: "Carga masiva de beneficios", columnas: COLUMNAS.beneficios, clave: "codigo", coleccion: "beneficios", conImagenes: true },
   marcas: { tipo: "marcas", nombre: "Marcas aliadas", titulo: "Carga masiva de marcas", columnas: COLUMNAS.marcas, clave: "nombre", coleccion: "marcas", conImagenes: true },
-  ajustes: { tipo: "ajustes", nombre: "Ajuste de puntos", titulo: "Ajuste masivo de puntos", columnas: COLUMNAS.ajustes, clave: "documento", conImagenes: false },
   participantes: { tipo: "participantes", nombre: "Participantes", titulo: "Carga masiva de participantes", columnas: COLUMNAS.participantes, clave: "documento", coleccion: "participantes", soloCrear: true, conImagenes: false },
   codigos: { tipo: "codigos", nombre: "Códigos de beneficio", titulo: "Cargar códigos de beneficio", columnas: COLUMNAS.codigos, clave: "codigo", soloCrear: true, conImagenes: false },
 };
@@ -143,10 +118,8 @@ const sn = (v: unknown) => (v === false ? "No" : "Sí");
 /** Fila de la plantilla con los datos de un registro existente (el camino inverso de `prepararCarga`). Las imágenes subidas no se exportan: una celda vacía no cambia la imagen al volver a subir. */
 export function filaDeEntidad(tipo: TipoCarga, e: any): (string | number)[] {
   switch (tipo) {
-    case "productos":
-      return [e.id, e.nombre ?? "", e.marca ?? "", e.categoriaLabel ?? "", e.subcategoriaLabel ?? "", e.puntos ?? 0, e.precio ?? "", e.digital ? "Digital" : "Físico", e.descripcion ?? "", lista(e.consideraciones), lista(e.especificaciones), soloUrls(e.imagenes?.length ? e.imagenes : e.galeria), sn(e.activo)];
     case "beneficios":
-      return [e.id, e.nombre ?? "", e.marca ?? "", e.categoria ?? "", e.descuento ?? "", e.tipo === "compra" ? "Compra" : "Cupón", e.puntos ?? "", e.precio ?? "", e.soloDinero ? "Sí" : "No", e.descripcion ?? "", lista(e.pasos), e.terminos ?? "", e.desde ?? "", e.hasta ?? "", lista(e.provincias), e.modoCodigo === "compartido" ? (e.codigoCompartido ?? "") : "", e.modoCodigo === "compartido" ? (e.usosMaximos ?? "") : "", e.cupon?.horas ?? "", e.cupon?.limite ?? "", e.cupon?.meses ?? "", soloUrls(e.imagenes?.length ? e.imagenes : e.galeria), sn(e.activo)];
+      return [e.id, e.nombre ?? "", e.marca ?? "", e.categoria ?? "", e.descuento ?? "", e.tipo === "compra" ? "Compra" : "Cupón", e.precio ?? "", e.descripcion ?? "", lista(e.pasos), e.terminos ?? "", e.desde ?? "", e.hasta ?? "", lista(e.provincias), e.modoCodigo === "compartido" ? (e.codigoCompartido ?? "") : "", e.modoCodigo === "compartido" ? (e.usosMaximos ?? "") : "", e.cupon?.horas ?? "", e.cupon?.limite ?? "", e.cupon?.meses ?? "", soloUrls(e.imagenes?.length ? e.imagenes : e.galeria), sn(e.activo)];
     case "marcas":
       return [e.nombre ?? "", e.web ?? "", e.descripcion ?? "", soloUrls([e.logo]), sn(e.activo)];
     default:
@@ -168,22 +141,18 @@ export function plantillaConDatos(tipo: TipoCarga, registros: any[]): PlantillaD
 
 export function plantillaDe(tipo: TipoCarga): PlantillaDef {
   const d = DEFINICIONES[tipo];
-  const base = { participantes: "Crea participantes con su saldo inicial de puntos. Recibirán un correo de bienvenida al importarse.", codigos: "Cada código se entrega a un solo participante. El beneficio y la fecha de vencimiento se eligen en la pantalla de carga, no en el archivo.", productos: "Crea o actualiza productos del catálogo.", beneficios: "Crea o actualiza beneficios, con su vigencia, regla del cupón y provincias.", marcas: "Crea o actualiza marcas aliadas (nombre, sitio web, descripción y logo).", ajustes: "Suma o resta puntos a varios participantes a la vez. Cada ajuste queda en su historial con el motivo y quién lo hizo." }[tipo];
+  const base = { participantes: "Crea participantes con el nivel que les asigna el banco. Recibirán un correo de bienvenida al importarse.", codigos: "Cada código se entrega a un solo participante. El beneficio y la fecha de vencimiento se eligen en la pantalla de carga, no en el archivo.", productos: "Crea o actualiza productos del catálogo.", beneficios: "Crea o actualiza beneficios, con su vigencia, regla del cupón y provincias.", marcas: "Crea o actualiza marcas aliadas (nombre, sitio web, descripción y logo).", ajustes: "Suma o resta puntos a varios participantes a la vez. Cada ajuste queda en su historial con el motivo y quién lo hizo." }[tipo];
   const imagenes = d.conImagenes ? ["Las imágenes se suben aparte (varias a la vez o un ZIP) en el paso «Imágenes» y se enlazan por el nombre del archivo."] : [];
   const notas = tipo === "participantes"
     ? ["Un participante cuyo documento ya existe se rechaza: esta carga solo crea.", "Las filas con errores no se importan; se te entrega un reporte para corregirlas y volver a subirlas.", "No dejes filas vacías entre los datos."]
     : tipo === "codigos"
       ? ["Los repetidos dentro del archivo y los que ya están en otro lote del mismo beneficio se omiten.", "Los lotes se usan en orden de carga: cuando uno se agota o vence, sigue el siguiente."]
-      : tipo === "ajustes"
-    ? ["Un participante no puede repetirse en el mismo archivo.", "Antes de aplicar verás el total de puntos que se suma y se resta.", "Los ajustes no se pueden deshacer: corrige con otro ajuste de signo contrario."]
-    : [NOTA_ACTUALIZAR, ...imagenes, "Las listas se separan con punto y coma."];
+      : [NOTA_ACTUALIZAR, ...imagenes, "Las listas se separan con punto y coma."];
   const ej: Record<TipoCarga, (string | number)[][]> = {
-    participantes: [["0923456781", "Luis Mora", "luis.mora@correo.com", 0]],
+    participantes: [["0923456781", "Luis Mora", "luis.mora@correo.com", "Clásico"]],
     codigos: [["ABC-0002"], ["ABC-0003"]],
-    productos: [["LAP-002", "Mouse inalámbrico", "Logitech", "Tecnología", "Accesorios", 900, 12, "Físico", "", "", "", "mouse.jpg", "Sí"]],
-    beneficios: [["CAFE-2X1", "2x1 en bebidas grandes", "Sweet & Coffee", "Cafeterías", "2x1", "Cupón", 0, 0, "No", "", "", "", "2026-12-01", "2027-03-31", "Pichincha; Azuay", "", 0, 24, 1, 3, "", "Sí"]],
+    beneficios: [["CAFE-2X1", "2x1 en bebidas grandes", "Sweet & Coffee", "Cafeterías", "2x1", "Cupón", 0, "", "", "", "2026-12-01", "2027-03-31", "Pichincha; Azuay", "", 0, 24, 1, 3, "", "Sí"]],
     marcas: [["Sweet & Coffee", "https://www.sweetandcoffee.com", "Cafeterías", "sweet.png", "Sí"]],
-    ajustes: [["0923456781", -200, "Corrección de acumulación duplicada"]],
   };
   return plantillaDeColumnas(d.columnas, { titulo: d.titulo, descripcion: base, ejemplos: ej[tipo], notas });
 }
@@ -208,48 +177,6 @@ export function resolverImagenes(refs: string[], imagenes: Map<string, string>):
   return { urls, faltan };
 }
 const errImagenes = (faltan: string[]) => `No encontré estas imágenes entre las que subiste: ${faltan.join(", ")}.`;
-
-function construirProducto(v: Valores, ctx: CtxCarga, previo: any): { entidad?: any; error?: string; usadas?: string[] } {
-  let marca: { nombre: string; web?: string | undefined } | undefined = previo ? { nombre: previo.marca, web: previo.marcaUrl } : undefined;
-  if (v["marca"] !== undefined) {
-    const m = ctx.marcas.find((x) => coincide(x.nombre, String(v["marca"])));
-    if (!m) return { error: `La marca «${v["marca"]}» no existe. Créala en Marcas aliadas (o súbela en la carga de marcas) y vuelve a subir el archivo.` };
-    marca = m;
-  }
-  let cat = previo ? ctx.categoriasProducto.find((c) => c.slug === previo.categoria) : undefined;
-  if (v["categoria"] !== undefined) {
-    cat = ctx.categoriasProducto.find((c) => coincide(c.label, String(v["categoria"])) || coincide(c.slug, String(v["categoria"])));
-    if (!cat) return { error: `La categoría «${v["categoria"]}» no existe. Categorías: ${ctx.categoriasProducto.map((c) => c.label).join(", ")}.` };
-  }
-  let sub = v["categoria"] === undefined && previo ? { slug: previo.subcategoria, label: previo.subcategoriaLabel } : undefined;
-  if (v["subcategoria"] !== undefined) {
-    sub = cat?.subcategorias?.find((s) => coincide(s.label, String(v["subcategoria"])) || coincide(s.slug, String(v["subcategoria"])));
-    if (!sub) return { error: `La subcategoría «${v["subcategoria"]}» no pertenece a ${cat?.label ?? "esa categoría"}${cat?.subcategorias?.length ? ` (${cat.subcategorias.map((s) => s.label).join(", ")})` : ""}.` };
-  }
-  let imgs: string[] | undefined;
-  let usadas: string[] = [];
-  if (v["imagenes"] !== undefined) {
-    const r = resolverImagenes(v["imagenes"] as string[], ctx.imagenes);
-    if (r.faltan.length) return { error: errImagenes(r.faltan) };
-    imgs = r.urls;
-    usadas = (v["imagenes"] as string[]).filter((x) => !/^(https?:|data:)/i.test(x));
-  }
-  const base = previo ?? {
-    id: String(v["codigo"]), nombre: "", marca: "", marcaUrl: "", puntos: 0, precio: 0, imagen: "", galeria: [], categoria: "", categoriaLabel: "", subcategoria: "", subcategoriaLabel: "",
-    descripcion: "", digital: false, consideraciones: [], especificaciones: [], activo: true, destacado: false, creadoEn: ctx.hoyIso, vistas: 0, fijarMasVistos: false, fijarNovedad: false,
-    imagenes: [], vigencia: "", promoTipo: "", promoDesde: "", promoHasta: "", etiqueta: "", etiquetaColor: "marca",
-  };
-  const cambios = quitarClave({
-    nombre: v["nombre"], marca: marca?.nombre, marcaUrl: marca?.web ?? "",
-    puntos: v["puntos"], precio: v["precio"],
-    categoria: cat?.slug, categoriaLabel: cat?.label, subcategoria: v["categoria"] !== undefined || v["subcategoria"] !== undefined ? (sub?.slug ?? "") : undefined, subcategoriaLabel: v["categoria"] !== undefined || v["subcategoria"] !== undefined ? (sub?.label ?? "") : undefined,
-    digital: v["tipo"] === undefined ? undefined : v["tipo"] === "Digital",
-    descripcion: v["descripcion"], consideraciones: v["consideraciones"], especificaciones: v["especificaciones"],
-    activo: v["activo"],
-    ...(imgs ? { imagen: imgs[0] ?? "", imagenes: imgs, galeria: imgs } : {}),
-  });
-  return { entidad: { ...base, ...cambios }, usadas };
-}
 
 function construirBeneficio(v: Valores, ctx: CtxCarga, previo: any): { entidad?: any; error?: string; usadas?: string[] } {
   let marca: { nombre: string; web?: string | undefined } | undefined = previo ? { nombre: previo.marca, web: previo.marcaUrl } : undefined;
@@ -284,7 +211,7 @@ function construirBeneficio(v: Valores, ctx: CtxCarga, previo: any): { entidad?:
   }
   const base = previo ?? {
     id: String(v["codigo"]), marca: "", marcaUrl: "", nombre: "", descuento: "", categoria: "", categoriaSlug: "", imagen: "", galeria: [], imagenes: [], descripcion: "",
-    pasos: ["Genera el cupón para reservar", "Acércate al local con tu cédula de identidad en físico.", "Presenta el cupón", "¡Disfruta!"], especificaciones: [], terminos: "",
+    pasos: ["Genera el cupón para reservar", "Acércate al local con tu DNI en físico.", "Presenta el cupón", "¡Disfruta!"], especificaciones: [], terminos: "",
     tipo: "cupon", activo: true, exclusivo: false, promoTipo: "", promoDesde: "", promoHasta: "", etiqueta: "", etiquetaColor: "marca", modoCodigo: "unico", provincias: [], usos: 0,
   };
   const modalidad = v["modalidad"] === undefined ? undefined : v["modalidad"] === "Compra" ? "compra" : "cupon";
@@ -294,7 +221,7 @@ function construirBeneficio(v: Valores, ctx: CtxCarga, previo: any): { entidad?:
   const compartido = v["codigocompartido"] !== undefined;
   const cambios = quitarClave({
     nombre: v["nombre"], marca: marca?.nombre, marcaUrl: marca?.web ?? "", categoria: cat?.label, categoriaSlug: cat?.slug, descuento: v["descuento"],
-    tipo: modalidad, puntos: v["puntos"], precio: v["precio"], soloDinero: v["solodinero"],
+    tipo: modalidad, precio: v["precio"],
     descripcion: v["descripcion"], pasos: v["pasos"], terminos: v["terminos"],
     desde: v["desde"], hasta: v["hasta"], provincias, cupon,
     ...(compartido ? { modoCodigo: "compartido", codigoCompartido: String(v["codigocompartido"]).toUpperCase(), ...(v["usosmaximos"] !== undefined ? { usosMaximos: v["usosmaximos"] } : {}) } : {}),
@@ -332,14 +259,14 @@ export function prepararCarga(tipo: TipoCarga, matriz: string[][], ctx: CtxCarga
   if (r.errorGeneral) return { filas: [], errorGeneral: r.errorGeneral, resumen: { crear: 0, actualizar: 0, errores: 0 } };
   const filas: FilaPreparada[] = r.filas.map((f) => {
     if (f.error) return f;
-    if (tipo === "ajustes" || tipo === "participantes" || tipo === "codigos") {
+    if (tipo === "participantes" || tipo === "codigos") {
       const falta = faltantesAlCrear(def.columnas, f.valores);
       if (falta) return { ...f, error: falta.replace("para crearlo", "en esta fila") };
       if (tipo === "participantes") {
         const doc = String(f.valores["documento"]);
         if (ctx.digitosDocumento && doc.length !== ctx.digitosDocumento) return { ...f, error: `El documento debe tener ${ctx.digitosDocumento} caracteres.` };
         const id = `imp-${Date.now().toString(36)}-${f.fila}-${Math.random().toString(36).slice(2, 6)}`;
-        const entidad = { id, nombre: f.valores["nombre"], cedula: doc, email: f.valores["correo"], celular: "—", puntos: f.valores["puntos"], acumulados12m: f.valores["puntos"], estado: "Activo", canal: "Web + App", alta: new Date().toLocaleDateString("es-EC"), direcciones: [], ajustes: [] };
+        const entidad = { id, nombre: f.valores["nombre"], cedula: doc, email: f.valores["correo"], celular: "—", nivel: f.valores["nivel"] ?? "Clásico", estado: "Activo", canal: "Web + App", alta: new Date().toLocaleDateString("es-PE"), direcciones: [], ajustes: [] };
         return { ...f, accion: "crear" as const, entidad };
       }
       if (tipo === "codigos") {
@@ -355,7 +282,7 @@ export function prepararCarga(tipo: TipoCarga, matriz: string[][], ctx: CtxCarga
       const falta = faltantesAlCrear(def.columnas, f.valores);
       if (falta) return { ...f, error: falta };
     }
-    const res = tipo === "productos" ? construirProducto(f.valores, ctx, previo) : tipo === "beneficios" ? construirBeneficio(f.valores, ctx, previo) : construirMarca(f.valores, ctx, previo);
+    const res = tipo === "beneficios" ? construirBeneficio(f.valores, ctx, previo) : construirMarca(f.valores, ctx, previo);
     if (res.error) return { ...f, error: res.error };
     return { ...f, accion: previo ? ("actualizar" as const) : ("crear" as const), entidad: res.entidad, imagenesUsadas: res.usadas ?? [] };
   });

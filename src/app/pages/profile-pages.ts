@@ -458,7 +458,7 @@ export class PerfilPage {
           </div>
 
           <div class="relative min-h-[20rem] lg:min-h-full">
-            <img [src]="brand.imagenes().contacto" alt="Asesora Banco Solidario atendiendo consultas desde su laptop" width="1024" height="1280" loading="lazy"
+            <img [src]="brand.imagenes().contacto" alt="Asesora BanBif atendiendo consultas desde su laptop" width="1024" height="1280" loading="lazy"
               class="h-full w-full object-cover lg:absolute lg:inset-0" />
           </div>
         </div>

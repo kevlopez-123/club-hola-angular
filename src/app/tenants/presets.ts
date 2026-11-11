@@ -1,7 +1,7 @@
 import type { DocumentoIdentidad, Provincia, TenantConfig } from "./tenant.types";
 
 /** País con el que arranca el proyecto (cámbialo para cambiar de cliente por defecto). */
-export const TENANT_POR_DEFECTO = "ecuador";
+export const TENANT_POR_DEFECTO = "clubhola";
 
 type Pais = TenantConfig["pais"];
 
@@ -125,6 +125,29 @@ export const ECUADOR: TenantConfig = {
   imagenes: imgBase,
 };
 
+/** Club Hola · BanBif (Perú): identidad visual del proyecto de referencia en React (Manrope, violeta, celeste y lima). */
+export const CLUB_HOLA: TenantConfig = {
+  id: "clubhola",
+  marca: {
+    nombre: "BanBif",
+    programa: "Club Hola",
+    unidadPuntos: "beneficios",
+    logoClaro: "img/club-hola-dark.svg",
+    logoOscuro: "img/club-hola-white.svg",
+    favicon: "img/favicon-clubhola.png",
+    derechos: "BanBif 2026 | Todos los derechos reservados | Powered by Motiva Soluciones",
+  },
+  tema: {
+    primario: "#924ff5", textoPrimario: "#ffffff", texto: "#141925", fondo: "#ffffff", superficie: "#f5f3ff", radio: 1,
+    acento: "#20a6ff", acento2: "#bed500", secundario: "#f1edfe", secundarioTexto: "#4b2a8a", oscuro: "#131927",
+    gradiente: "linear-gradient(90deg, #1fa4fc 0%, #437bd5 18.22%, #513a73 25%, #131927 32%)",
+    fuente: "Manrope",
+    fuenteUrl: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap",
+  },
+  pais: paisPorCodigo("PE"),
+  imagenes: imgBase,
+};
+
 /** La lista de provincias es la oficial del país; de lo guardado solo se conserva si cada una tiene envío. */
 export const provinciasDe = (codigo: string, guardadas: Provincia[] = []): Provincia[] => {
   const envio = new Map(guardadas.map((p) => [p.nombre, p.envio]));
@@ -133,11 +156,11 @@ export const provinciasDe = (codigo: string, guardadas: Provincia[] = []): Provi
 
 /** Completa con valores por defecto lo que falte (configuraciones guardadas o importadas de versiones anteriores). */
 export const normalizarTenant = (t: Partial<TenantConfig>): TenantConfig => {
-  const base = structuredClone(ECUADOR);
-  const pais = { ...paisPorCodigo(t.pais?.codigo ?? "EC"), ...t.pais } as Pais;
+  const base = structuredClone(CLUB_HOLA);
+  const pais = { ...paisPorCodigo(t.pais?.codigo ?? "PE"), ...t.pais } as Pais;
   pais.provincias = provinciasDe(pais.codigo, t.pais?.provincias);
   return { ...base, ...t, marca: { ...base.marca, ...t.marca }, tema: { ...base.tema, ...t.tema }, pais, imagenes: { ...base.imagenes, ...t.imagenes } } as TenantConfig;
 };
 
-export const PRESETS: Record<string, TenantConfig> = { ecuador: ECUADOR };
-export const presetPorId = (id: string): TenantConfig => structuredClone(PRESETS[id] ?? ECUADOR);
+export const PRESETS: Record<string, TenantConfig> = { clubhola: CLUB_HOLA, ecuador: ECUADOR };
+export const presetPorId = (id: string): TenantConfig => structuredClone(PRESETS[id] ?? CLUB_HOLA);

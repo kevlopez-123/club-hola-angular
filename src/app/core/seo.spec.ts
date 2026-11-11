@@ -4,7 +4,7 @@ import { esRutaAbierta } from "./participante.guard";
 
 describe("SEO: rutas (el sitio está cerrado: hay que iniciar sesión)", () => {
   it("el catálogo, la cuenta, la compra, el panel y el ingreso no se indexan (con o sin parámetros ni subrutas)", () => {
-    for (const r of ["/", "/canjea", "/canjea/p1", "/beneficios/b1", "/vuelos", "/preguntas-frecuentes", "/admin", "/admin/pedidos", "/login", "/carrito", "/mis-compras/BNB-1", "/perfil", "/buscar?q=sony", "/baja"]) {
+    for (const r of ["/", "/canjea", "/canjea/p1", "/beneficios/b1", "/preguntas-frecuentes", "/admin", "/admin/pedidos", "/login", "/carrito", "/mis-compras/BNB-1", "/perfil", "/buscar?q=sony", "/baja"]) {
       expect(esRutaPrivada(r), r).toBe(true);
     }
   });
@@ -26,6 +26,6 @@ describe("SEO: rutas (el sitio está cerrado: hay que iniciar sesión)", () => {
 describe("Sitio cerrado: páginas abiertas sin sesión", () => {
   it("solo textos legales y baja de correos", () => {
     for (const r of ["/terminos", "/privacidad", "/baja", "/baja?t=p1.abc", "/terminos/"]) expect(esRutaAbierta(r), r).toBe(true);
-    for (const r of ["/", "/canjea", "/beneficios/b1", "/vuelos", "/preguntas-frecuentes", "/buscar", "/perfil"]) expect(esRutaAbierta(r), r).toBe(false);
+    for (const r of ["/", "/canjea", "/beneficios/b1", "/preguntas-frecuentes", "/buscar", "/perfil"]) expect(esRutaAbierta(r), r).toBe(false);
   });
 });

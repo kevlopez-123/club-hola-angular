@@ -25,20 +25,14 @@ components:
     Slide: {"type":"object","properties":{"id":{"type":"string"},"imagen":{"type":"string"},"imagenMovil":{"type":"string"},"alt":{"type":"string"},"to":{"type":"string"}},"required":["id","imagen","alt"]}
     Subcategoria: {"type":"object","properties":{"slug":{"type":"string"},"label":{"type":"string"}},"required":["slug","label"]}
     CategoriaProducto: {"type":"object","properties":{"slug":{"type":"string"},"label":{"type":"string"},"icon":{"type":"string"},"imagen":{"type":"string"},"subcategorias":{"type":"array","items":{"type":"object","properties":{"slug":{"type":"string"},"label":{"type":"string"}},"required":["slug","label"]}}},"required":["slug","label","icon","subcategorias"]}
-    Beneficio: {"type":"object","properties":{"id":{"type":"string"},"marca":{"type":"string"},"marcaUrl":{"type":"string"},"nombre":{"type":"string"},"descuento":{"type":"string"},"categoria":{"type":"string"},"categoriaSlug":{"type":"string"},"imagen":{"type":"string"},"galeria":{"type":"array","items":{"type":"string"}},"descripcion":{"type":"string"},"pasos":{"type":"array","items":{"type":"string"}},"especificaciones":{"type":"array","items":{"type":"string"}},"terminos":{"type":"string"},"tipo":{"type":"string","enum":["cupon","compra"]},"puntos":{"type":"number"},"precio":{"type":"number"},"soloDinero":{"type":"boolean"},"puntosOriginal":{"type":"number"},"precioOriginal":{"type":"number"},"promoEtiqueta":{"type":"string"},"etiqueta":{"type":"string"},"etiquetaColor":{"type":"string"}},"required":["id","marca","marcaUrl","nombre","descuento","categoria","categoriaSlug","imagen","galeria","descripcion","pasos","especificaciones","terminos","tipo"]}
+    Beneficio: {"type":"object","properties":{"id":{"type":"string"},"marca":{"type":"string"},"marcaUrl":{"type":"string"},"nombre":{"type":"string"},"descuento":{"type":"string"},"categoria":{"type":"string"},"categoriaSlug":{"type":"string"},"imagen":{"type":"string"},"galeria":{"type":"array","items":{"type":"string"}},"descripcion":{"type":"string"},"pasos":{"type":"array","items":{"type":"string"}},"especificaciones":{"type":"array","items":{"type":"string"}},"terminos":{"type":"string"},"tipo":{"type":"string","enum":["cupon","compra"]},"puntos":{"type":"number"},"precio":{"type":"number"},"soloDinero":{"type":"boolean"},"puntosOriginal":{"type":"number"},"precioOriginal":{"type":"number"},"promoEtiqueta":{"type":"string"},"etiqueta":{"type":"string"},"etiquetaColor":{"type":"string"},"desde":{"type":"string"},"hasta":{"type":"string"},"cupon":{"type":"object","properties":{"horas":{"type":"number"},"limite":{"type":"number"},"meses":{"type":"number"}}},"modoCodigo":{"type":"string","enum":["unico","compartido"]},"codigoCompartido":{"type":"string"},"usosMaximos":{"type":"number"},"usos":{"type":"number"},"provincias":{"type":"array","items":{"type":"string"}},"vigencia":{"type":"string","enum":["programado","vigente","vencido"]},"reglaCupon":{"type":"object","properties":{"horas":{"type":"number"},"limite":{"type":"number"},"meses":{"type":"number"}},"required":["horas","limite","meses"]}},"required":["id","marca","marcaUrl","nombre","descuento","categoria","categoriaSlug","imagen","galeria","descripcion","pasos","especificaciones","terminos","tipo"]}
     Direccion: {"type":"object","properties":{"id":{"type":"string"},"alias":{"type":"string"},"recibe":{"type":"string"},"telefono":{"type":"string"},"direccion":{"type":"string"},"distrito":{"type":"string"},"provincia":{"type":"string"},"lat":{"type":"number"},"lng":{"type":"number"}},"required":["id","alias","recibe","telefono","direccion","distrito"]}
     NavItem: {"type":"object","properties":{"label":{"type":"string"},"to":{"type":"string"},"children":{"type":"array","items":{"type":"object","properties":{"label":{"type":"string"},"to":{"type":"string"}},"required":["label"]}}},"required":["label"]}
     Nivel: {"type":"object","properties":{"id":{"type":"string","enum":["clasico","plata","oro","diamante"]},"nombre":{"type":"string"},"desde":{"type":"number"},"hasta":{"oneOf":[{"nullable":true},{"type":"number"}]},"color":{"type":"string"},"beneficios":{"type":"array","items":{"type":"string"}}},"required":["id","nombre","desde","hasta","color","beneficios"]}
     NivelId: {"type":"string","enum":["clasico","plata","oro","diamante"]}
-    Ciudad: {"type":"object","properties":{"codigo":{"type":"string"},"ciudad":{"type":"string"},"pais":{"type":"string"}},"required":["codigo","ciudad","pais"]}
-    Destino: {"type":"object","properties":{"slug":{"type":"string"},"ciudad":{"type":"string"},"pais":{"type":"string"},"codigo":{"type":"string"},"imagen":{"type":"string"},"titulo":{"type":"string"},"resumen":{"type":"string"},"desdeUSD":{"type":"number"},"duracion":{"type":"string"},"mejorEpoca":{"type":"string"},"descripcion":{"type":"string"},"highlights":{"type":"array","items":{"type":"string"}}},"required":["slug","ciudad","pais","codigo","imagen","titulo","resumen","desdeUSD","duracion","mejorEpoca","descripcion","highlights"]}
-    Cotizacion: {"type":"object","properties":{"codigo":{"type":"string"},"fecha":{"type":"string"},"origen":{"type":"string"},"destino":{"type":"string"},"tipoViaje":{"type":"string"},"clase":{"type":"string"},"pasajeros":{"type":"number"},"pasajerosDetalle":{"type":"array","items":{"type":"object","properties":{"nombres":{"type":"string"},"apellidos":{"type":"string"},"tipoDoc":{"type":"string"},"numDoc":{"type":"string"},"nacimiento":{"type":"string"},"asistencia":{"type":"boolean"}},"required":["nombres","apellidos","tipoDoc","numDoc","nacimiento","asistencia"]}},"salida":{"type":"string"},"regreso":{"type":"string"},"estado":{"type":"string","enum":["Enviada","En revisión","Cotizada","Cerrada"]},"ejecutiva":{"type":"string"},"ejecutivaId":{"type":"string"},"monto":{"type":"number"},"pdf":{"type":"string"},"pdfUrl":{"type":"string"},"nota":{"type":"string"},"contactos":{"type":"array","items":{"type":"object","properties":{"canal":{"type":"string"},"por":{"type":"string"},"fecha":{"type":"string"}},"required":["canal","por","fecha"]}},"mensajes":{"type":"array","items":{"type":"object","properties":{"de":{"type":"string","enum":["Ejecutiva","Participante"]},"autor":{"type":"string"},"texto":{"type":"string"},"fecha":{"type":"string"},"adjunto":{"type":"string"}},"required":["de","autor","texto","fecha"]}},"historial":{"type":"array","items":{"type":"object","properties":{"estado":{"type":"string","enum":["Enviada","En revisión","Cotizada","Cerrada"]},"fecha":{"type":"string"},"por":{"type":"string"}},"required":["estado","fecha","por"]}}},"required":["codigo","fecha","origen","destino","tipoViaje","clase","pasajeros","pasajerosDetalle","salida","estado","mensajes","historial"]}
-    PasajeroCotizacion: {"type":"object","properties":{"nombres":{"type":"string"},"apellidos":{"type":"string"},"tipoDoc":{"type":"string"},"numDoc":{"type":"string"},"nacimiento":{"type":"string"},"asistencia":{"type":"boolean"}},"required":["nombres","apellidos","tipoDoc","numDoc","nacimiento","asistencia"]}
-    MensajeCotizacion: {"type":"object","properties":{"de":{"type":"string","enum":["Ejecutiva","Participante"]},"autor":{"type":"string"},"texto":{"type":"string"},"fecha":{"type":"string"},"adjunto":{"type":"string"}},"required":["de","autor","texto","fecha"]}
-    EstadoCotizacion: {"type":"string","enum":["Enviada","En revisión","Cotizada","Cerrada"]}
-    EstadoBeneficio: {"type":"string","enum":["activo","usado","vencido"]}
-    BeneficioUsuario: {"type":"object","properties":{"id":{"type":"string"},"beneficioId":{"type":"string"},"codigo":{"type":"string"},"estado":{"type":"string","enum":["activo","usado","vencido"]},"fecha":{"type":"string"},"vence":{"type":"string"}},"required":["id","beneficioId","codigo","estado","fecha","vence"]}
-    Compra: {"type":"object","properties":{"codigo":{"type":"string"},"fecha":{"type":"string"},"fechaISO":{"type":"string"},"estado":{"type":"string","enum":["Entregado","En camino","Procesando"]},"entrega":{"type":"string"},"puntosUsados":{"type":"number"},"montoUSD":{"type":"number"},"items":{"type":"array","items":{"type":"object","properties":{"nombre":{"type":"string"},"marca":{"type":"string"},"imagen":{"type":"string"},"cantidad":{"type":"number"},"puntos":{"type":"number"}},"required":["nombre","marca","imagen","cantidad","puntos"]}}},"required":["codigo","fecha","fechaISO","estado","entrega","puntosUsados","montoUSD","items"]}
+    EstadoBeneficio: {"type":"string","enum":["vencido","activo","usado"]}
+    BeneficioUsuario: {"type":"object","properties":{"id":{"type":"string"},"beneficioId":{"type":"string"},"codigo":{"type":"string"},"estado":{"type":"string","enum":["vencido","activo","usado"]},"fecha":{"type":"string"},"vence":{"type":"string"}},"required":["id","beneficioId","codigo","estado","fecha","vence"]}
+    Compra: {"type":"object","properties":{"codigo":{"type":"string"},"fecha":{"type":"string"},"fechaISO":{"type":"string"},"hora":{"type":"string"},"estado":{"type":"string","enum":["Entregado","En camino","Procesando"]},"entrega":{"type":"string"},"puntosUsados":{"type":"number"},"montoUSD":{"type":"number"},"items":{"type":"array","items":{"type":"object","properties":{"nombre":{"type":"string"},"marca":{"type":"string"},"imagen":{"type":"string"},"cantidad":{"type":"number"},"puntos":{"type":"number"}},"required":["nombre","marca","imagen","cantidad","puntos"]}}},"required":["codigo","fecha","fechaISO","estado","entrega","puntosUsados","montoUSD","items"]}
     CompraItem: {"type":"object","properties":{"nombre":{"type":"string"},"marca":{"type":"string"},"imagen":{"type":"string"},"cantidad":{"type":"number"},"puntos":{"type":"number"}},"required":["nombre","marca","imagen","cantidad","puntos"]}
     TipoMovimiento: {"type":"string","enum":["compra","acumulacion","canje","vencimiento","ajuste"]}
     Movimiento: {"type":"object","properties":{"id":{"type":"string"},"fechaISO":{"type":"string"},"fecha":{"type":"string"},"detalle":{"type":"string"},"tipo":{"type":"string","enum":["compra","acumulacion","canje","vencimiento","ajuste"]},"puntos":{"type":"number"}},"required":["id","fechaISO","fecha","detalle","tipo","puntos"]}
@@ -46,10 +40,10 @@ components:
     Participante: {"type":"object","properties":{"id":{"type":"string"},"nombre":{"type":"string"},"cedula":{"type":"string"},"email":{"type":"string"},"celular":{"type":"string"},"puntos":{"type":"number"},"acumulados12m":{"type":"number"},"estado":{"type":"string","enum":["Activo","Bloqueado"]},"canal":{"type":"string","enum":["Web","App","Web + App"]},"alta":{"type":"string"},"recibeNovedades":{"type":"boolean"},"novedadesCambio":{"type":"object","properties":{"fecha":{"type":"string"},"origen":{"type":"string","enum":["participante","enlace","admin"]}},"required":["fecha","origen"]}},"required":["id","nombre","cedula","email","celular","puntos","acumulados12m","estado","canal","alta"]}
     EstadoPedido: {"type":"string","enum":["Entregado","Confirmado","Preparando","Enviado","Digital enviado","Cancelado"]}
     Mensaje: {"type":"object","properties":{"id":{"type":"string"},"nombre":{"type":"string"},"email":{"type":"string"},"asunto":{"type":"string"},"mensaje":{"type":"string"},"fecha":{"type":"string"},"estado":{"type":"string","enum":["Nuevo","En proceso","Respondido"]},"telefono":{"type":"string"},"origen":{"type":"string"}},"required":["id","nombre","email","asunto","mensaje","fecha","estado"]}
-    RolAdmin: {"type":"string","enum":["Administrador","Catálogo","Operaciones","Atención","Solo lectura"]}
+    RolAdmin: {"type":"string"}
     TipoCampo: {"type":"string","enum":["texto","email","telefono","numero","fecha","textarea","select","checkbox"]}
     CampoForm: {"type":"object","properties":{"id":{"type":"string"},"tipo":{"type":"string","enum":["texto","email","telefono","numero","fecha","textarea","select","checkbox"]},"etiqueta":{"type":"string"},"obligatorio":{"type":"boolean"},"ayuda":{"type":"string"},"opciones":{"type":"array","items":{"type":"string"}},"mapeo":{"type":"string"},"ancho":{"type":"string","enum":["media","completa"]}},"required":["id","tipo","etiqueta","obligatorio","ancho"]}
-    Producto: {"type":"object","properties":{"id":{"type":"string"},"marca":{"type":"string"},"marcaUrl":{"type":"string"},"nombre":{"type":"string"},"puntos":{"type":"number"},"precio":{"type":"number"},"imagen":{"type":"string"},"galeria":{"type":"array","items":{"type":"string"}},"categoria":{"type":"string"},"categoriaLabel":{"type":"string"},"subcategoria":{"type":"string"},"subcategoriaLabel":{"type":"string"},"descripcion":{"type":"string"},"digital":{"type":"boolean"},"consideraciones":{"type":"array","items":{"type":"string"}},"especificaciones":{"type":"array","items":{"type":"string"}},"puntosOriginal":{"type":"number"},"precioOriginal":{"type":"number"},"promoEtiqueta":{"type":"string"},"etiqueta":{"type":"string"},"etiquetaColor":{"type":"string"},"stock":{"type":"number"},"destacado":{"type":"boolean"}},"required":["id","marca","marcaUrl","nombre","puntos","precio","imagen","galeria","categoria","categoriaLabel","subcategoria","subcategoriaLabel","descripcion","digital","consideraciones","especificaciones"]}
+    Producto: {"type":"object","properties":{"id":{"type":"string"},"marca":{"type":"string"},"marcaUrl":{"type":"string"},"nombre":{"type":"string"},"puntos":{"type":"number"},"precio":{"type":"number"},"imagen":{"type":"string"},"galeria":{"type":"array","items":{"type":"string"}},"categoria":{"type":"string"},"categoriaLabel":{"type":"string"},"subcategoria":{"type":"string"},"subcategoriaLabel":{"type":"string"},"descripcion":{"type":"string"},"digital":{"type":"boolean"},"consideraciones":{"type":"array","items":{"type":"string"}},"especificaciones":{"type":"array","items":{"type":"string"}},"puntosOriginal":{"type":"number"},"precioOriginal":{"type":"number"},"promoEtiqueta":{"type":"string"},"etiqueta":{"type":"string"},"etiquetaColor":{"type":"string"},"destacado":{"type":"boolean"}},"required":["id","marca","marcaUrl","nombre","puntos","precio","imagen","galeria","categoria","categoriaLabel","subcategoria","subcategoriaLabel","descripcion","digital","consideraciones","especificaciones"]}
     MenuItem: {"type":"object","properties":{"id":{"type":"string"},"label":{"type":"string"},"to":{"type":"string"},"activo":{"type":"boolean"},"children":{"type":"array","items":{"type":"object","properties":{"label":{"type":"string"},"to":{"type":"string"},"activo":{"type":"boolean"}},"required":["label","to","activo"]}}},"required":["label","activo"]}
     SeccionHome: {"type":"object","properties":{"id":{"type":"string"},"s":{"type":"string"},"on":{"type":"boolean"}},"required":["id","s","on"]}
     Reglas: {"type":"object","properties":{"porDolar":{"type":"number"},"precio":{"type":"number"},"min":{"type":"number"},"max":{"type":"number"},"mensual":{"type":"number"},"paquetes":{"type":"array","items":{"type":"number"}},"compraActiva":{"type":"boolean"},"soloDinero":{"type":"boolean"},"vigenciaMeses":{"type":"number"},"avisoVencimientoDias":{"type":"number"},"version":{"type":"number"}},"required":["porDolar","precio","min","max","mensual","paquetes","compraActiva","soloDinero"]}
@@ -57,8 +51,8 @@ components:
     ContenidoFaq: {"type":"object","properties":{"q":{"type":"string"},"a":{"type":"string"}},"required":["q","a"]}
     CartItem: {"type":"object","properties":{"id":{"type":"string"},"tipo":{"type":"string","enum":["producto","beneficio"]},"nombre":{"type":"string"},"marca":{"type":"string"},"imagen":{"type":"string"},"puntos":{"type":"number"},"precio":{"type":"number"},"cantidad":{"type":"number"},"digital":{"type":"boolean"},"soloDinero":{"type":"boolean"}},"required":["id","tipo","nombre","marca","imagen","puntos","precio","cantidad","digital"]}
     Cupon: {"type":"object","properties":{"codigo":{"type":"string"},"expira":{"type":"number"}},"required":["codigo","expira"]}
-    Notificacion: {"type":"object","properties":{"id":{"type":"string"},"tipo":{"type":"string","enum":["beneficio","pedido","puntos","vuelo","cuenta","info"]},"titulo":{"type":"string"},"texto":{"type":"string"},"enlace":{"type":"string"},"fecha":{"type":"string"},"leida":{"type":"boolean"}},"required":["id","tipo","titulo","texto","fecha","leida"]}
-    Orden: {"type":"object","properties":{"codigo":{"type":"string"},"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"tipo":{"type":"string","enum":["producto","beneficio"]},"nombre":{"type":"string"},"marca":{"type":"string"},"imagen":{"type":"string"},"puntos":{"type":"number"},"precio":{"type":"number"},"cantidad":{"type":"number"},"digital":{"type":"boolean"},"soloDinero":{"type":"boolean"}},"required":["id","tipo","nombre","marca","imagen","puntos","precio","cantidad","digital"]}},"puntosUsados":{"type":"number"},"montoUSD":{"type":"number"},"entrega":{"type":"string"},"fecha":{"type":"string"}},"required":["codigo","items","puntosUsados","montoUSD","entrega","fecha"]}
+    Notificacion: {"type":"object","properties":{"id":{"type":"string"},"tipo":{"type":"string","enum":["beneficio","pedido","puntos","cuenta","info"]},"titulo":{"type":"string"},"texto":{"type":"string"},"enlace":{"type":"string"},"fecha":{"type":"string"},"leida":{"type":"boolean"}},"required":["id","tipo","titulo","texto","fecha","leida"]}
+    Orden: {"type":"object","properties":{"codigo":{"type":"string"},"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"tipo":{"type":"string","enum":["producto","beneficio"]},"nombre":{"type":"string"},"marca":{"type":"string"},"imagen":{"type":"string"},"puntos":{"type":"number"},"precio":{"type":"number"},"cantidad":{"type":"number"},"digital":{"type":"boolean"},"soloDinero":{"type":"boolean"}},"required":["id","tipo","nombre","marca","imagen","puntos","precio","cantidad","digital"]}},"puntosUsados":{"type":"number"},"montoUSD":{"type":"number"},"entrega":{"type":"string"},"fecha":{"type":"string"},"hora":{"type":"string"}},"required":["codigo","items","puntosUsados","montoUSD","entrega","fecha"]}
     Usuario: {"type":"object","properties":{"nombre":{"type":"string"},"nivel":{"type":"string"},"puntosNivel":{"type":"number"},"puntos":{"type":"number"}},"required":["nombre","nivel","puntosNivel","puntos"]}
     Perfil: {"type":"object","properties":{"tipoDocumento":{"type":"string"},"codigoParticipante":{"type":"string"},"correo":{"type":"string"},"nombres":{"type":"string"},"apellidos":{"type":"string"},"telefono":{"type":"string"},"extra":{"type":"object","additionalProperties":{"oneOf":[{"type":"string"},{"type":"boolean"},{"type":"boolean"}]}}},"required":["tipoDocumento","codigoParticipante","correo","nombres","apellidos","telefono"]}
     Categoria: {"type":"object","properties":{"slug":{"type":"string"},"label":{"type":"string"},"icon":{"type":"string"},"imagen":{"type":"string"},"subcategorias":{"type":"array","items":{"type":"object","properties":{"slug":{"type":"string"},"label":{"type":"string"}},"required":["slug","label"]}}},"required":["slug","label","icon"]}
@@ -86,7 +80,7 @@ paths:
       operationId: "get_admin_q_col"
       security: [{ bearer: [] }]
       parameters:
-        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "destinos", "ciudades", "categoriasProducto", "categoriasBeneficio", "banners", "bannersVuelos", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones"] } }
+        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "categoriasProducto", "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias"] } }
         - { name: "page", in: query, required: false, schema: { type: integer } }
         - { name: "size", in: query, required: false, schema: { type: integer } }
         - { name: "q", in: query, required: false, schema: { type: string } }
@@ -109,7 +103,7 @@ paths:
       operationId: "get_admin_c_col_key"
       security: [{ bearer: [] }]
       parameters:
-        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "destinos", "ciudades", "categoriasProducto", "categoriasBeneficio", "banners", "bannersVuelos", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones"] } }
+        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "categoriasProducto", "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias"] } }
         - { name: "key", in: path, required: true, schema: { type: string } }
       responses:
         "200":
@@ -124,7 +118,7 @@ paths:
       operationId: "put_admin_c_col_key"
       security: [{ bearer: [] }]
       parameters:
-        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "destinos", "ciudades", "categoriasProducto", "categoriasBeneficio", "banners", "bannersVuelos", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones"] } }
+        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "categoriasProducto", "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias"] } }
         - { name: "key", in: path, required: true, schema: { type: string } }
       requestBody:
         content:
@@ -143,7 +137,7 @@ paths:
       operationId: "delete_admin_c_col_key"
       security: [{ bearer: [] }]
       parameters:
-        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "destinos", "ciudades", "categoriasProducto", "categoriasBeneficio", "banners", "bannersVuelos", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones"] } }
+        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "categoriasProducto", "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias"] } }
         - { name: "key", in: path, required: true, schema: { type: string } }
       responses:
         "200":
@@ -159,7 +153,60 @@ paths:
       operationId: "post_admin_c_col_bulk"
       security: [{ bearer: [] }]
       parameters:
-        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "destinos", "ciudades", "categoriasProducto", "categoriasBeneficio", "banners", "bannersVuelos", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones"] } }
+        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "categoriasProducto", "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias"] } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/lotes/cargar":
+    post:
+      tags: ["admin-lotes"]
+      summary: "POST admin/lotes/cargar"
+      operationId: "post_admin_lotes_cargar"
+      security: [{ bearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/c/{col}/upsert":
+    post:
+      tags: ["admin-colecciones"]
+      summary: "POST admin/c/:col/upsert"
+      operationId: "post_admin_c_col_upsert"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "categoriasProducto", "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias"] } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/participantes/ajustes-masivos":
+    post:
+      tags: ["admin-participantes"]
+      summary: "POST admin/participantes/ajustes-masivos"
+      operationId: "post_admin_participantes_ajustes_masivos"
+      security: [{ bearer: [] }]
       requestBody:
         content:
           application/json:
@@ -178,7 +225,7 @@ paths:
       operationId: "get_admin_c_col"
       security: [{ bearer: [] }]
       parameters:
-        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "destinos", "ciudades", "categoriasProducto", "categoriasBeneficio", "banners", "bannersVuelos", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones"] } }
+        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "categoriasProducto", "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias"] } }
       responses:
         "200":
           description: OK
@@ -192,7 +239,7 @@ paths:
       operationId: "put_admin_c_col"
       security: [{ bearer: [] }]
       parameters:
-        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "destinos", "ciudades", "categoriasProducto", "categoriasBeneficio", "banners", "bannersVuelos", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones"] } }
+        - { name: "col", in: path, required: true, schema: { type: string, enum: ["participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "categoriasProducto", "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos", "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias"] } }
       requestBody:
         content:
           application/json:
@@ -214,6 +261,119 @@ paths:
         content:
           application/json:
             schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/legales":
+    get:
+      tags: ["admin-legales"]
+      summary: "GET admin/legales"
+      operationId: "get_admin_legales"
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/legales/avisos":
+    get:
+      tags: ["admin-legales"]
+      summary: "GET admin/legales/avisos"
+      operationId: "get_admin_legales_avisos"
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/legales/{tipo}/borrador":
+    put:
+      tags: ["admin-legales"]
+      summary: "PUT admin/legales/:tipo/borrador"
+      operationId: "put_admin_legales_tipo_borrador"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "tipo", in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: ["admin-legales"]
+      summary: "DELETE admin/legales/:tipo/borrador"
+      operationId: "delete_admin_legales_tipo_borrador"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "tipo", in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/legales/{tipo}/publicar":
+    post:
+      tags: ["admin-legales"]
+      summary: "POST admin/legales/:tipo/publicar"
+      operationId: "post_admin_legales_tipo_publicar"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "tipo", in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/legales/{tipo}/restaurar/{version}":
+    post:
+      tags: ["admin-legales"]
+      summary: "POST admin/legales/:tipo/restaurar/:version"
+      operationId: "post_admin_legales_tipo_restaurar_version"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "tipo", in: path, required: true, schema: { type: string } }
+        - { name: "version", in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/marcas/{id}/actividad":
+    get:
+      tags: ["admin-marcas"]
+      summary: "GET admin/marcas/:id/actividad"
+      operationId: "get_admin_marcas_id_actividad"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "id", in: path, required: true, schema: { type: string } }
       responses:
         "200":
           description: OK
@@ -431,6 +591,35 @@ paths:
             application/json:
               schema: { type: object }
         "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/correos/ajustes":
+    get:
+      tags: ["admin-correos"]
+      summary: "Ajustes de envío: copia oculta (CCO)."
+      operationId: "get_admin_correos_ajustes"
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+    put:
+      tags: ["admin-correos"]
+      summary: "PUT admin/correos/ajustes"
+      operationId: "put_admin_correos_ajustes"
+      security: [{ bearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
   "/admin/correos/diseno":
     get:
       tags: ["admin-correos"]
@@ -583,6 +772,115 @@ paths:
             application/json:
               schema: { type: object }
         "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/perfil":
+    get:
+      tags: ["admin-perfil"]
+      summary: "GET admin/perfil"
+      operationId: "get_admin_perfil"
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+    put:
+      tags: ["admin-perfil"]
+      summary: "PUT admin/perfil"
+      operationId: "put_admin_perfil"
+      security: [{ bearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/perfil/clave":
+    post:
+      tags: ["admin-perfil"]
+      summary: "POST admin/perfil/clave"
+      operationId: "post_admin_perfil_clave"
+      security: [{ bearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/roles":
+    post:
+      tags: ["admin-roles"]
+      summary: "POST admin/roles"
+      operationId: "post_admin_roles"
+      security: [{ bearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/roles/{rol}":
+    put:
+      tags: ["admin-roles"]
+      summary: "PUT admin/roles/:rol"
+      operationId: "put_admin_roles_rol"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "rol", in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: ["admin-roles"]
+      summary: "DELETE admin/roles/:rol"
+      operationId: "delete_admin_roles_rol"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "rol", in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/admin/ayuda":
+    get:
+      tags: ["admin-ayuda"]
+      summary: "Guías de ayuda publicadas que le tocan al rol de quien pregunta."
+      operationId: "get_admin_ayuda"
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
   "/admin/meta":
     get:
       tags: ["admin-meta"]
@@ -648,57 +946,6 @@ paths:
       summary: "PUT admin/niveles"
       operationId: "put_admin_niveles"
       security: [{ bearer: [] }]
-      requestBody:
-        content:
-          application/json:
-            schema: { type: object }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { type: object }
-        "4XX": { $ref: "#/components/responses/Error" }
-  "/admin/ejecutivos":
-    get:
-      tags: ["admin-ejecutivos"]
-      summary: "Usuarios del panel que pueden atender cotizaciones (Atención, Operaciones y Administración). Se gestionan en Usuarios y roles."
-      operationId: "get_admin_ejecutivos"
-      security: [{ bearer: [] }]
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { type: object }
-        "4XX": { $ref: "#/components/responses/Error" }
-  "/admin/cotizaciones/{codigo}":
-    patch:
-      tags: ["admin-cotizaciones"]
-      summary: "Cambia estado, ejecutiva, monto, PDF o nota. Cada cambio de estado queda en el historial con quién lo hizo."
-      operationId: "patch_admin_cotizaciones_codigo"
-      security: [{ bearer: [] }]
-      parameters:
-        - { name: "codigo", in: path, required: true, schema: { type: string } }
-      requestBody:
-        content:
-          application/json:
-            schema: { type: object }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { type: object }
-        "4XX": { $ref: "#/components/responses/Error" }
-  "/admin/cotizaciones/{codigo}/contacto":
-    post:
-      tags: ["admin-cotizaciones"]
-      summary: "Deja constancia de que la ejecutiva contactó al participante por WhatsApp o correo (solo lo ve el panel)."
-      operationId: "post_admin_cotizaciones_codigo_contacto"
-      security: [{ bearer: [] }]
-      parameters:
-        - { name: "codigo", in: path, required: true, schema: { type: string } }
       requestBody:
         content:
           application/json:
@@ -834,7 +1081,7 @@ paths:
   "/catalogo/beneficios":
     get:
       tags: ["catalogo"]
-      summary: "GET catalogo/beneficios"
+      summary: "Solo los beneficios vigentes (los programados y los vencidos no se listan)."
       operationId: "get_catalogo_beneficios"
       responses:
         "200":
@@ -846,7 +1093,7 @@ paths:
   "/catalogo/beneficios/{id}":
     get:
       tags: ["catalogo"]
-      summary: "GET catalogo/beneficios/:id"
+      summary: "La ficha sigue abierta aunque haya vencido (con su `vigencia`) para poder avisar por qué no se puede canjear."
       operationId: "get_catalogo_beneficios_id"
       parameters:
         - { name: "id", in: path, required: true, schema: { type: string } }
@@ -856,6 +1103,37 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Beneficio" }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/popups":
+    get:
+      tags: ["popups"]
+      summary: "Pop-ups vigentes para un canal (web o app) y una página; la frecuencia la aplica quien los muestra."
+      operationId: "get_popups"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/popups/{id}/evento":
+    post:
+      tags: ["popups"]
+      summary: "POST popups/:id/evento"
+      operationId: "post_popups_id_evento"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "id", in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
         "4XX": { $ref: "#/components/responses/Error" }
   "/catalogo/categorias-producto":
     get:
@@ -918,44 +1196,6 @@ paths:
           content:
             application/json:
               schema: { type: array, items: { $ref: "#/components/schemas/Nivel" } }
-        "4XX": { $ref: "#/components/responses/Error" }
-  "/vuelos/ciudades":
-    get:
-      tags: ["vuelos"]
-      summary: "GET vuelos/ciudades"
-      operationId: "get_vuelos_ciudades"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: "#/components/schemas/Ciudad" } }
-        "4XX": { $ref: "#/components/responses/Error" }
-  "/vuelos/destinos":
-    get:
-      tags: ["vuelos"]
-      summary: "GET vuelos/destinos"
-      operationId: "get_vuelos_destinos"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: "#/components/schemas/Destino" } }
-        "4XX": { $ref: "#/components/responses/Error" }
-  "/vuelos/destinos/{slug}":
-    get:
-      tags: ["vuelos"]
-      summary: "GET vuelos/destinos/:slug"
-      operationId: "get_vuelos_destinos_slug"
-      parameters:
-        - { name: "slug", in: path, required: true, schema: { type: string } }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Destino" }
         "4XX": { $ref: "#/components/responses/Error" }
   "/tenant":
     get:
@@ -1174,6 +1414,21 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Cupon" }
         "4XX": { $ref: "#/components/responses/Error" }
+  "/me/cupones/estado/{id}":
+    get:
+      tags: ["participante"]
+      summary: "Si este participante puede generar el cupón ahora y, si no, por qué (vigencia, provincia, límite y espera)."
+      operationId: "get_me_cupones_estado_id"
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: "id", in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
   "/me/movimientos":
     get:
       tags: ["participante"]
@@ -1227,54 +1482,6 @@ paths:
           content:
             application/json:
               schema: { type: array, items: { $ref: "#/components/schemas/BeneficioUsuario" } }
-        "4XX": { $ref: "#/components/responses/Error" }
-  "/me/cotizaciones":
-    get:
-      tags: ["participante"]
-      summary: "GET me/cotizaciones"
-      operationId: "get_me_cotizaciones"
-      security: [{ bearer: [] }]
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: "#/components/schemas/Cotizacion" } }
-        "4XX": { $ref: "#/components/responses/Error" }
-    post:
-      tags: ["participante"]
-      summary: "POST me/cotizaciones"
-      operationId: "post_me_cotizaciones"
-      security: [{ bearer: [] }]
-      requestBody:
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/Cotizacion" }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Cotizacion" }
-        "4XX": { $ref: "#/components/responses/Error" }
-  "/me/cotizaciones/{codigo}":
-    patch:
-      tags: ["participante"]
-      summary: "PATCH me/cotizaciones/:codigo"
-      operationId: "patch_me_cotizaciones_codigo"
-      security: [{ bearer: [] }]
-      parameters:
-        - { name: "codigo", in: path, required: true, schema: { type: string } }
-      requestBody:
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/Cotizacion" }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Cotizacion" }
         "4XX": { $ref: "#/components/responses/Error" }
   "/me/notificaciones":
     get:
@@ -1383,6 +1590,36 @@ paths:
       security: [{ bearer: [] }]
       parameters:
         - { name: "codigo", in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/me/legales":
+    get:
+      tags: ["participante"]
+      summary: "GET me/legales"
+      operationId: "get_me_legales"
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+        "4XX": { $ref: "#/components/responses/Error" }
+  "/me/legales/aceptar":
+    post:
+      tags: ["participante"]
+      summary: "POST me/legales/aceptar"
+      operationId: "post_me_legales_aceptar"
+      security: [{ bearer: [] }]
       requestBody:
         content:
           application/json:

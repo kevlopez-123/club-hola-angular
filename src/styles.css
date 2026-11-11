@@ -18,7 +18,7 @@
  */
 
 @theme inline {
-  --font-sans: var(--fuente, "Montserrat"), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--fuente, "Manrope"), ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -75,31 +75,30 @@
 :root {
   --radius: 1rem;
 
-  /* Marca Banco Solidario */
-  --celeste: #00bdd2; /* dorado secundario */
-  --lima: #00bdd2;
-  --ink: #2b2b2b;
-  --surface: #f2f1f1;
-  --brand-dark: #2b2b2b;
-  --brand-red: #00bdd2;
+  /* Marca Club Hola · BanBif (igual que el proyecto React) */
+  --celeste: #20a6ff;
+  --lima: #bed500;
+  --ink: #141925;
+  --surface: #f5f3ff;
+  --brand-dark: #131927;
+  --brand-red: #924ff5;
   --ink-strong: #000000;
-  --gradient-header: #00bdd2;
-  --shadow-header: 0 4px 4px 0 rgba(0, 0, 0, 0.18);
-  --shadow-card: 0 8px 24px -12px rgba(0, 0, 0, 0.22);
-  --shadow-card-hover: 0 18px 40px -16px rgba(0, 189, 210, 0.1);
+  --gradient-header: linear-gradient(90deg, #1fa4fc 0%, #437bd5 18.22%, #513a73 25%, #131927 32%);
+  --shadow-header: 0 4px 4px 0 rgba(18, 24, 38, 0.2);
+  --shadow-card: 0 8px 24px -12px rgba(20, 25, 37, 0.18);
+  --shadow-card-hover: 0 18px 40px -16px rgba(146, 79, 245, 0.35);
 
   --background: #ffffff;
-  --foreground: #2b2b2b;
+  --foreground: #141925;
   --card: #ffffff;
-  --card-foreground: #2b2b2b;
+  --card-foreground: #141925;
   --popover: #ffffff;
-  --popover-foreground: #2b2b2b;
-  /* Rojo de marca Banco Solidario */
-  --primary: #00bdd2;
+  --popover-foreground: #141925;
+  --primary: #924ff5;
   --primary-foreground: #ffffff;
-  --secondary: #e6f9fb;
-  --secondary-foreground: #a81c22;
-  --muted: #f2f1f1;
+  --secondary: #f1edfe;
+  --secondary-foreground: #4b2a8a;
+  --muted: #f5f3ff;
   --muted-foreground: #555555;
   --accent: #fff5d9;
   --accent-foreground: #4a3b00;
@@ -111,7 +110,7 @@
   --destructive-foreground: #ffffff;
   --border: #dcdada;
   --input: #dcdada;
-  --ring: #00bdd2;
+  --ring: #924ff5;
   --chart-1: #00bdd2;
   --chart-2: #00bdd2;
   --chart-3: #a81c22;

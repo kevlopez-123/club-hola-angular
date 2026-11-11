@@ -16,8 +16,8 @@ describe("permisos por sección y acción", () => {
     expect(puede("Solo lectura", "pedidos", "ver")).toBe(false);
   });
 
-  it("solo el administrador gestiona usuarios, roles, reglas, niveles, configuración y auditoría", () => {
-    for (const s of ["usuarios", "roles", "reglas", "niveles", "configuracion", "auditoria"] as const) {
+  it("solo el administrador gestiona usuarios, roles, niveles, configuración y auditoría", () => {
+    for (const s of ["usuarios", "roles", "niveles", "configuracion", "auditoria"] as const) {
       for (const rol of ["Catálogo", "Operaciones", "Atención", "Solo lectura"] as const) expect(puede(rol, s, "ver"), `${rol}:${s}`).toBe(false);
     }
   });
@@ -26,7 +26,7 @@ describe("permisos por sección y acción", () => {
     for (const rol of ["Operaciones", "Atención", "Solo lectura"] as const) {
       for (const s of SECCIONES) expect(puede(rol, s.id, "eliminar"), `${rol}:${s.id}`).toBe(false);
     }
-    expect(puede("Catálogo", "productos", "eliminar")).toBe(true);
+    expect(puede("Catálogo", "beneficios", "eliminar")).toBe(true);
   });
 
   it("cada acción de edición, eliminación o exportación exige también poder ver", () => {
@@ -43,21 +43,20 @@ describe("permisos por sección y acción", () => {
   });
 
   it("API: la acción sale del método HTTP y la sección de la ruta", () => {
-    expect(requisitoApi("DELETE", "admin/c/productos/p1")).toEqual({ secciones: ["productos"], accion: "eliminar" });
+    expect(requisitoApi("DELETE", "admin/c/beneficios/b1")).toEqual({ secciones: ["beneficios"], accion: "eliminar" });
     expect(requisitoApi("PUT", "admin/c/beneficios/b1")).toEqual({ secciones: ["beneficios"], accion: "editar" });
     expect(requisitoApi("GET", "admin/q/pedidos")).toEqual({ secciones: ["pedidos"], accion: "ver" });
-    expect(requisitoApi("PATCH", "admin/cotizaciones/COT-1")).toEqual({ secciones: ["cotizaciones"], accion: "editar" });
     expect(requisitoApi("GET", "admin/resumen")).toBeNull();
   });
 
   it("API: catálogo no toca pedidos ni participantes; operaciones no borra; atención responde mensajes", () => {
-    expect(puedeApi("Catálogo", "PUT", "admin/c/productos/p1")).toBe(true);
+    expect(puedeApi("Catálogo", "PUT", "admin/c/beneficios/b1")).toBe(true);
     expect(puedeApi("Catálogo", "PUT", "admin/c/pedidos/BNB-1")).toBe(false);
     expect(puedeApi("Catálogo", "POST", "admin/participantes/p1/codigo")).toBe(false);
     expect(puedeApi("Operaciones", "DELETE", "admin/c/pedidos/BNB-1")).toBe(false);
     expect(puedeApi("Operaciones", "PUT", "admin/c/pedidos/BNB-1")).toBe(true);
     expect(puedeApi("Atención", "PUT", "admin/c/mensajes/c1")).toBe(true);
-    expect(puedeApi("Atención", "PUT", "admin/reglas")).toBe(false);
+    expect(puedeApi("Atención", "PUT", "admin/niveles")).toBe(false);
   });
 
   it("API: admin/config distingue la marca (configuración) del contenido (también catálogo)", () => {
@@ -67,7 +66,7 @@ describe("permisos por sección y acción", () => {
   });
 
   it("API: las consultas de apoyo no exigen sección", () => {
-    for (const r of ["admin/meta", "admin/ejecutivos", "admin/resumen"]) expect(puedeApi("Solo lectura", "GET", r), r).toBe(true);
+    for (const r of ["admin/meta", "admin/resumen"]) expect(puedeApi("Solo lectura", "GET", r), r).toBe(true);
   });
 });
 

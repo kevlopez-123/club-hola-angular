@@ -11,7 +11,7 @@ import {
   Paperclip, Pause, PawPrint, Pencil, Phone, PiggyBank, Plane, PlaneTakeoff, Play, Plus, Printer, QrCode, Search,
   Send, Settings, Shirt, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingBasket, ShoppingCart,
   SlidersHorizontal, Smartphone, Sofa, Sparkles, Tag, Ticket, Trash2, Trees, Trophy, Twitter, Upload, User, Users,
-  UtensilsCrossed, X, Boxes, Filter, Moon, Percent, Receipt, Scale, Sun, UserPlus, Copy,
+  UtensilsCrossed, X, Boxes, Filter, Moon, Percent, Receipt, Scale, Sun, UserPlus, Copy, ChefHat, Wine, Theater, Images,
 } from "lucide-angular";
 import { ICONOS_CATEGORIA_DATA } from "./iconos-categoria";
 
@@ -26,7 +26,7 @@ export const ICONS: Record<string, LucideIconData> = {
   MessageCircleQuestion, MessageSquare, Minus, Monitor, Music2, Package, Paperclip, Pause, PawPrint, Pencil, Phone,
   PiggyBank, Plane, PlaneTakeoff, Play, Plus, Printer, QrCode, Search, Send, Settings, Shirt, ShieldAlert,
   ShieldCheck, ShoppingBag, ShoppingBasket, ShoppingCart, SlidersHorizontal, Smartphone, Sofa, Sparkles, Tag, Ticket,
-  Trash2, Trees, Trophy, Twitter, Upload, User, Users, UtensilsCrossed, X, Boxes, Filter, Moon, Percent, Receipt, Scale, Sun, UserPlus, Copy,
+  Trash2, Trees, Trophy, Twitter, Upload, User, Users, UtensilsCrossed, X, Boxes, Filter, Moon, Percent, Receipt, Scale, Sun, UserPlus, Copy, ChefHat, Wine, Theater, Images,
   ...ICONOS_CATEGORIA_DATA,
 };
 

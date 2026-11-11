@@ -44,24 +44,6 @@ export function generarStress(db: Db, n: number) {
   const p1 = db.admin.participantes.find((p: any) => p.id === "p1");
   db.admin.participantes = (p1 ? [p1, ...participantes] : participantes) as any[];
 
-  const base = db.admin.productos[0]!;
-  const productos = Array.from({ length: Math.max(100, Math.floor(n / 10)) }, (_, i) => {
-    const marca = pick(MARCAS);
-    const precio = Math.round(10 + rnd() * 900);
-    return {
-      ...base,
-      id: `sp${i}`,
-      nombre: `${marca} Producto ${i + 1}`,
-      marca,
-      precio,
-      puntos: precio * 70,
-      activo: true,
-      destacado: false,
-    };
-  });
-  db.admin.productos = [...db.admin.productos, ...productos] as any[];
-  db.catalogo.productos = db.admin.productos.filter((p: any) => p.activo) as any[];
-
   const beneficiosBase = db.admin.beneficios[0]!;
   db.admin.beneficios = [
     ...db.admin.beneficios,
@@ -91,7 +73,7 @@ export function generarStress(db: Db, n: number) {
   });
   db.admin.pedidos = [...db.admin.pedidos, ...pedidos] as any[];
 
-  // Atención: N/5 mensajes · Cotizaciones: N/4 · Destinos: N/50 · Ciudades: N/100 · Marcas: 50 extra
+  // Atención: N/5 mensajes · Marcas: 50 extra
   const ESTADOS_MSG = ["Nuevo", "En proceso", "Respondido"];
   const ASUNTOS = ["Pedido no llega", "Cupón no válido", "Puntos de compra", "Cuenta bloqueada", "Consulta de nivel", "Error al pagar"];
   db.admin.mensajes = [
@@ -102,51 +84,9 @@ export function generarStress(db: Db, n: number) {
     }),
   ] as any[];
 
-  const CODIGOS = db.admin.ciudades.map((c: any) => c.codigo);
-  const ESTADOS_COT = ["Enviada", "En revisión", "Cotizada", "Cerrada"];
-  (db as any).cotizacionesExtra = Array.from({ length: Math.max(20, Math.floor(n / 4)) }, (_, i) => {
-    const p = participantes[i % participantes.length]!;
-    return {
-      codigo: `COT-S${String(i).padStart(7, "0")}`,
-      fecha: fechaISO(Math.floor(rnd() * 120)),
-      origen: pick(CODIGOS),
-      destino: pick(CODIGOS),
-      tipoViaje: rnd() < 0.7 ? "Ida y vuelta" : "Solo ida",
-      clase: pick(["Económica", "Ejecutiva"]),
-      salida: fechaISO(-30 - Math.floor(rnd() * 200)),
-      estado: pick(ESTADOS_COT),
-      cliente: p.nombre,
-      email: p.email,
-      pasajeros: 1,
-      pasajerosDetalle: [{ nombres: p.nombre.split(" ")[0]!, apellidos: p.nombre.split(" ").slice(1).join(" "), tipoDoc: "cedula", numDoc: p.cedula, nacimiento: "1985-05-15", asistencia: rnd() < 0.05 }],
-      mensajes: [],
-      historial: [{ estado: "Enviada", fecha: `${fechaISO(0)}T09:00:00`, por: "Participante" }],
-    };
-  });
-
-  const destinoBase = db.admin.destinos[0]!;
-  db.admin.destinos = [
-    ...db.admin.destinos,
-    ...Array.from({ length: Math.max(12, Math.floor(n / 50)) }, (_, i) => ({ ...destinoBase, slug: `sd${i}`, titulo: `Destino masivo ${i + 1}`, ciudad: `Ciudad ${i + 1}`, pais: `País ${i % 40}`, activo: true, destacado: false })),
-  ] as any[];
-  db.admin.ciudades = [
-    ...db.admin.ciudades,
-    ...Array.from({ length: Math.max(20, Math.floor(n / 100)) }, (_, i) => ({ codigo: "Z" + i.toString(36).toUpperCase().padStart(2, "0"), ciudad: `Ciudad masiva ${i + 1}`, pais: `País ${i % 40}`, activo: true })),
-  ] as any[];
   db.admin.marcas = [
     ...db.admin.marcas,
     ...Array.from({ length: 50 }, (_, i) => ({ id: `marca-masiva-${i}`, nombre: `Marca masiva ${i + 1}`, logo: "", web: `https://www.marca${i}.com`, descripcion: "", activo: true })),
   ] as any[];
 
-  db.admin.comprasPuntos = [...Array.from({ length: Math.max(20, Math.floor(n / 2)) }, (_, i) => { const iso = fechaISO(Math.floor(rnd() * 400)); const p = participantes[i % participantes.length]!; const cantidad = 500 * (1 + Math.floor(rnd() * 40)); return { codigo: `PTS-S${String(i).padStart(7, "0")}`, fechaISO: iso, fecha: fecha(iso), participanteId: p.id, cliente: p.nombre, email: p.email, cantidad, monto: Math.round(cantidad * 0.0031 * 100) / 100, estado: "Aprobada" }; }), ...db.admin.comprasPuntos] as any[];
-
-  const tipos = ["acumulacion", "canje", "compra"] as const;
-  db.admin.movimientos = [
-    ...db.admin.movimientos,
-    ...Array.from({ length: n * 3 }, (_, i) => {
-      const iso = fechaISO(Math.floor(rnd() * 700));
-      const tipo = pick([...tipos]);
-      return { id: `sm${i}`, fechaISO: iso, fecha: fecha(iso), detalle: `${tipo === "canje" ? "Canje" : tipo === "compra" ? "Compra de puntos" : "Compra en agencia"} #${i}`, tipo, puntos: (tipo === "canje" ? -1 : 1) * Math.floor(rnd() * 30000), cliente: participantes[i % participantes.length]!.nombre };
-    }),
-  ] as any[];
 }

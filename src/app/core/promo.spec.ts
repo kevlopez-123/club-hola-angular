@@ -1,18 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { aplicarPromo, promoVigente } from "./promo";
 
-const base = { puntos: 1000, precio: 20 };
+const base = { precio: 20 };
 
 describe("promociones", () => {
   it("sin promoción devuelve el artículo tal cual", () => {
     expect(aplicarPromo(base)).toEqual(base);
   });
 
-  it("porcentaje rebaja puntos y precio y conserva los originales para tacharlos", () => {
-    const r = aplicarPromo({ ...base, promoTipo: "porcentaje", promoValor: 20 }, 70, "2026-06-01");
-    expect(r.puntos).toBe(800);
+  it("porcentaje rebaja el precio y conserva el original para tacharlos", () => {
+    const r = aplicarPromo({ ...base, promoTipo: "porcentaje", promoValor: 20 }, "2026-06-01");
     expect(r.precio).toBe(16);
-    expect(r.puntosOriginal).toBe(1000);
     expect(r.precioOriginal).toBe(20);
     expect(r.promoEtiqueta).toBe("-20%");
   });
@@ -23,7 +21,7 @@ describe("promociones", () => {
     expect(promoVigente(p, "2026-07-01")).toBe(true);
     expect(promoVigente(p, "2026-07-31")).toBe(true);
     expect(promoVigente(p, "2026-08-01")).toBe(false);
-    expect(aplicarPromo({ ...base, ...p }, 70, "2026-08-01")).toEqual({ ...base, ...p });
+    expect(aplicarPromo({ ...base, ...p }, "2026-08-01")).toEqual({ ...base, ...p });
   });
 
   it("un valor 0 o sin tipo no cuenta como promoción", () => {

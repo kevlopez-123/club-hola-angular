@@ -101,3 +101,15 @@ export function ensamblarPdf(flujos: string[], W: number, H: number): Blob {
   for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 255;
   return new Blob([bytes], { type: "application/pdf" });
 }
+
+/** Descarga un Blob con el nombre indicado. */
+export function descargarBlob(blob: Blob, nombre: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}

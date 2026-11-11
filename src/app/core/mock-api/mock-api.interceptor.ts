@@ -22,12 +22,16 @@ import { aceptar, estadoParticipante, exigirLegalesAlDia, metaLegales, sincroniz
 import { cambiarNovedades, darDeBaja, estadoBaja, recibeNovedades, volverAlta } from "./novedades";
 import { asegurarVersiones, comprobarVersion, subirVersion } from "./versiones";
 import type { RolAdmin } from "../models";
+import { lunesDe } from "../juegos";
+import { esPasado, ocupaCupo } from "../eventos";
+import { ajustarCupos, codigoEvento } from "./eventos-api";
+import { tieneAcceso } from "./seed/niveles";
 
-/** Aplica la promoción vigente de un producto o beneficio (con la equivalencia puntos/US$ de las reglas). */
-function conPromo<T extends { puntos?: number | undefined; precio?: number | undefined }>(p: T): T {
-  return aplicarPromo(p as any, (db.admin.reglas as any)?.porDolar);
+/** Aplica la promoción vigente de un beneficio. */
+function conPromo<T extends { precio?: number | undefined }>(p: T): T {
+  return aplicarPromo(p as any);
 }
-import type { Compra, CompraItem, Cotizacion, Direccion, Movimiento } from "../models";
+import type { Compra, CompraItem, Direccion } from "../models";
 
 const notFound = (what: string) => new ApiError(404, `${what} no encontrado`);
 
@@ -42,22 +46,6 @@ const hoy = () => {
 /** Nombre del participante que ingresó al sitio (su ficha comparte saldo con la sesión). */
 const nombreParticipante = () => (db.admin.participantes.find((p: any) => p.id === "p1") as any)?.nombre ?? db.usuario.nombre;
 
-const movimiento = (detalle: string, tipo: Movimiento["tipo"], puntos: number) => {
-  const h = hoy();
-  const m = { id: `m${Date.now()}`, fechaISO: h.iso, fecha: h.txt, hora: new Date().toTimeString().slice(0, 5), detalle, tipo, puntos };
-  db.movimientos.unshift(m);
-  // El mismo movimiento queda en el listado del panel, a nombre del participante.
-  db.admin.movimientos.unshift({ ...m, cliente: nombreParticipante() } as any);
-};
-
-const ajustarPuntos = (delta: number) => {
-  const antes = db.usuario.puntos;
-  db.usuario.puntos = Math.max(0, db.usuario.puntos + delta);
-  avisarNivel(antes, db.usuario.puntos);
-  const ficha = db.admin.participantes.find((p: any) => p.id === "p1"); // la participante demo comparte saldo con su ficha
-  if (ficha) ficha.puntos = db.usuario.puntos;
-  return db.usuario.puntos;
-};
 
 /** Ficha del panel de la participante demo (comparte datos con su sesión). */
 /** El servidor valida las direcciones igual que el formulario. */
@@ -92,7 +80,7 @@ const tsDeCanje = (m: any): number => {
 };
 
 export type EstadoCanjeApi = {
-  estado: "disponible" | "no_vigente" | "otra_provincia" | "falta_provincia" | "bloqueado" | "agotado";
+  estado: "disponible" | "nivel" | "no_vigente" | "otra_provincia" | "falta_provincia" | "bloqueado" | "agotado";
   mensaje: string;
   regla: ReglaCupon;
   desde?: string;
@@ -107,10 +95,14 @@ export type EstadoCanjeApi = {
  * Qué reglas aplican a este participante y este beneficio ahora: vigencia, provincia, límite de canjes con espera desde el
  * último canje y tope del código compartido. Es lo que decide `POST me/cupones` y lo que lee la ficha para avisar antes de pulsar.
  */
+/** ¿El nivel del participante demo alcanza el mínimo que pide el beneficio? */
+const accesoPorNivel = (minimo?: string) => tieneAcceso(db.niveles as any[], db.usuario.nivel, minimo);
+
 const estadoCanje = (beneficioId: string): EstadoCanjeApi => {
   const b = (db.admin.beneficios as any[]).find((x) => x.id === beneficioId);
   const regla = reglaDe(b?.cupon, db.config.cupon as any);
   if (!b) return { estado: "disponible", mensaje: "", regla };
+  if (!accesoPorNivel(b.nivelMinimo)) return { regla, estado: "nivel", mensaje: `Este beneficio está disponible desde el nivel ${b.nivelMinimo}. Tu nivel actual es ${db.usuario.nivel}.` };
   const base = { regla, ...(b.desde ? { desde: b.desde } : {}), ...(b.hasta ? { hasta: b.hasta } : {}) };
   const vig = estadoVigencia(b, hoy().iso);
   if (vig === "programado") return { ...base, estado: "no_vigente", mensaje: `Este beneficio estará disponible desde el ${fechaLarga(b.desde)}.` };
@@ -132,33 +124,29 @@ const beneficioPublico = (b: any) => {
   return { ...resto, vigencia: estadoVigencia(b, hoy().iso), reglaCupon: reglaDe(b.cupon, db.config.cupon as any) };
 };
 
-/** Compras mensuales aprobadas + la nueva no pueden superar el tope mensual de las reglas. */
-const verificarTopeMensual = (cantidad: number) => {
-  const r = db.admin.reglas;
-  const mes = hoy().iso.slice(0, 7);
-  const yaComprado = (db.admin.comprasPuntos as any[]).filter((c) => c.participanteId === "p1" && c.fechaISO.startsWith(mes) && c.estado === "Aprobada").reduce((s, c) => s + c.cantidad, 0);
-  if (yaComprado + cantidad > r.mensual) throw new ApiError(422, `Superas el máximo mensual de compra (${r.mensual.toLocaleString("es")} puntos). Te quedan ${Math.max(0, r.mensual - yaComprado).toLocaleString("es")}.`);
+/** Giros de la ruleta de la participante demo en la semana actual. */
+const estadoRuleta = () => {
+  const max = Number((db.config as any).juegos?.girosMax ?? 3);
+  const lunes = lunesDe(hoy().iso);
+  const usados = (db.admin.giros as any[]).filter((g) => g.origen === "ruleta" && g.participanteId === "p1" && g.fechaISO >= lunes).length;
+  const prox = new Date(`${lunes}T12:00:00Z`);
+  prox.setUTCDate(prox.getUTCDate() + 7);
+  const txt = `${String(prox.getUTCDate()).padStart(2, "0")}/${String(prox.getUTCMonth() + 1).padStart(2, "0")}/${prox.getUTCFullYear()}`;
+  return {
+    girosMax: max, usados, restantes: Math.max(0, max - usados), proximaFecha: txt,
+    premios: (db.admin.premios as any[]).filter((p) => p.activo && p.enRuleta).map((p) => ({ id: p.id, label: p.label, tipo: p.tipo })),
+  };
+};
+/** Deja constancia de lo jugado y, si hubo premio, lo envía al correo de entrega. */
+const registrarJuego = (premio: any, origen: "ruleta" | "codigo") => {
+  const h = hoy();
+  (db.admin.giros as any[]).unshift({
+    id: `g${Date.now()}${Math.random().toString(36).slice(2, 5)}`, participanteId: "p1", participante: nombreParticipante(),
+    premio: premio.label, tipo: premio.tipo, origen, fecha: h.txt, fechaISO: h.iso, hora: new Date().toTimeString().slice(0, 5),
+  });
+  if (premio.tipo !== "nada") enviarCorreo("premio-ganado", db.perfil.correo, { premio: premio.label, detalle: premio.detalle }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: premio.label });
 };
 
-/** Cierra una compra de puntos: aprobada (acredita, deja movimiento y avisa) o fallida (motivo y aviso para reintentar). */
-const resolverCompra = (compra: any, aprobada: boolean, motivo = "") => {
-  const esDemo = compra.participanteId === "p1";
-  if (aprobada) {
-    if (esDemo) verificarTopeMensual(compra.cantidad);
-    compra.estado = "Aprobada";
-    compra.motivo = "";
-    if (esDemo) {
-      movimiento(`Compra de puntos operación ${compra.codigo}`, "compra", compra.cantidad);
-      enviarCorreo("compra-puntos", db.perfil.correo, { codigo: compra.codigo, puntos: compra.cantidad.toLocaleString("es"), monto: compra.monto.toFixed(2) }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: compra.codigo });
-      ajustarPuntos(compra.cantidad);
-    }
-    return { estado: "Aprobada", codigo: compra.codigo, monto: compra.monto, puntos: db.usuario.puntos };
-  }
-  compra.estado = "Fallida";
-  compra.motivo = motivo;
-  if (esDemo) enviarCorreo("compra-puntos-fallida", db.perfil.correo, { codigo: compra.codigo, motivo }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: compra.codigo });
-  return { estado: "Fallida", codigo: compra.codigo, motivo, puntos: db.usuario.puntos };
-};
 const customerRoutes: Route[] = [
   /* ---------- Auth ---------- */
   ["POST", "auth/otp", ({ body }) => {
@@ -194,32 +182,6 @@ const customerRoutes: Route[] = [
   }],
 
   /* ---------- Catálogo ---------- */
-  /** Los precios que ve el participante ya llevan la promoción vigente aplicada. */
-  ["GET", "catalogo/productos", () => db.catalogo.productos.map(conPromo)],
-  /** Pestañas del Home: Destacados es manual; Más vistos y Novedades se calculan solas y se pueden fijar desde el panel. */
-  ["GET", "catalogo/productos/tabs", () => {
-    const TOPE = 10;
-    const activos = (db.admin.productos as any[]).filter((p) => p.activo);
-    const publicos = new Map(db.catalogo.productos.map((p) => [p.id, p]));
-    const aPublico = (l: any[]) => l.map((p) => publicos.get(p.id)).filter(Boolean).map((p) => conPromo(p!));
-    const mezcla = (fijados: any[], auto: any[]) => [...new Set([...fijados, ...auto])].slice(0, TOPE);
-    const tabs = {
-      Destacados: activos.filter((p) => p.destacado),
-      "Más vistos": mezcla(activos.filter((p) => p.fijarMasVistos), [...activos].sort((a, b) => (b.vistas ?? 0) - (a.vistas ?? 0))),
-      Novedades: mezcla(activos.filter((p) => p.fijarNovedad), [...activos].sort((a, b) => (b.creadoEn ?? "").localeCompare(a.creadoEn ?? ""))),
-    };
-    return Object.fromEntries(Object.entries(tabs).map(([k, l]) => [k, aPublico(l)]).filter(([, l]) => (l as any[]).length));
-  }],
-  ["GET", "catalogo/productos/:id", ({ params }) => {
-    const p = db.catalogo.productos.find((x) => x.id === params["id"]) ?? (() => { throw notFound("Producto"); })();
-    return conPromo(p);
-  }],
-  /** Cada vez que se abre la ficha de un producto suma una vista (alimenta "Más vistos"). */
-  ["POST", "catalogo/productos/:id/vista", ({ params }) => {
-    const fila = (db.admin.productos as any[]).find((x) => x.id === params["id"]);
-    if (fila) fila.vistas = (fila.vistas ?? 0) + 1;
-    return { ok: true };
-  }],
   /** Solo los beneficios vigentes (los programados y los vencidos no se listan). */
   ["GET", "catalogo/beneficios", () => db.catalogo.beneficios.filter((b: any) => estadoVigencia(b, hoy().iso) === "vigente").map(beneficioPublico)],
   /** La ficha sigue abierta aunque haya vencido (con su `vigencia`) para poder avisar por qué no se puede canjear. */
@@ -228,22 +190,16 @@ const customerRoutes: Route[] = [
   /** Pop-ups vigentes para un canal (web o app) y una página; la frecuencia la aplica quien los muestra. */
   ["GET", "popups", ({ query }) => popupsPublicos(query.get("canal") ?? "web", query.get("pagina") ?? "inicio")],
   ["POST", "popups/:id/evento", ({ params, body }) => registrarEventoPopup(params["id"]!, String(body?.canal ?? ""), String(body?.tipo ?? ""))],
-  ["GET", "catalogo/categorias-producto", () => db.catalogo.categoriasProducto],
   ["GET", "catalogo/categorias-beneficio", () => db.catalogo.categoriasBeneficio],
   /** Marcas aliadas publicadas (nombre, logo y sitio web). */
   ["GET", "catalogo/marcas", () => db.admin.marcas.filter((m: any) => m.activo).map(({ nombre, logo, web, descripcion }: any) => ({ nombre, logo, web, descripcion }))],
   ["GET", "catalogo/banners/:seccion", ({ params }) => db.catalogo.banners[params["seccion"]!] ?? []],
   ["GET", "niveles", () => ({ niveles: db.niveles, ...db.nivelesTexto })],
 
-  /* ---------- Vuelos y configuración ---------- */
-  ["GET", "vuelos/ciudades", () => db.vuelos.ciudades],
-  ["GET", "vuelos/destinos", () => db.vuelos.destinos],
-  ["GET", "vuelos/destinos/:slug", ({ params }) =>
-    db.vuelos.destinos.find((d) => d.slug === params["slug"]) ?? (() => { throw notFound("Destino"); })()],
+  /* ---------- Configuración ---------- */
   ["GET", "tenant", () => db.config.tenant],
   ["GET", "config", () => ({
     ...db.config,
-    reglas: db.admin.reglas,
     // El campo de provincia ofrece solo las provincias con envío (editables en Marca y localización).
     formulario: db.admin.campos.map((c: any) =>
       c.mapeo === "provincia" ? { ...c, opciones: provinciasDe((db.config.tenant as any).pais.codigo, (db.config.tenant as any).pais.provincias).filter((p) => p.envio).map((p) => p.nombre) } : c,
@@ -350,39 +306,10 @@ const customerRoutes: Route[] = [
     enviarCorreo("cupon-generado", db.perfil.correo, { beneficio: ben?.nombre ?? "tu beneficio", codigo: cupon.codigo, horas: est.regla.horas }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: cupon.codigo });
     return cupon;
   }],
-  ["GET", "me/movimientos", () => db.movimientos],
   ["GET", "me/compras", () => db.compras],
   ["GET", "me/compras/:codigo", ({ params }) =>
     db.compras.find((c) => c.codigo === params["codigo"]) ?? (() => { throw notFound("Compra"); })()],
   ["GET", "me/beneficios", () => db.misBeneficios],
-  ["GET", "me/cotizaciones", () => db.cotizaciones],
-  ["POST", "me/cotizaciones", ({ body }) => {
-    const detalle = Array.isArray(body.pasajerosDetalle) ? body.pasajerosDetalle : [];
-    if (!body.origen || !body.destino || !body.salida) throw new ApiError(422, "Completa el origen, el destino y la fecha de salida.");
-    if (detalle.length !== Number(body.pasajeros)) throw new ApiError(422, "Faltan los datos de algún pasajero.");
-    const ahora = new Date().toISOString().slice(0, 19);
-    const nueva: Cotizacion = {
-      ...body,
-      pasajerosDetalle: detalle,
-      codigo: `COT-${100500 + db.cotizaciones.length}`,
-      fecha: hoy().iso,
-      estado: "Enviada",
-      mensajes: [],
-      historial: [{ estado: "Enviada", fecha: ahora, por: "Participante" }],
-    };
-    (nueva as any).cliente = nombreParticipante();
-    (nueva as any).email = db.perfil.correo;
-    db.cotizaciones.unshift(nueva);
-    const v = { codigo: nueva.codigo, origen: (body as any).origen, destino: (body as any).destino };
-    enviarCorreo("cotizacion-recibida", db.perfil.correo, v, { destinatario: nombreParticipante(), participanteId: "p1", referencia: nueva.codigo });
-    enviarCorreo("equipo-cotizacion", (db.config.sitio as any).correoSoporte, v, { destinatario: "Equipo", referencia: nueva.codigo });
-    return nueva;
-  }],
-  ["PATCH", "me/cotizaciones/:codigo", ({ params, body }) => {
-    const c = db.cotizaciones.find((x) => x.codigo === params["codigo"]);
-    if (!c) throw notFound("Cotización");
-    return Object.assign(c, body);
-  }],
   /* ---------- Avisos dentro del sitio (campanita) ---------- */
   ["GET", "me/notificaciones", () => ((db as any).notificaciones as any[]).filter((n) => n.participanteId === "p1").sort((a, b) => b.fecha.localeCompare(a.fecha))],
   /** Marca como leídas las indicadas (`ids`) o, sin `ids`, todas. */
@@ -410,54 +337,7 @@ const customerRoutes: Route[] = [
     return { ok: true };
   }],
 
-  /* ---------- Operaciones con puntos ---------- */
-  ["POST", "me/puntos/sumar", ({ body }) => {
-    exigirCuentaActiva();
-    return { puntos: ajustarPuntos(body.cantidad) };
-  }],
-  /**
-   * Compra de puntos en dos pasos, como con una pasarela real:
-   *  1) se crea la compra (queda "Pendiente", sin acreditar nada) con las reglas validadas;
-   *  2) la pasarela responde (aprobado, rechazado o pendiente) y se registra con `.../pago`. Una compra fallida se puede reintentar.
-   */
-  ["POST", "me/puntos/compra", ({ body }) => {
-    exigirCuentaActiva();
-    exigirLegalesAlDia("p1");
-    const r = db.admin.reglas;
-    if (!r.compraActiva) throw new ApiError(403, "La compra de puntos no está disponible por ahora.");
-    if (body.cantidad < r.min) throw new ApiError(422, `El mínimo de compra es ${r.min} puntos.`);
-    if (body.cantidad > r.max) throw new ApiError(422, `El máximo por compra es ${r.max} puntos.`);
-    const monto = Math.round(body.cantidad * r.precio * 100) / 100;
-    verificarTopeMensual(body.cantidad);
-    const codigo = codigoAleatorio("PTS");
-    const h = hoy();
-    (db.admin.comprasPuntos as any[]).unshift({
-      codigo, fechaISO: h.iso, fecha: h.txt, hora: new Date().toTimeString().slice(0, 5), participanteId: "p1", cliente: nombreParticipante(),
-      email: db.perfil.correo, cantidad: body.cantidad, monto, estado: "Pendiente", intentos: 0, motivo: "",
-    });
-    return { codigo, cantidad: body.cantidad, monto, estado: "Pendiente" };
-  }],
-  /** Resultado de la pasarela para una compra: `resultado` = aprobado | rechazado | pendiente (con `motivo` si se rechaza). */
-  ["POST", "me/puntos/compra/:codigo/pago", ({ params, body }) => {
-    exigirCuentaActiva();
-    const compra = (db.admin.comprasPuntos as any[]).find((c) => c.codigo === params["codigo"] && c.participanteId === "p1") ?? (() => { throw notFound("Compra"); })();
-    if (compra.estado === "Aprobada") throw new ApiError(409, "Esta compra ya está pagada.");
-    const resultado = String(body?.resultado ?? "");
-    if (!["aprobado", "rechazado", "pendiente"].includes(resultado)) throw new ApiError(422, "Resultado de pago no válido.");
-    compra.intentos = (compra.intentos ?? 0) + 1;
-    compra.referencia = String(body?.referencia ?? "");
-    if (resultado === "aprobado") return resolverCompra(compra, true);
-    if (resultado === "rechazado") return resolverCompra(compra, false, String(body?.motivo ?? "El banco rechazó el pago."));
-    compra.estado = "Pendiente";
-    compra.motivo = "Esperando la confirmación del banco";
-    return { estado: "Pendiente", codigo: compra.codigo, motivo: compra.motivo, puntos: db.usuario.puntos };
-  }],
-  /** Panel: simula la confirmación (o el rechazo) que enviaría la pasarela para un pago que quedó pendiente. */
-  ["POST", "admin/compras-puntos/:codigo/resolver", ({ params, body }) => {
-    const compra = (db.admin.comprasPuntos as any[]).find((c) => c.codigo === params["codigo"]) ?? (() => { throw notFound("Compra"); })();
-    if (compra.estado !== "Pendiente") throw new ApiError(409, "Solo se pueden resolver las compras pendientes.");
-    return resolverCompra(compra, body?.resultado === "aprobado", "El pago fue rechazado tras la verificación.");
-  }],  /* ---------- Novedades por correo (consentimiento de comunicaciones) ---------- */
+  /* ---------- Novedades por correo (consentimiento de comunicaciones) ---------- */
   /* ---------- Textos legales: qué debe aceptar la persona y su aceptación ---------- */
   ["GET", "me/legales", () => estadoParticipante("p1")],
   ["POST", "me/legales/aceptar", ({ body }) => aceptar("p1", body)],
@@ -469,12 +349,87 @@ const customerRoutes: Route[] = [
   ["POST", "novedades/alta", ({ body }) => volverAlta(body?.t)],
   /** Eventos anónimos de analítica (el cliente solo los manda si se aceptaron las cookies de analítica). Públicos: no exigen sesión. */
   ["POST", "analitica/eventos", ({ body }) => registrarEvento(body)],
+  /* ---------- Eventos ---------- */
+  /** Solo los eventos publicados. */
+  ["GET", "eventos", () => (db.admin.eventos as any[]).filter((e) => e.activo)],
+  ["GET", "eventos/:id", ({ params }) =>
+    (db.admin.eventos as any[]).find((e) => e.id === params["id"] && e.activo) ?? (() => { throw notFound("Evento"); })()],
+  ["GET", "me/preinscripciones", () => (db.admin.preinscripciones as any[]).filter((p) => p.participanteId === "p1")],
+  /** Pre-inscribe a la participante demo: confirma si hay cupo para ella y sus acompañantes; si no, queda en lista de espera. */
+  ["POST", "eventos/:id/preinscribir", ({ params, body }) => {
+    exigirCuentaActiva();
+    exigirLegalesAlDia("p1");
+    const ev = (db.admin.eventos as any[]).find((e) => e.id === params["id"] && e.activo) ?? (() => { throw notFound("Evento"); })();
+    if (esPasado(ev)) throw new ApiError(409, "Este evento ya se realizó.");
+    if (!accesoPorNivel(ev.nivelMinimo)) throw new ApiError(403, `Este evento está disponible desde el nivel ${ev.nivelMinimo}. Tu nivel actual es ${db.usuario.nivel}.`);
+    const lista = db.admin.preinscripciones as any[];
+    if (lista.some((p) => p.participanteId === "p1" && p.eventoId === ev.id && p.estado !== "cancelado")) throw new ApiError(409, "Ya estás pre-inscrito en este evento.");
+    const acompanantes = Math.min(2, Math.max(0, Math.floor(Number(body?.acompanantes) || 0)));
+    const telefono = String(body?.telefono ?? "").trim();
+    if (!/^[0-9+\s]{9,15}$/.test(telefono)) throw new ApiError(422, "Ingresa un teléfono de contacto válido.");
+    const h = hoy();
+    const confirmado = ev.cuposRestantes >= 1 + acompanantes;
+    const pre = {
+      id: `pr${Date.now()}`, eventoId: ev.id, evento: ev.nombre, codigo: codigoEvento(), participanteId: "p1", participante: nombreParticipante(),
+      email: db.perfil.correo, telefono, documento: db.perfil.codigoParticipante, fecha: h.txt, fechaISO: h.iso, acompanantes,
+      restricciones: String(body?.restricciones ?? "").slice(0, 200), comentario: String(body?.comentario ?? "").slice(0, 500),
+      estado: confirmado ? "confirmado" : "en-lista",
+    };
+    lista.unshift(pre);
+    if (confirmado) ajustarCupos(ev.id, -(1 + acompanantes));
+    enviarCorreo("evento-preinscripcion", db.perfil.correo, { evento: ev.nombre, codigo: pre.codigo, estado: confirmado ? "confirmada" : "en lista de espera" }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: pre.codigo });
+    return pre;
+  }],
+  ["POST", "me/preinscripciones/:codigo/cancelar", ({ params }) => {
+    exigirCuentaActiva();
+    const pre = (db.admin.preinscripciones as any[]).find((p) => p.codigo === params["codigo"] && p.participanteId === "p1") ?? (() => { throw notFound("Pre-inscripción"); })();
+    if (pre.estado === "cancelado" || pre.estado === "asistido") throw new ApiError(409, "Esta pre-inscripción ya no se puede cancelar.");
+    if (ocupaCupo(pre.estado)) ajustarCupos(pre.eventoId, 1 + pre.acompanantes);
+    pre.estado = "cancelado";
+    return pre;
+  }],
+
+  /* ---------- Spin & Win y Lucky Code ---------- */
+  ["GET", "juegos/ruleta", () => estadoRuleta()],
+  /** El servidor elige el premio (el navegador solo anima la ruleta hasta ese sector). */
+  ["POST", "juegos/ruleta/girar", () => {
+    exigirCuentaActiva();
+    exigirLegalesAlDia("p1");
+    const est = estadoRuleta();
+    if (est.restantes <= 0) throw new ApiError(409, `Usaste tus ${est.girosMax} giros. Vuelve el ${est.proximaFecha}.`);
+    const sectores = (db.admin.premios as any[]).filter((p) => p.activo && p.enRuleta);
+    if (sectores.length < 2) throw new ApiError(503, "La ruleta no está disponible por ahora.");
+    const premio = sectores[Math.floor(Math.random() * sectores.length)]!;
+    registrarJuego(premio, "ruleta");
+    return { premio: { id: premio.id, label: premio.label, tipo: premio.tipo, detalle: premio.detalle }, estado: estadoRuleta() };
+  }],
+  ["POST", "juegos/codigo", ({ body }) => {
+    exigirCuentaActiva();
+    exigirLegalesAlDia("p1");
+    const codigo = String(body?.codigo ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (codigo.length < 8) throw new ApiError(422, "Ingresa tu código promocional.");
+    const fila = (db.admin.codigosPromo as any[]).find((c) => String(c.codigo).replace(/[^A-Z0-9]/g, "") === codigo);
+    if (!fila || fila.usado) throw new ApiError(422, "El código ingresado no es válido o ya fue utilizado.");
+    const premio = (db.admin.premios as any[]).find((p) => p.id === fila.premioId);
+    if (!premio || !premio.activo) throw new ApiError(422, "El premio de este código ya no está disponible.");
+    fila.usado = true;
+    fila.usadoPor = nombreParticipante();
+    fila.fechaUso = hoy().txt;
+    registrarJuego(premio, "codigo");
+    return { premio: { id: premio.id, label: premio.label, tipo: premio.tipo, detalle: premio.detalle } };
+  }],
   /* ---------- Órdenes (checkout) ---------- */
   ["POST", "ordenes", ({ body }) => {
     exigirCuentaActiva();
     exigirLegalesAlDia("p1");
-    if (body.puntosUsados > db.usuario.puntos) throw new ApiError(422, "No tienes puntos suficientes para este canje.");
-    // No hay control de inventario: un producto activo siempre se puede canjear.
+    // Todo pago se valida con una tarjeta del banco.
+    const tarjetas = db.config.tarjetas as { id: string }[];
+    if (!tarjetas.some((t) => t.id === body.tarjeta)) throw new ApiError(422, "Elige una tarjeta del banco para pagar.");
+    if (!Array.isArray(body.items) || !body.items.length) throw new ApiError(422, "Tu carrito está vacío.");
+    for (const i of body.items as any[]) {
+      const ben = (db.admin.beneficios as any[]).find((x) => x.id === i.id);
+      if (ben && !accesoPorNivel(ben.nivelMinimo)) throw new ApiError(403, `«${ben.nombre}» está disponible desde el nivel ${ben.nivelMinimo}.`);
+    }
     const codigo = codigoAleatorio("BNB");
     const h = hoy();
     const hora = new Date().toTimeString().slice(0, 5);
@@ -483,36 +438,31 @@ const customerRoutes: Route[] = [
       marca: i.marca,
       imagen: i.imagen,
       cantidad: i.cantidad,
-      puntos: i.puntos,
+      precio: i.precio,
     }));
+    const monto = Math.round(items.reduce((a, i) => a + i.precio * i.cantidad, 0) * 100) / 100;
     const compra: Compra = {
       codigo,
       fecha: h.txt,
       fechaISO: h.iso,
       hora,
-      estado: "Procesando",
+      estado: "Pagado",
       entrega: body.entrega,
-      puntosUsados: body.puntosUsados,
-      montoUSD: body.montoUSD,
+      montoUSD: monto,
       items,
     };
     db.compras.unshift(compra);
-    enviarCorreo("pedido-confirmado", db.perfil.correo, { codigo, puntos: body.puntosUsados.toLocaleString("es") }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: codigo });
-    if (body.puntosUsados > 0) {
-      movimiento(`Canje ${items.map((i) => i.nombre).join(", ")}`, "canje", -body.puntosUsados);
-    }
-    ajustarPuntos(-body.puntosUsados);
+    enviarCorreo("pedido-confirmado", db.perfil.correo, { codigo, monto: monto.toFixed(2) }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: codigo });
     db.admin.pedidos.unshift({
       ...compra,
       cliente: `${db.perfil.nombres} ${db.perfil.apellidos}`,
       email: db.perfil.correo,
       hora,
-      digital: body.items.every((i: any) => i.digital),
-      estadoAdmin: "Confirmado",
-      guia: "",
-      historial: [{ estado: "Confirmado", fecha: `${h.txt} ${hora}` }],
+      digital: true,
+      estadoAdmin: "Pagado",
+      historial: [{ estado: "Pagado", fecha: `${h.txt} ${hora}` }],
     });
-    return { codigo, fecha: h.txt, hora, puntos: db.usuario.puntos };
+    return { codigo, fecha: h.txt, hora };
   }],
 ];
 
@@ -543,7 +493,7 @@ const respond = (req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> =
   const url = new URL(req.url, "http://mock.local");
   const path = url.pathname.replace(/^\/api\//, "");
   // Las rutas de cuenta del participante (me/*, canje y consulta) exigen su sesión; el catálogo y los textos son públicos.
-  if (path.startsWith("me/") || path === "me" || path === "ordenes" || path === "contacto") {
+  if (path.startsWith("me/") || path === "me" || path === "ordenes" || path === "contacto" || path === "eventos") {
     if (!/^Bearer mock\.participante\./.test(req.headers.get("Authorization") ?? "")) {
       return throwError(() => new HttpErrorResponse({ status: 401, statusText: "Inicia sesión", error: { message: "Inicia sesión para continuar." }, url: req.url }));
     }

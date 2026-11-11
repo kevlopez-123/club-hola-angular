@@ -26,21 +26,24 @@ const grupos = [
   { label: "General", items: [{ to: "/admin", label: "Dashboard", icon: "LayoutDashboard" }, { to: "/admin/reportes", label: "Reportes", icon: "BarChart3" }] },
   { label: "Participantes", items: [
     { to: "/admin/participantes", label: "Participantes", icon: "Users" },
-    { to: "/admin/compras-puntos", label: "Compras de puntos", icon: "Coins" },
     { to: "/admin/formulario", label: "Formulario de datos", icon: "FormInput" },
-    { to: "/admin/movimientos", label: "Movimientos de puntos", icon: "ArrowLeftRight" },
     { to: "/admin/importaciones", label: "Importaciones", icon: "FileSpreadsheet" },
   ] },
-  { label: "Programa", items: [{ to: "/admin/reglas", label: "Reglas de puntos", icon: "Coins" }, { to: "/admin/niveles", label: "Niveles", icon: "Award" }] },
+  { label: "Programa", items: [{ to: "/admin/niveles", label: "Niveles", icon: "Award" }] },
   { label: "Catálogos", items: [
-    { to: "/admin/productos", label: "Productos", icon: "Package" },
     { to: "/admin/beneficios", label: "Beneficios", icon: "Gift" },
     { to: "/admin/marcas", label: "Marcas", icon: "Tag" },
-    { to: "/admin/destinos", label: "Destinos", icon: "Plane" },
+  ] },
+  { label: "Juegos", items: [
+    { to: "/admin/ruleta", label: "Ruleta", icon: "Trophy" },
+    { to: "/admin/codigos", label: "Lucky Code", icon: "Gift" },
+  ] },
+  { label: "Eventos", items: [
+    { to: "/admin/eventos", label: "Eventos", icon: "CalendarDays" },
+    { to: "/admin/pre-inscripciones", label: "Pre-inscripciones", icon: "Ticket" },
   ] },
   { label: "Operación", items: [
-    { to: "/admin/pedidos", label: "Pedidos", icon: "ShoppingBag" },
-    { to: "/admin/cotizaciones", label: "Cotizaciones de vuelos", icon: "PlaneTakeoff" },
+    { to: "/admin/pedidos", label: "Compras", icon: "ShoppingBag" },
     { to: "/admin/atencion", label: "Atención", icon: "MessageSquare" },
   ] },
   { label: "Sitio y app", items: [
@@ -445,11 +448,6 @@ export class AdminLayoutComponent {
         ...a.filter((x) => x.ruta !== "/admin/atencion"),
         ...(r.mensajes.length ? [{ texto: "Mensajes sin responder", ruta: "/admin/atencion", icono: "MessageSquare", n: r.mensajes.length }] : []),
       ]);
-    });
-    // Solo si el rol puede ver cotizaciones (si no, el servidor respondería 403).
-    if (puede(this.session.rol(), "cotizaciones", "ver")) this.api.get<{ facetas: Record<string, Record<string, number>> }>("admin/q/cotizaciones", { size: 1, facetas: "estado" }).subscribe((c) => {
-      const n = c.facetas["estado"]?.["Enviada"] ?? 0;
-      this.avisos.update((a) => [...a.filter((x) => x.ruta !== "/admin/cotizaciones"), ...(n ? [{ texto: "Cotizaciones nuevas", ruta: "/admin/cotizaciones", icono: "PlaneTakeoff", n }] : [])]);
     });
   }
 

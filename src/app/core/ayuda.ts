@@ -137,22 +137,10 @@ En lugar de códigos únicos por participante, un beneficio puede usar **un mism
 ## Provincias
 
 Puedes limitar un beneficio a algunas provincias. Si el participante no indicó la suya, el beneficio se le muestra y se le pide completar sus datos.`),
-  g("ajuste-puntos", "Participantes", 1, "Ajustar puntos a varios participantes", "Suma o resta puntos con un Excel.", ["Administrador", "Operaciones"],
-`En **Participantes** pulsa **Ajuste masivo de puntos**.
+  g("pedidos", "Operación", 1, "Gestionar compras", "Estados y anulaciones.", ["Administrador", "Operaciones", "Atención"],
+`## Compras
 
-1. Descarga la plantilla y llena **documento**, **puntos** (positivo suma, negativo resta) y **motivo**.
-2. Súbela: el sistema **simula** el resultado, con el saldo antes y después de cada fila y el total que se suma y se resta.
-3. Si todo está bien, confirma.
-
-**Importante:** los ajustes no se pueden deshacer; se corrigen con otro ajuste de signo contrario. Un ajuste que dejaría el saldo en negativo se rechaza. Cada ajuste queda en el historial del participante y en el Registro de cambios.`),
-  g("pedidos-cotizaciones", "Operación", 1, "Gestionar pedidos y cotizaciones", "Estados, mensajes y seguimiento.", ["Administrador", "Operaciones", "Atención"],
-`## Pedidos
-
-Abre un pedido para ver su detalle y cambiar su **estado**. Al cambiarlo, el participante recibe un correo.
-
-## Cotizaciones de vuelos
-
-Cada solicitud muestra los pasajeros y el seguimiento. Puedes asignar una **ejecutiva**, subir el **PDF** de la cotización y escribir mensajes. Hay un máximo de **48 horas** para responder.
+Abre una compra para ver su detalle. Una compra **Pagada** se puede **anular**: se reembolsa a la tarjeta del participante y queda registrada en el historial.
 
 ## Atención
 

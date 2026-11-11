@@ -11,26 +11,24 @@ export const ACCIONES: { id: Accion; etiqueta: string }[] = [
 ];
 
 export type Seccion =
-  | "dashboard" | "reportes" | "participantes" | "compras-puntos" | "formulario" | "movimientos" | "reglas" | "niveles"
-  | "productos" | "beneficios" | "marcas" | "destinos" | "pedidos" | "cotizaciones" | "atencion"
+  | "dashboard" | "reportes" | "participantes" | "formulario" | "niveles"
+  | "beneficios" | "marcas" | "ruleta" | "codigos" | "eventos" | "preinscripciones" | "pedidos" | "atencion"
   | "importaciones" | "contenido" | "popups" | "legales" | "configuracion" | "correos" | "usuarios" | "roles" | "auditoria" | "ayuda";
 
 export const SECCIONES: { id: Seccion; etiqueta: string; ruta: string; grupo: string }[] = [
   { id: "dashboard", etiqueta: "Dashboard", ruta: "/admin", grupo: "General" },
   { id: "reportes", etiqueta: "Reportes", ruta: "/admin/reportes", grupo: "General" },
   { id: "participantes", etiqueta: "Participantes", ruta: "/admin/participantes", grupo: "Participantes" },
-  { id: "compras-puntos", etiqueta: "Compras de puntos", ruta: "/admin/compras-puntos", grupo: "Participantes" },
   { id: "formulario", etiqueta: "Formulario de datos", ruta: "/admin/formulario", grupo: "Participantes" },
-  { id: "movimientos", etiqueta: "Movimientos de puntos", ruta: "/admin/movimientos", grupo: "Participantes" },
   { id: "importaciones", etiqueta: "Importaciones", ruta: "/admin/importaciones", grupo: "Participantes" },
-  { id: "reglas", etiqueta: "Reglas de puntos", ruta: "/admin/reglas", grupo: "Programa" },
   { id: "niveles", etiqueta: "Niveles", ruta: "/admin/niveles", grupo: "Programa" },
-  { id: "productos", etiqueta: "Productos", ruta: "/admin/productos", grupo: "Catálogos" },
   { id: "beneficios", etiqueta: "Beneficios", ruta: "/admin/beneficios", grupo: "Catálogos" },
   { id: "marcas", etiqueta: "Marcas", ruta: "/admin/marcas", grupo: "Catálogos" },
-  { id: "destinos", etiqueta: "Destinos", ruta: "/admin/destinos", grupo: "Catálogos" },
-  { id: "pedidos", etiqueta: "Pedidos", ruta: "/admin/pedidos", grupo: "Operación" },
-  { id: "cotizaciones", etiqueta: "Cotizaciones de vuelos", ruta: "/admin/cotizaciones", grupo: "Operación" },
+  { id: "ruleta", etiqueta: "Ruleta", ruta: "/admin/ruleta", grupo: "Juegos" },
+  { id: "codigos", etiqueta: "Lucky Code", ruta: "/admin/codigos", grupo: "Juegos" },
+  { id: "eventos", etiqueta: "Eventos", ruta: "/admin/eventos", grupo: "Eventos" },
+  { id: "preinscripciones", etiqueta: "Pre-inscripciones", ruta: "/admin/pre-inscripciones", grupo: "Eventos" },
+  { id: "pedidos", etiqueta: "Compras", ruta: "/admin/pedidos", grupo: "Operación" },
   { id: "atencion", etiqueta: "Atención", ruta: "/admin/atencion", grupo: "Operación" },
   { id: "contenido", etiqueta: "Contenido", ruta: "/admin/contenido", grupo: "Sitio y app" },
   { id: "popups", etiqueta: "Pop-ups", ruta: "/admin/popups", grupo: "Sitio y app" },
@@ -54,15 +52,15 @@ export const PERMISOS: Record<string, MatrizPermisos> = {
   Administrador: Object.fromEntries(SECCIONES.map((s) => [s.id, TODAS])),
   Catálogo: {
     dashboard: ["ver"],
-    productos: TODAS, beneficios: TODAS, marcas: TODAS, destinos: TODAS, contenido: TODAS, popups: TODAS, importaciones: GESTIONAR,
+    beneficios: TODAS, marcas: TODAS, ruleta: TODAS, codigos: TODAS, eventos: TODAS, preinscripciones: TODAS, contenido: TODAS, popups: TODAS, importaciones: GESTIONAR,
   },
   Operaciones: {
     dashboard: ["ver"],
-    participantes: GESTIONAR, importaciones: GESTIONAR, "compras-puntos": LEER, movimientos: LEER, pedidos: GESTIONAR, cotizaciones: GESTIONAR, formulario: ["ver", "editar"],
+    participantes: GESTIONAR, importaciones: GESTIONAR, pedidos: GESTIONAR, formulario: ["ver", "editar"],
   },
   Atención: {
     dashboard: ["ver"],
-    atencion: GESTIONAR, cotizaciones: ["ver", "editar"], participantes: ["ver", "editar"],
+    atencion: GESTIONAR, participantes: ["ver", "editar"],
   },
   "Solo lectura": {
     dashboard: ["ver"], reportes: LEER,
@@ -124,10 +122,10 @@ export function seccionDeRuta(url: string): Seccion | null {
 /** Colección del API → sección (para exigir el permiso en admin/q|c/:colección). */
 const COLECCION_A_SECCION: Record<string, Seccion> = {
   participantes: "participantes", pedidos: "pedidos", mensajes: "atencion", usuarios: "usuarios", auditoria: "auditoria",
-  productos: "productos", categoriasProducto: "productos", beneficios: "beneficios", categoriasBeneficio: "beneficios", lotes: "beneficios",
-  destinos: "destinos", ciudades: "destinos", bannersVuelos: "destinos", banners: "contenido", onboarding: "contenido", seccionesHome: "contenido",
-  campos: "formulario", marcas: "marcas", comprasPuntos: "compras-puntos", plantillasCorreo: "correos", correosEnviados: "correos", campanas: "correos", importaciones: "importaciones",
-  cotizaciones: "cotizaciones", movimientos: "movimientos", popups: "popups", guias: "ayuda",
+  beneficios: "beneficios", categoriasBeneficio: "beneficios", lotes: "beneficios",
+  banners: "contenido", onboarding: "contenido", seccionesHome: "contenido",
+  campos: "formulario", marcas: "marcas", premios: "ruleta", giros: "ruleta", codigosPromo: "codigos", eventos: "eventos", preinscripciones: "preinscripciones", plantillasCorreo: "correos", correosEnviados: "correos", campanas: "correos", importaciones: "importaciones",
+  popups: "popups", guias: "ayuda",
 };
 
 /**
@@ -146,23 +144,21 @@ export function requisitoApi(metodo: string, ruta: string, body?: any): { seccio
     if (!s) return null;
     // Las guías completas (con borradores y las de otros roles) solo las ve quien puede administrarlas; cada rol lee las suyas en admin/ayuda.
     if (p[2] === "guias" && m === "GET") return { secciones: ["ayuda"], accion: "editar" };
-    if (m === "GET" && ["marcas", "ciudades", "categoriasProducto", "categoriasBeneficio", "participantes", "usuarios", "lotes", "plantillasCorreo", "campos", "banners", "seccionesHome", "onboarding"].includes(p[2]!)) return null;
+    if (m === "GET" && ["marcas", "categoriasProducto", "categoriasBeneficio", "participantes", "usuarios", "lotes", "plantillasCorreo", "campos", "banners", "seccionesHome", "onboarding"].includes(p[2]!)) return null;
     return { secciones: [s], accion };
   }
   switch (q) {
-    case "resumen": case "meta": case "ejecutivos": case "auditoria": case "movimientos": return m === "GET" && q === "movimientos" ? { secciones: ["movimientos"], accion: "ver" } : null;
+    case "resumen": case "meta": case "auditoria": return null;
     case "reportes": return { secciones: ["reportes"], accion: "ver" };
-    case "reglas": return { secciones: ["reglas"], accion };
     case "niveles": return { secciones: ["niveles"], accion };
     case "sitio": return { secciones: ["configuracion"], accion };
     case "config": return body && ("tenant" in body || "sitio" in body) ? { secciones: ["configuracion"], accion } : { secciones: ["contenido", "configuracion"], accion };
     case "participantes": return { secciones: ["participantes"], accion };
-    case "cotizaciones": return { secciones: ["cotizaciones"], accion };
-    case "compras-puntos": return { secciones: ["compras-puntos"], accion };
     case "importaciones": return { secciones: ["importaciones"], accion };
     case "lotes": return { secciones: ["beneficios"], accion };
     case "legales": return { secciones: ["legales"], accion };
     case "marcas": return { secciones: ["marcas"], accion };
+    case "codigos-promo": return { secciones: ["codigos"], accion };
     case "roles": return { secciones: ["roles"], accion };
     case "correos": return { secciones: ["correos"], accion };
     default: return null;

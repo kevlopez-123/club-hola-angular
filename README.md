@@ -1,4 +1,8 @@
-# Banco Solidario Puntos — Angular 22
+# Club Hola · BanBif (Perú) — Angular 22
+
+> Versión con la identidad de **Club Hola** (colores, Manrope y logos del proyecto React `clubhola-benefits`), Perú y precios en soles. Sin puntos ni vuelos; módulos **Spin & Win**, **Lucky Code** y **Eventos** con gestión desde el panel. Los niveles los asigna el banco por segmento.
+>
+> **Demo en GitHub Pages:** usa la MockAPI (sin backend). Para probarla: DNI `41234567`, cualquier código de 6 dígitos; panel en `/admin` con `admin@clubhola.com.pe` / `Admin#2026` (datos de prueba).
 
 > **Novedades:** Angular 22.2 (TypeScript 6, Node 24 local: usa siempre `npm start` / `npm run build` / `npm run e2e`), panel con interfaz SaaS (workspace, Ctrl+K, migas, tema oscuro), plataforma **white-label** (colores, logos, país, moneda y documentos desde Admin → Configuración → Marca) y pruebas de escalabilidad (`STRESS_N=500000 npm run e2e -- escalabilidad`). Para reutilizarla en otro cliente ver [docs/REPLICAR.md](docs/REPLICAR.md). Suite e2e: ~290 pruebas.
 

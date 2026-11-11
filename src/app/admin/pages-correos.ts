@@ -17,7 +17,7 @@ import {
   PageHeaderComponent, PagerComponent, Paginado, PanelComponent, PillComponent, ToastService, ToggleComponent,
 } from "./kit";
 
-const GRUPOS: PlantillaCorreo["grupo"][] = ["Seguridad y acceso", "Compras y puntos", "Beneficios y vuelos", "Alertas internas"];
+const GRUPOS: PlantillaCorreo["grupo"][] = ["Seguridad y acceso", "Compras y nivel", "Beneficios y contacto", "Alertas internas"];
 const TIPOS: { t: TipoBloque; l: string; icon: string }[] = [
   { t: "titulo", l: "Título", icon: "AlignLeft" },
   { t: "texto", l: "Texto", icon: "FileText" },
@@ -119,9 +119,6 @@ export class CorreoPreviewComponent {
                       <p class="font-semibold text-foreground">{{ p.nombre }} @if (p.fija) { <a-pill tone="info">Seguridad</a-pill> } @if (p.interna) { <a-pill tone="muted">Equipo</a-pill> } @if (p.notificar?.activo) { <a-pill tone="ok">Campanita</a-pill> }</p>
                       <p class="text-sm text-muted-foreground">{{ p.evento }}</p>
                     </div>
-                    @if (p.id === 'puntos-por-vencer') {
-                      <button aBtn variant="ghost" aria-label="Avisar ahora puntos por vencer" (click)="avisarVencimientos()"><app-icon name="Clock" class="h-4 w-4" /> Avisar ahora</button>
-                    }
                     @if (p.fija) {
                       <span class="text-sm text-muted-foreground">Siempre activa</span>
                     } @else {
@@ -248,7 +245,7 @@ export class CorreoPreviewComponent {
       }
       @case ('campanas') {
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p class="text-sm text-muted-foreground">Mensajes masivos a una audiencia (todos, por nivel o por saldo). Solo llegan a participantes activos que aceptan novedades; cada correo usa el diseño de marca y pasa por la misma cola de envío.</p>
+          <p class="text-sm text-muted-foreground">Mensajes masivos a una audiencia (todos o por nivel). Solo llegan a participantes activos que aceptan novedades; cada correo usa el diseño de marca y pasa por la misma cola de envío.</p>
           <button aBtn (click)="nuevaCampana()"><app-icon name="Plus" class="h-4 w-4" /> Nueva campaña</button>
         </div>
         <div class="adm-wrap">
@@ -462,22 +459,18 @@ export class CorreoPreviewComponent {
             <a-field label="Mensaje"><textarea [class]="input + ' h-32 py-2'" placeholder="Hola {nombre}, …" [value]="c.mensaje" (input)="setCamp({ mensaje: $any($event.target).value })"></textarea></a-field>
             <div class="grid gap-3 sm:grid-cols-2">
               <a-field label="Texto del botón (opcional)"><input [class]="input" [value]="c.botonTexto ?? ''" (input)="setCamp({ botonTexto: $any($event.target).value })" /></a-field>
-              <a-field label="Enlace del botón"><input [class]="input" placeholder="{sitio}/canjea" [value]="c.botonUrl ?? ''" (input)="setCamp({ botonUrl: $any($event.target).value })" /></a-field>
+              <a-field label="Enlace del botón"><input [class]="input" placeholder="{sitio}/beneficios" [value]="c.botonUrl ?? ''" (input)="setCamp({ botonUrl: $any($event.target).value })" /></a-field>
             </div>
             <fieldset class="space-y-3 rounded-xl border border-border p-3">
               <legend class="px-1 text-sm font-medium">Audiencia</legend>
               <select [class]="input" aria-label="Tipo de audiencia" (change)="setAud({ tipo: $any($event.target).value })">
                 <option value="todos" [selected]="c.audiencia.tipo === 'todos'">Todos los participantes activos</option>
                 <option value="nivel" [selected]="c.audiencia.tipo === 'nivel'">Por nivel</option>
-                <option value="saldo" [selected]="c.audiencia.tipo === 'saldo'">Por saldo de puntos</option>
               </select>
               @if (c.audiencia.tipo === 'nivel') {
                 <select [class]="input" aria-label="Nivel de la audiencia" (change)="setAud({ nivel: $any($event.target).value })">
                   @for (n of niveles(); track n.id) { <option [value]="n.nombre" [selected]="c.audiencia.nivel === n.nombre">{{ n.nombre }}</option> }
                 </select>
-              }
-              @if (c.audiencia.tipo === 'saldo') {
-                <a-field label="Saldo mínimo (puntos)"><input type="number" min="0" [class]="input" [value]="c.audiencia.saldoMin ?? 0" (input)="setAud({ saldoMin: +$any($event.target).value })" /></a-field>
               }
               <p role="status" class="text-sm" aria-label="Alcance de la audiencia">
                 @if (alcance(); as a) {
@@ -813,13 +806,6 @@ export class CorreosPage {
     const bloques = this.bloques();
     const { boton: _b, ...resto } = e;
     return { ...resto, bloques, cuerpo: textoPlano(bloques, {}) };
-  }
-  /** En producción corre a diario por su cuenta; aquí se puede lanzar a mano. */
-  protected avisarVencimientos() {
-    this.api.post<{ enviados: number }>("admin/correos/puntos-por-vencer", {}).subscribe((r) => {
-      this.toast.show(r.enviados ? `${r.enviados} aviso(s) de puntos por vencer enviados` : "No hay puntos que venzan en el plazo configurado en Reglas de puntos");
-      this.pag.recargar();
-    });
   }
   protected activar(p: PlantillaCorreo, activo: boolean) {
     if (p.activo === activo) return;

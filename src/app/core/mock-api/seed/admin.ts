@@ -5,8 +5,8 @@ export type Participante = {
   cedula: string;
   email: string;
   celular: string;
-  puntos: number;
-  acumulados12m: number;
+  /** Nivel asignado por el banco según su segmento (Clásico, Plata, Oro o Diamante). */
+  nivel: string;
   estado: "Activo" | "Bloqueado";
   canal: "Web" | "App" | "Web + App";
   alta: string;
@@ -27,11 +27,10 @@ export const participantes: Participante[] = nombres.map((n, i) => {
   return {
     id: `p${i + 1}`,
     nombre: n,
-    cedula: `17${String(10293847 + i * 7311).slice(0, 8)}`,
+    cedula: `4${String(1029384 + i * 7311).slice(0, 7)}`,
     email: n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ /g, ".") + "@correo.com",
-    celular: `+593 9${String(81234567 + i * 1371).slice(0, 8)}`,
-    puntos: Math.round(acum * 0.42),
-    acumulados12m: acum,
+    celular: `+51 9${String(81234567 + i * 1371).slice(0, 8)}`,
+    nivel: acum >= 300000 ? "Diamante" : acum >= 150000 ? "Oro" : acum >= 50000 ? "Plata" : "Clásico",
     estado: i === 5 || i === 13 ? "Bloqueado" : "Activo",
     canal: (["Web", "App", "Web + App"] as const)[i % 3]!,
     alta: `${String((i % 27) + 1).padStart(2, "0")}/0${(i % 9) + 1}/2026`,
@@ -55,8 +54,8 @@ export const tendencia = [
   { mes: "Oct", emitidos: 3600, canjeados: 2380 },
 ];
 
-export type EstadoPedido = "Confirmado" | "Preparando" | "Enviado" | "Entregado" | "Digital enviado" | "Cancelado";
-export const estadosPedido: EstadoPedido[] = ["Confirmado", "Preparando", "Enviado", "Entregado", "Digital enviado", "Cancelado"];
+export type EstadoPedido = "Pagado" | "Anulado";
+export const estadosPedido: EstadoPedido[] = ["Pagado", "Anulado"];
 
 export type Mensaje = {
   id: string;
@@ -73,9 +72,9 @@ export type Mensaje = {
 };
 
 export const mensajes: Mensaje[] = [
-  { id: "c1", nombre: "Ana Torres", email: "ana.torres@correo.com", asunto: "Pedido no llega", mensaje: "Hice un canje hace 5 días y aún no recibo mis audífonos.", fecha: "27/10/2026", estado: "Nuevo" },
+  { id: "c1", nombre: "Ana Torres", email: "ana.torres@correo.com", asunto: "Beneficio no llega", mensaje: "Compré un beneficio hace 2 días y aún no llega a mi correo.", fecha: "27/10/2026", estado: "Nuevo" },
   { id: "c2", nombre: "Carlos Andrade", email: "carlos.andrade@correo.com", asunto: "Cupón no válido", mensaje: "El local no aceptó mi cupón de descuento.", fecha: "26/10/2026", estado: "En proceso" },
-  { id: "c3", nombre: "Gabriela Ruiz", email: "gabriela.ruiz@correo.com", asunto: "Puntos de compra", mensaje: "Compré 5 000 puntos pero no se reflejan.", fecha: "25/10/2026", estado: "Respondido" },
+  { id: "c3", nombre: "Gabriela Ruiz", email: "gabriela.ruiz@correo.com", asunto: "Cambio de nivel", mensaje: "Creo que mi nivel no corresponde a mi segmento.", fecha: "25/10/2026", estado: "Respondido" },
   { id: "c4", nombre: "Diego Salazar", email: "diego.salazar@correo.com", asunto: "Cuenta bloqueada", mensaje: "No puedo ingresar a la app.", fecha: "24/10/2026", estado: "Nuevo" },
 ];
 
@@ -83,44 +82,43 @@ export const mensajes: Mensaje[] = [
 export type RolAdmin = string;
 export const rolesAdmin: { rol: RolAdmin; descripcion: string; permisos: string[] }[] = [
   { rol: "Administrador", descripcion: "Acceso total al panel.", permisos: ["Todo"] },
-  { rol: "Catálogo", descripcion: "Gestiona productos, beneficios, marcas, destinos y contenido.", permisos: ["Productos", "Beneficios", "Marcas", "Destinos", "Contenido"] },
-  { rol: "Operaciones", descripcion: "Gestiona participantes, pedidos, movimientos y cotizaciones.", permisos: ["Participantes", "Pedidos", "Movimientos", "Cotizaciones"] },
-  { rol: "Atención", descripcion: "Responde mensajes y cotizaciones de vuelos y consulta participantes.", permisos: ["Atención", "Cotizaciones", "Participantes"] },
+  { rol: "Catálogo", descripcion: "Gestiona beneficios, marcas y contenido.", permisos: ["Beneficios", "Marcas", "Contenido"] },
+  { rol: "Operaciones", descripcion: "Gestiona participantes y compras.", permisos: ["Participantes", "Pedidos"] },
+  { rol: "Atención", descripcion: "Responde mensajes y consulta participantes.", permisos: ["Atención", "Participantes"] },
   { rol: "Solo lectura", descripcion: "Consulta reportes y dashboard.", permisos: ["Dashboard", "Reportes"] },
 ];
 
 /** Usuarios iniciales del panel, uno por rol. Las contraseñas iniciales están en `credencialesIniciales` y deben cambiarse al entrar. */
 export const usuariosAdmin = [
-  { id: "u1", nombre: "Mariela Castro", email: "admin@bancosolidario.com", rol: "Administrador" as RolAdmin, ultimo: "—" },
-  { id: "u2", nombre: "Roberto Peña", email: "catalogo@bancosolidario.com", rol: "Catálogo" as RolAdmin, ultimo: "—" },
-  { id: "u3", nombre: "Karla Núñez", email: "operaciones@bancosolidario.com", rol: "Operaciones" as RolAdmin, ultimo: "—" },
-  { id: "u4", nombre: "Lucía Torres", email: "atencion@bancosolidario.com", rol: "Atención" as RolAdmin, ultimo: "—" },
-  { id: "u5", nombre: "Esteban Lara", email: "lectura@bancosolidario.com", rol: "Solo lectura" as RolAdmin, ultimo: "—" },
+  { id: "u1", nombre: "Mariela Castro", email: "admin@clubhola.com.pe", rol: "Administrador" as RolAdmin, ultimo: "—" },
+  { id: "u2", nombre: "Roberto Peña", email: "catalogo@clubhola.com.pe", rol: "Catálogo" as RolAdmin, ultimo: "—" },
+  { id: "u3", nombre: "Karla Núñez", email: "operaciones@clubhola.com.pe", rol: "Operaciones" as RolAdmin, ultimo: "—" },
+  { id: "u4", nombre: "Lucía Torres", email: "atencion@clubhola.com.pe", rol: "Atención" as RolAdmin, ultimo: "—" },
+  { id: "u5", nombre: "Esteban Lara", email: "lectura@clubhola.com.pe", rol: "Solo lectura" as RolAdmin, ultimo: "—" },
 ];
 
 /** Contraseñas iniciales por correo (el backend real debe guardarlas con hash). */
 export const credencialesIniciales = [
-  { email: "admin@bancosolidario.com", clave: "Admin#2026" },
-  { email: "catalogo@bancosolidario.com", clave: "Catalogo#2026" },
-  { email: "operaciones@bancosolidario.com", clave: "Operaciones#2026" },
-  { email: "atencion@bancosolidario.com", clave: "Atencion#2026" },
-  { email: "lectura@bancosolidario.com", clave: "Lectura#2026" },
+  { email: "admin@clubhola.com.pe", clave: "Admin#2026" },
+  { email: "catalogo@clubhola.com.pe", clave: "Catalogo#2026" },
+  { email: "operaciones@clubhola.com.pe", clave: "Operaciones#2026" },
+  { email: "atencion@clubhola.com.pe", clave: "Atencion#2026" },
+  { email: "lectura@clubhola.com.pe", clave: "Lectura#2026" },
 ];
 
 export const auditoria = [
-  { fecha: "28/10/2026 12:31", usuario: "Mariela Castro", accion: "Editó nivel Oro (rango de puntos)" },
+  { fecha: "28/10/2026 12:31", usuario: "Mariela Castro", accion: "Editó los beneficios del nivel Oro" },
   { fecha: "28/10/2026 10:05", usuario: "Roberto Peña", accion: "Publicó banner “Black Friday” (App)" },
-  { fecha: "27/10/2026 17:44", usuario: "Karla Núñez", accion: "Ajustó +5 000 puntos a Ana Torres" },
-  { fecha: "27/10/2026 11:20", usuario: "Roberto Peña", accion: "Creó destino “Galápagos”" },
+  { fecha: "27/10/2026 17:44", usuario: "Karla Núñez", accion: "Cambió el nivel de Ana Torres a Oro" },
 ];
 
 export const onboarding = [
-  { id: "o1", titulo: "Acumula puntos", texto: "Usa tus tarjetas y suma puntos en cada compra.", activo: true },
-  { id: "o2", titulo: "Canjea lo que quieras", texto: "Tecnología, hogar, gift cards y más.", activo: true },
+  { id: "o1", titulo: "Tu nivel", texto: "Sube de nivel y desbloquea más beneficios.", activo: true },
+  { id: "o2", titulo: "Gira y gana", texto: "Participa en Spin & Win y valida tus códigos Lucky Code.", activo: true },
   { id: "o3", titulo: "Beneficios exclusivos", texto: "Descuentos en tus marcas favoritas.", activo: true },
 ];
 
-export const provincias = ["Pichincha", "Guayas", "Azuay", "Manabí", "El Oro", "Tungurahua", "Imbabura", "Loja"];
+export const provincias = ["Lima", "Callao", "Arequipa", "Cusco", "La Libertad", "Piura", "Lambayeque", "Junín", "Ica", "Cajamarca"];
 
 // ---------- Formulario dinámico ----------
 export type TipoCampo = "texto" | "email" | "telefono" | "numero" | "fecha" | "textarea" | "select" | "checkbox";

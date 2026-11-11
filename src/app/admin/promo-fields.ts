@@ -14,7 +14,7 @@ import { FieldComponent, INPUT_CLS } from "./kit";
       <fieldset class="min-w-0 rounded-xl border border-border p-4">
         <legend class="px-1 text-sm font-semibold">Promoción</legend>
         <p class="mb-3 text-xs text-muted-foreground">
-          El participante ve el precio con descuento (en puntos y en dinero) y el original tachado, con una insignia "-20%". Sin fechas, la promoción
+          El participante ve el precio con descuento y el original tachado, con una insignia "-20%". Sin fechas, la promoción
           queda activa hasta que la quites.
         </p>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -37,7 +37,7 @@ import { FieldComponent, INPUT_CLS } from "./kit";
           </a-field>
         </div>
         @if (valor().promoTipo === 'monto') {
-          <p class="mt-2 text-xs text-muted-foreground">Se descuenta ese monto del precio en dinero y su equivalente en puntos, según las reglas de puntos.</p>
+          <p class="mt-2 text-xs text-muted-foreground">Se descuenta ese monto del precio en dinero.</p>
         }
       </fieldset>
     }

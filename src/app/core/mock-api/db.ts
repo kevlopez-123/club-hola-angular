@@ -1,30 +1,24 @@
 import {
   beneficios,
   categoriasBeneficio,
-  categoriasProducto,
   correosIniciales,
   direccionesIniciales,
-  productos,
-  productosPorTab,
   slides,
   slidesBeneficios,
-  slidesProductos,
   user,
 } from "./seed/mock";
 import { niveles, nivelesTexto } from "./seed/niveles";
 import { GUIAS_INICIALES } from "../ayuda";
 import { POPUPS_INICIALES } from "../popups";
-import { ciudades, cotizacionesIniciales, destinos, slidesVuelos } from "./seed/vuelos";
 import {
   compras,
-  condicionesCompra,
   misBeneficios,
-  movimientos,
   perfil,
 } from "./seed/historial";
 import {
   contacto,
   tarjetasBanbif,
+  GIROS_POR_SEMANA,
   tiposDocumento,
 } from "./seed/juegos";
 import { adminSeed, altaAISO, horaEjemplo } from "./admin-seed";
@@ -40,7 +34,7 @@ import { presetPorId, TENANT_POR_DEFECTO } from "../../tenants/presets";
 const clone = <T>(v: T): T => structuredClone(v);
 
 /** Clave de localStorage donde se guarda la base simulada. Subir la versión invalida datos viejos. */
-export const DB_KEY = "bancosolidario_mockdb_v11";
+export const DB_KEY = "bancosolidario_mockdb_v17";
 
 /**
  * "Base de datos" del backend simulado. Cada petición a /api/* se resuelve contra este estado,
@@ -50,16 +44,14 @@ export const DB_KEY = "bancosolidario_mockdb_v11";
 function notificacionesIniciales() {
   const hace = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
   return [
-    { id: "n-seed-3", participanteId: "p1", tipo: "pedido", titulo: "Tu pedido BNB-4F82KDL1 está en camino", texto: "Revisa el detalle y el seguimiento de tu pedido.", enlace: "/mis-compras/BNB-4F82KDL1", fecha: hace(45), leida: false },
-    { id: "n-seed-2", participanteId: "p1", tipo: "vuelo", titulo: "Tu cotización COT-100501 fue cotizada", texto: "UIO → MIA. Ya puedes revisar la propuesta.", enlace: "/vuelos/cotizaciones", fecha: hace(60 * 5), leida: false },
-    { id: "n-seed-1", participanteId: "p1", tipo: "puntos", titulo: "Acreditamos 2 500 puntos", texto: "Tu compra de puntos fue aprobada.", enlace: "/mis-puntos/historial", fecha: hace(60 * 30), leida: true },
+    { id: "n-seed-3", participanteId: "p1", tipo: "pedido", titulo: "Tu pedido BNB-4F82KDL1 fue pagado", texto: "Revisa el detalle y el seguimiento de tu pedido.", enlace: "/mis-compras/BNB-4F82KDL1", fecha: hace(45), leida: false },
   ];
 }
 
 const semilla = () => {
   const admin = adminSeed();
   return {
-  usuario: clone(user) as typeof user & { puntos: number },
+  usuario: { nombre: user.nombre, nivel: user.nivel },
   perfil: clone(perfil),
   direcciones: clone(direccionesIniciales),
   correos: clone(correosIniciales),
@@ -69,78 +61,65 @@ const semilla = () => {
   legales: legalesIniciales(seccionesAMarkdown(terminos), seccionesAMarkdown(privacidad), {}),
   aceptaciones: aceptacionesIniciales((admin.participantes as any[]).map((p) => p.id)),
   /** Eventos anónimos del embudo (solo de quienes aceptaron cookies de analítica). */
-  analitica: analiticaSemilla(admin.hoy, (admin.productos as any[]).map((p) => p.id), (admin.beneficios as any[]).map((b) => b.id)) as EventoGuardado[],
+  analitica: analiticaSemilla(admin.hoy, [], (admin.beneficios as any[]).map((b) => b.id)) as EventoGuardado[],
   favoritos: [] as string[],
   cupones: {} as Record<string, { codigo: string; expira: number }>,
-  movimientos: clone(movimientos),
   compras: clone(compras),
   misBeneficios: clone(misBeneficios),
-  cotizaciones: clone(cotizacionesIniciales),
   consultas: [] as { telefono: string; consulta: string; fecha: string }[],
   /** Contraseñas del panel (solo las usa la ruta de ingreso; nunca se devuelven al navegador). */
   credenciales: clone(credencialesIniciales),
 
   catalogo: {
     // El catálogo público parte de las filas del admin (así comparten sus datos).
-    productos: clone(admin.productos) as typeof productos,
     beneficios: clone(beneficios),
-    productosPorTab: Object.fromEntries(
-      Object.entries(productosPorTab).map(([k, v]) => [k, v.map((p) => p.id)]),
-    ) as Record<string, string[]>,
-    categoriasProducto: clone(categoriasProducto),
     categoriasBeneficio: clone(categoriasBeneficio) as unknown as typeof categoriasBeneficio,
     banners: {
       home: clone(slides),
       beneficios: clone(slidesBeneficios),
-      productos: clone(slidesProductos),
-      vuelos: clone(slidesVuelos),
     } as Record<string, typeof slides>,
   },
 
   niveles: clone(niveles),
   nivelesTexto: clone(nivelesTexto),
 
-  vuelos: { ciudades: clone(ciudades), destinos: clone(destinos) },
-
   config: {
     /** Marca, colores, logos, país y moneda (Admin → Configuración → Marca y localización). */
     tenant: presetPorId(TENANT_POR_DEFECTO),
     /** Datos de marca y contacto que se muestran en cabecera/pie/WhatsApp (editables en Admin → Configuración). */
     sitio: {
-      nombre: "Banco Solidario Puntos",
-      correoSoporte: "servicioalcliente@banco-solidario.com",
-      telefonoPie: "1800 SOLIDARIO (285 2684)",
-      whatsapp: "+593 99 123 4567",
-      agenciasUrl: "https://www.banco-solidario.com",
-      ciudadesPie: "Quito · Guayaquil · Cuenca",
-      agenciasTexto: "Encuentra tu agencia Banco Solidario",
+      nombre: "Club Hola",
+      correoSoporte: "callcenter@banbif.com.pe",
+      telefonoPie: "(01) 612-0800",
+      whatsapp: "+51 987 654 321",
+      agenciasUrl: "https://www.banbif.com.pe",
+      ciudadesPie: "Lima · Arequipa · Cusco",
+      agenciasTexto: "Encuentra tu agencia BanBif",
       redes: { facebook: "", x: "", linkedin: "", instagram: "", tiktok: "", youtube: "" } as Record<string, string>,
     },
     /** Menú principal. Los ítems con `activo: false` quedan ocultos hasta que el admin los habilite. */
     menu: [
       { id: "inicio", label: "Inicio", to: "/", activo: true },
-      { id: "canjea", label: "Canjea tus puntos", to: "/canjea", activo: true },
       { id: "beneficios", label: "Beneficios", activo: true, children: [
         { label: "Catálogo de beneficios", to: "/beneficios", activo: true },
         { label: "Mis beneficios", to: "/mis-beneficios", activo: true },
       ] },
-      { id: "puntos", label: "Mis puntos", activo: true, children: [
-        { label: "Historial de puntos", to: "/mis-puntos/historial", activo: true },
-        { label: "Compra de puntos", to: "/mis-puntos/compra", activo: true },
-        { label: "Mi nivel", to: "/mi-nivel", activo: true },
+      { id: "nivel", label: "Mi nivel", to: "/mi-nivel", activo: true },
+      { id: "eventos", label: "Eventos", activo: true, children: [
+        { label: "Próximos eventos", to: "/eventos", activo: true },
+        { label: "Mis pre-inscripciones", to: "/eventos/mis-inscripciones", activo: true },
       ] },
       { id: "compras", label: "Mis compras", to: "/mis-compras", activo: true },
-      { id: "vuelos", label: "Vuelos", activo: true, children: [
-        { label: "Cotizar vuelo", to: "/vuelos", activo: true },
-        { label: "Mis cotizaciones", to: "/vuelos/cotizaciones", activo: true },
-      ] },
+      { id: "ruleta", label: "Spin & Win", to: "/spin-win", activo: true },
+      { id: "lucky", label: "Lucky Code", to: "/lucky-code", activo: true },
       { id: "contacto", label: "Contáctanos", to: "/contacto", activo: true },
     ] as any[],
     contenido: { faq: clone(faqs), terminos: seccionesAMarkdown(terminos), privacidad: seccionesAMarkdown(privacidad) },
     cupon: { horas: 3, limite: 0, meses: 3 },
     contacto: clone(contacto),
-    condicionesCompra: clone(condicionesCompra),
     tarjetas: clone(tarjetasBanbif),
+    /** Spin & Win: giros que tiene cada participante por semana (se edita en Admin → Ruleta). */
+    juegos: { girosMax: GIROS_POR_SEMANA },
     tiposDocumento: clone(tiposDocumento),
   },
 
@@ -172,21 +151,11 @@ const cargar = (): Db => {
       (base.admin as any).guias ??= structuredClone(GUIAS_INICIALES);
       base.analitica ??= semilla().analitica;
       if (!(base as any).legales) { const s = semilla(); (base as any).legales = s.legales; (base as any).aceptaciones = s.aceptaciones; }
-      // Movimientos guardados antes de existir la hora.
-      (base.admin.movimientos as any[]).forEach((m, i) => { m.hora ??= horaEjemplo(i); });
       (base.admin.pedidos as any[]).forEach((p, i) => { p.hora ??= horaEjemplo(i + 3); });
       (base.admin.participantes as any[]).forEach((p) => { p.altaISO ??= altaAISO(p.alta); });
-      // Datos guardados antes de existir las compras de puntos de ejemplo: se agregan (y sus movimientos) si aún no hay ninguna.
-      if (!(base.admin.comprasPuntos as any[]).length) {
-        const demo = semilla().admin;
-        base.admin.comprasPuntos = demo.comprasPuntos;
-        const ids = new Set((base.admin.movimientos as any[]).map((m) => m.id));
-        for (const m of demo.movimientos as any[]) if (String(m.id).startsWith("mv-pts-") && !ids.has(m.id)) (base.admin.movimientos as any[]).push(m);
-      }
-      (base.admin.comprasPuntos as any[]).forEach((c, i) => { c.hora ??= horaEjemplo(i + 5); });
       // Las categorías guardadas antes de poder elegir ícono toman el que ya tenían en el catálogo.
-      for (const k of ["categoriasProducto", "categoriasBeneficio"] as const) {
-        for (const c of base.admin[k] as any[]) c.icon ??= (base.catalogo[k] as any[]).find((x) => x.slug === c.slug)?.icon ?? "Tag";
+      for (const k of ["categoriasBeneficio"] as const) {
+        for (const c of base.admin[k] as any[]) c.icon ??= (base.catalogo[k] as unknown as any[]).find((x) => x.slug === c.slug)?.icon ?? "Tag";
       }
     }
   } catch {

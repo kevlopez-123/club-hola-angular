@@ -17,7 +17,7 @@ import { FlagComponent } from "./flag.component";
       <span [class]="'flex items-center gap-2 text-ink ' + (variante() === 'sitio' ? 'text-base' : 'text-sm')"><app-flag [codigo]="brand.pais().codigo" [nombre]="brand.pais().nombre" [ancho]="24" />{{ brand.pais().telefonoPrefijo }}</span>
       <input [id]="inputId()" type="tel" inputmode="tel" autocomplete="tel-national" [attr.maxlength]="brand.pais().telefonoDigitos"
         [value]="digitos()" (input)="escribir($event)" (blur)="tocado.emit()" [attr.aria-invalid]="invalido()" [attr.aria-describedby]="describe() || null"
-        placeholder="99 654 3210" [class]="'h-full min-w-0 flex-1 bg-transparent text-ink outline-none ' + (variante() === 'sitio' ? 'text-base' : 'text-sm')" />
+        placeholder="987 654 321" [class]="'h-full min-w-0 flex-1 bg-transparent text-ink outline-none ' + (variante() === 'sitio' ? 'text-base' : 'text-sm')" />
     </div>
   `,
 })

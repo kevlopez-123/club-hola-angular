@@ -20,14 +20,14 @@ export interface TablaDescarga {
 }
 
 let colorActual = "#00bdd2";
-let programaActual = "Banco Solidario Puntos";
+let programaActual = "Club Hola";
 let servicio: DescargaService | undefined;
 
 /** Color de la marca vigente (para los Excel y PDF que se arman fuera de un componente). */
 export const colorMarca = () => colorActual;
 
 const hoy = () => new Date().toISOString().slice(0, 10);
-const ahora = () => new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
+const ahora = () => new Date().toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
 
 export function guardarArchivo(blob: Blob, nombre: string) {
   const url = URL.createObjectURL(blob);

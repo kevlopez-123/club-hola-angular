@@ -1,5 +1,4 @@
 import { db, persistDb } from "./db";
-import { nivelPorPuntos } from "../format";
 import { tokenBaja } from "./novedades";
 import { ccoPara, bloquesDe, DISENO_BASE, MAX_INTENTOS_CORREO, PLANTILLAS_BASE, renderCorreoHtml, renderPlantilla, textoPlano, type CorreoEnviado, type EntornoCorreo } from "../correos";
 
@@ -20,8 +19,8 @@ export function enviarCorreo(
   if ((!pl.activo && !pl.fija) || !para) return null;
   const marca: any = (db.config as any).tenant?.marca;
   const base = {
-    programa: marca?.programa ?? "Banco Solidario Puntos",
-    banco: marca?.nombre ?? "Banco Solidario",
+    programa: marca?.programa ?? "Club Hola",
+    banco: marca?.nombre ?? "BanBif",
     nombre: extra.destinatario ?? "",
     sitio: typeof location !== "undefined" ? location.origin : "",
     ...vars,
@@ -190,8 +189,8 @@ export function entornoCorreo(): EntornoCorreo {
     primario: t?.tema?.primario ?? "#00bdd2",
     textoPrimario: t?.tema?.textoPrimario ?? "#ffffff",
     fuente: t?.tema?.fuente ?? "",
-    programa: t?.marca?.programa ?? "Banco Solidario Puntos",
-    banco: t?.marca?.nombre ?? "Banco Solidario",
+    programa: t?.marca?.programa ?? "Club Hola",
+    banco: t?.marca?.nombre ?? "BanBif",
     redes: ((db.config.sitio as any)?.redes ?? {}) as Record<string, string | undefined>,
   };
 }
@@ -205,16 +204,11 @@ export function avisarAlta(coleccion: string, item: any) {
   }
 }
 
-/** Cambio de nivel de la participante demo cuando su saldo cruza un umbral. */
-export function avisarNivel(antes: number, despues: number) {
-  const niveles = (db as any).niveles;
-  if (!niveles?.length) return;
-  const a = nivelPorPuntos(niveles, antes);
-  const n = nivelPorPuntos(niveles, despues);
-  if (a.id !== n.id) {
-    const p: any = db.admin.participantes.find((x: any) => x.id === "p1");
-    enviarCorreo("nivel-cambio", p?.email ?? db.perfil.correo, { nivel: n.nombre ?? n.id }, { destinatario: p?.nombre ?? db.usuario.nombre, participanteId: "p1", referencia: n.nombre ?? n.id });
-  }
+/** Cambio de nivel de la participante demo (lo asigna el panel). */
+export function avisarNivel(antes: string, despues: string) {
+  if (antes === despues) return;
+  const p: any = db.admin.participantes.find((x: any) => x.id === "p1");
+  enviarCorreo("nivel-cambio", p?.email ?? db.perfil.correo, { nivel: despues }, { destinatario: p?.nombre ?? db.usuario.nombre, participanteId: "p1", referencia: despues });
 }
 
 /** Avisa al equipo (una sola vez por lote) cuando quedan pocos códigos sin usar. */
@@ -226,30 +220,3 @@ export function alertaLote(lote: any) {
   enviarCorreo("lote-alerta", (db.config.sitio as any).correoSoporte, { beneficio: lote.beneficio, restantes }, { destinatario: "Equipo", referencia: lote.beneficio });
 }
 
-/**
- * Puntos que se vencen en los próximos `dias` días. Cada acumulación vence a los `reglas.vigenciaMeses` meses (24 por defecto).
- * En un backend real lo ejecuta un proceso diario; aquí se lanza a mano desde Correos.
- */
-export function avisarPuntosPorVencer(dias?: number) {
-  const reglas = db.admin.reglas as any;
-  dias = dias || Number(reglas?.avisoVencimientoDias) || 30;
-  const meses = Number(reglas?.vigenciaMeses) || 24;
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const limite = new Date(hoy.getTime() + dias * 864e5);
-  const porPersona = new Map<string, { puntos: number; vence: Date }>();
-  for (const m of db.admin.movimientos as any[]) {
-    if (!(m.puntos > 0) || !m.cliente) continue;
-    const v = new Date(m.fechaISO + "T00:00:00");
-    v.setMonth(v.getMonth() + meses);
-    if (v < hoy || v > limite) continue;
-    const p = porPersona.get(m.cliente);
-    porPersona.set(m.cliente, { puntos: (p?.puntos ?? 0) + m.puntos, vence: p && p.vence < v ? p.vence : v });
-  }
-  let enviados = 0;
-  for (const [cliente, x] of porPersona) {
-    const part: any = db.admin.participantes.find((p: any) => p.nombre === cliente);
-    if (!part || part.estado === "Bloqueado") continue;
-    if (enviarCorreo("puntos-por-vencer", part.email, { puntos: x.puntos.toLocaleString("es"), fecha: x.vence.toLocaleDateString("es-EC") }, { destinatario: part.nombre, participanteId: part.id })) enviados++;
-  }
-  return { enviados };
-}

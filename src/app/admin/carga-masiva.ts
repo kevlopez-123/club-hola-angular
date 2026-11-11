@@ -12,14 +12,12 @@ import { IconComponent } from "../shared/icon.component";
 import { AdminModalComponent, BtnDirective, PillComponent, ToastService, descargarXlsx } from "./kit";
 import { AdminSession } from "./session";
 
-type ResultadoAjuste = { fila: number | string; ok: boolean; participante?: string; puntos?: number; saldoAntes?: number; saldoDespues?: number; motivo?: string; documento?: string };
-type ResumenAjustes = { ok: number; errores: number; suma: number; resta: number };
 
 /** Filas que se dibujan en la revisión (el resto se cuenta pero no se pinta: la carga puede tener miles). */
 const FILAS_VISIBLES = 300;
 
 /**
- * Carga masiva de productos, beneficios, marcas y ajustes de puntos, con el mismo recorrido para todas: plantilla de Excel,
+ * Carga masiva de beneficios, marcas, participantes y códigos, con el mismo recorrido para todas: plantilla de Excel,
  * imágenes (varias a la vez o un ZIP), revisión fila por fila y confirmación. Las filas con error no frenan a las demás y se
  * descargan en un Excel para corregirlas. Todo queda en Importaciones.
  */
@@ -98,20 +96,9 @@ const FILAS_VISIBLES = 300;
         @case (2) {
           <p class="mb-3 text-sm text-muted-foreground" aria-live="polite">
             <b class="text-foreground">{{ archivo() }}</b> · {{ filas().length }} {{ filas().length === 1 ? 'fila' : 'filas' }}
-            @if (esAjuste()) {
-              · <span class="text-foreground">{{ resumenAjustes()?.ok ?? 0 }} válidas</span>
-            } @else {
               · <span class="text-foreground">{{ resumen().crear }} por crear</span> · <span class="text-foreground">{{ resumen().actualizar }} por actualizar</span>
-            }
             · <span [class]="errores() ? 'font-semibold text-destructive' : ''">{{ errores() }} con errores</span>
           </p>
-          @if (esAjuste() && resumenAjustes(); as r) {
-            <dl class="mb-3 grid grid-cols-3 gap-3 text-sm">
-              <div class="rounded-xl bg-muted/50 p-3"><dt class="text-xs text-muted-foreground">Se suman</dt><dd class="font-bold text-primary">+{{ fmt(r.suma) }}</dd></div>
-              <div class="rounded-xl bg-muted/50 p-3"><dt class="text-xs text-muted-foreground">Se restan</dt><dd class="font-bold">{{ fmt(r.resta) }}</dd></div>
-              <div class="rounded-xl bg-muted/50 p-3"><dt class="text-xs text-muted-foreground">Efecto neto</dt><dd class="font-bold">{{ r.suma + r.resta > 0 ? '+' : '' }}{{ fmt(r.suma + r.resta) }}</dd></div>
-            </dl>
-          }
           @if (imagenesSinUsar().length) {
             <p class="mb-3 rounded-xl bg-aviso-fondo p-3 text-xs text-aviso" role="status">Estas imágenes no las usa ninguna fila: {{ imagenesSinUsar().join(', ') }}.</p>
           }
@@ -133,7 +120,7 @@ const FILAS_VISIBLES = 300;
                       } @else if (f.accion) {
                         <a-pill [tone]="f.accion === 'crear' ? 'ok' : 'info'">{{ f.accion === 'crear' ? 'Se crea' : 'Se actualiza' }}</a-pill>
                       } @else {
-                        <span class="inline-flex items-center gap-1 font-semibold"><app-icon name="CheckCircle2" class="h-3.5 w-3.5 text-primary" />{{ ajusteDe(f.fila) }}</span>
+                        <span class="inline-flex items-center gap-1 font-semibold"><app-icon name="CheckCircle2" class="h-3.5 w-3.5 text-primary" />OK</span>
                       }
                     </td>
                   </tr>
@@ -142,7 +129,7 @@ const FILAS_VISIBLES = 300;
             </table>
           </div>
           @if (filas().length > visibles().length) { <p class="mt-2 text-xs text-muted-foreground">Se muestran las primeras {{ visibles().length }} filas; el resto también se revisó{{ errores() ? ' (el reporte de errores trae todas las rechazadas)' : '' }}.</p> }
-          <p class="mt-3 text-sm text-muted-foreground">Las filas con errores no se cargan. Puedes corregirlas en el archivo y volver a subirlo.@if (esAjuste()) { <b class="text-foreground"> Los ajustes no se pueden deshacer: corrígelos con otro ajuste de signo contrario.</b> }</p>
+          <p class="mt-3 text-sm text-muted-foreground">Las filas con errores no se cargan. Puedes corregirlas en el archivo y volver a subirlo.</p>
           <div class="mt-5 flex flex-wrap justify-end gap-2">
             @if (errores()) { <button aBtn variant="ghost" (click)="descargarErrores()"><app-icon name="Download" class="h-4 w-4" /> Descargar reporte de errores</button> }
             <button aBtn variant="outline" (click)="paso.set(1)">Cambiar archivo</button>
@@ -180,7 +167,6 @@ export class CargaMasivaComponent {
 
   protected readonly pasos = ["Preparar", "Revisar", "Listo"];
   protected readonly def = computed(() => DEFINICIONES[this.tipo()]);
-  protected readonly esAjuste = computed(() => this.tipo() === "ajustes");
   protected readonly esCodigos = computed(() => this.tipo() === "codigos");
   protected readonly hoyIso = new Date().toISOString().slice(0, 10);
   /** Códigos: beneficio y vencimiento del lote (se eligen antes de subir el archivo). */
@@ -201,16 +187,14 @@ export class CargaMasivaComponent {
   protected readonly imagenes = signal<ImagenCarga[]>([]);
   protected readonly omitidas = signal<{ nombre: string; motivo: string }[]>([]);
   protected readonly procesandoImagenes = signal(false);
-  protected readonly resultadosAjuste = signal<Map<number | string, ResultadoAjuste>>(new Map());
-  protected readonly resumenAjustes = signal<ResumenAjustes | null>(null);
   protected readonly hechas = signal({ creados: 0, actualizados: 0, aplicados: 0 });
 
   protected readonly errores = computed(() => this.filas().filter((f) => f.error).length);
   protected readonly resumen = computed(() => ({ crear: this.filas().filter((f) => f.accion === "crear").length, actualizar: this.filas().filter((f) => f.accion === "actualizar").length }));
   protected readonly validas = computed(() => this.filas().length - this.errores());
   protected readonly visibles = computed(() => this.filas().slice(0, FILAS_VISIBLES));
-  protected readonly columna1 = computed(() => (this.tipo() === "ajustes" || this.tipo() === "participantes" ? "Documento" : this.tipo() === "marcas" ? "Nombre" : "Código"));
-  protected readonly columna2 = computed(() => (this.tipo() === "ajustes" ? "Participante y puntos" : this.tipo() === "marcas" ? "Sitio web" : this.tipo() === "codigos" ? "" : "Nombre"));
+  protected readonly columna1 = computed(() => (this.tipo() === "participantes" ? "Documento" : this.tipo() === "marcas" ? "Nombre" : "Código"));
+  protected readonly columna2 = computed(() => (this.tipo() === "marcas" ? "Sitio web" : this.tipo() === "codigos" ? "" : "Nombre"));
   protected readonly pesoImagenes = computed(() => {
     const kb = this.imagenes().reduce((s, i) => s + i.bytes, 0) / 1024;
     return kb < 1024 ? `${Math.max(1, Math.round(kb))} KB` : `${(kb / 1024).toFixed(1)} MB`;
@@ -223,7 +207,6 @@ export class CargaMasivaComponent {
   protected readonly botonImportar = computed(() => {
     const n = this.validas();
     switch (this.tipo()) {
-      case "ajustes": return `Aplicar ${n} ${n === 1 ? 'ajuste' : 'ajustes'}`;
       case "participantes": return `Importar ${n} participantes`;
       case "codigos": return `Cargar ${n} códigos`;
       default: return `Cargar ${n} ${n === 1 ? 'fila' : 'filas'}`;
@@ -233,7 +216,6 @@ export class CargaMasivaComponent {
     const h = this.hechas();
     const omitidas = this.errores();
     const resto = omitidas ? ` · ${omitidas} ${omitidas === 1 ? 'fila omitida' : 'filas omitidas'}` : "";
-    if (this.esAjuste()) return `${h.aplicados} ${h.aplicados === 1 ? 'ajuste aplicado' : 'ajustes aplicados'}${resto}`;
     if (this.tipo() === "participantes") return `${h.creados} participantes agregados${resto}${this.omitidosServidor() ? ` · ${this.omitidosServidor()} ya existían` : ""}. Recibirán un correo de bienvenida.`;
     if (this.esCodigos()) return `${h.creados} códigos cargados${resto}${this.omitidosServidor() ? ` · ${this.omitidosServidor()} repetidos omitidos` : ""}.`;
     return `${h.creados} creados · ${h.actualizados} actualizados${resto}`;
@@ -255,8 +237,6 @@ export class CargaMasivaComponent {
     this.errorArchivo.set("");
     this.imagenes.set([]);
     this.omitidas.set([]);
-    this.resultadosAjuste.set(new Map());
-    this.resumenAjustes.set(null);
     this.hechas.set({ creados: 0, actualizados: 0, aplicados: 0 });
     this.omitidosServidor.set(0);
     if (this.esCodigos()) {
@@ -308,18 +288,16 @@ export class CargaMasivaComponent {
       const codigosExistentes = new Set<string>();
       if (t === "codigos") for (const l of await get<any>("lotes")) if (l.beneficioId === this.beneficio()) for (const c of l.codigos ?? []) codigosExistentes.add(String(c));
       return {
-        marcas: [], categoriasProducto: [], categoriasBeneficio: [], provincias: [], existentes: new Map(), imagenes: new Map(), hoyIso: this.hoyIso,
+        marcas: [], categoriasBeneficio: [], provincias: [], existentes: new Map(), imagenes: new Map(), hoyIso: this.hoyIso,
         digitosDocumento: this.brand.pais().documentos[0]?.digitos ?? 10, codigosExistentes,
       };
     }
     const marcas = await get<{ id: string; nombre: string; web?: string }>("marcas");
     const existentes = new Map<string, any>();
-    if (t === "productos") for (const p of await get<any>("productos")) existentes.set(String(p.id), p);
     if (t === "beneficios") for (const b of await get<any>("beneficios")) existentes.set(String(b.id), b);
     if (t === "marcas") for (const m of marcas) existentes.set(claveMarca(m.nombre), m);
     return {
       marcas,
-      categoriasProducto: t === "productos" ? await get("categoriasProducto") : [],
       categoriasBeneficio: t === "beneficios" ? await get("categoriasBeneficio") : [],
       provincias: this.brand.tenant().pais.provincias.map((p) => p.nombre),
       existentes,
@@ -342,7 +320,6 @@ export class CargaMasivaComponent {
       if (r.filas.length > MAX_FILAS_CARGA) { this.errorArchivo.set(`El archivo tiene ${r.filas.length.toLocaleString("es")} filas; el máximo por carga es ${MAX_FILAS_CARGA.toLocaleString("de-DE")}. Divídelo en varios.`); return; }
       this.archivo.set(f.name);
       this.filas.set(r.filas);
-      if (this.esAjuste()) await this.simularAjustes(r.filas);
       this.paso.set(2);
     } catch (e: any) {
       this.errorArchivo.set(e?.message === "formato" ? "No pudimos leer el archivo. Usa la plantilla de Excel (.xlsx) y vuelve a subirlo." : (e?.error?.message ?? "No pudimos revisar el archivo. Inténtalo otra vez."));
@@ -351,38 +328,15 @@ export class CargaMasivaComponent {
     }
   }
 
-  /** Ajustes: el servidor dice qué pasaría con cada fila (participante, saldo antes y después) sin aplicar nada. */
-  private async simularAjustes(filas: FilaPreparada[]) {
-    const buenas = filas.filter((f) => !f.error);
-    if (!buenas.length) { this.resumenAjustes.set({ ok: 0, errores: 0, suma: 0, resta: 0 }); return; }
-    const r = await firstValueFrom(this.api.post<{ resultados: ResultadoAjuste[]; resumen: ResumenAjustes }>("admin/participantes/ajustes-masivos", { items: buenas.map((f) => ({ fila: f.fila, documento: f.valores["documento"], puntos: f.valores["puntos"], motivo: f.valores["motivo"] })), aplicar: false }));
-    const por = new Map(r.resultados.map((x) => [x.fila, x]));
-    this.resultadosAjuste.set(por);
-    this.resumenAjustes.set(r.resumen);
-    this.filas.set(filas.map((f) => { const x = por.get(f.fila); return x && !x.ok ? { ...f, error: x.motivo ?? "No se puede aplicar." } : f; }));
-  }
-
   protected detalle(f: FilaPreparada): string {
-    if (this.tipo() === "ajustes") {
-      const x = this.resultadosAjuste().get(f.fila);
-      return x?.participante ? `${x.participante} · ${(x.puntos ?? 0) > 0 ? '+' : ''}${this.fmt(x.puntos ?? 0)}` : `${f.crudos[1] ?? ''}`;
-    }
     return f.crudos[1] ?? "";
   }
-  protected ajusteDe(fila: number | string): string {
-    const x = this.resultadosAjuste().get(fila);
-    return x?.ok ? `Saldo ${this.fmt(x.saldoAntes ?? 0)} → ${this.fmt(x.saldoDespues ?? 0)}` : "OK";
-  }
-
   protected async importar() {
     const buenas = this.filas().filter((f) => !f.error);
     if (!buenas.length) return;
     this.importando.set(true);
     try {
-      if (this.esAjuste()) {
-        const r = await firstValueFrom(this.api.post<{ resumen: ResumenAjustes }>("admin/participantes/ajustes-masivos", { items: buenas.map((f) => ({ fila: f.fila, documento: f.valores["documento"], puntos: f.valores["puntos"], motivo: f.valores["motivo"] })), aplicar: true }));
-        this.hechas.set({ creados: 0, actualizados: 0, aplicados: r.resumen.ok });
-      } else if (this.esCodigos()) {
+      if (this.esCodigos()) {
         const r = await firstValueFrom(this.api.post<{ cargados: number; repetidos: number }>("admin/lotes/cargar", { beneficioId: this.beneficio(), vence: this.vence(), archivo: this.archivo(), codigos: buenas.map((f) => f.entidad) }));
         this.hechas.set({ creados: r.cargados, actualizados: 0, aplicados: 0 });
         this.omitidosServidor.set(r.repetidos);
@@ -399,7 +353,7 @@ export class CargaMasivaComponent {
         tipo: d.nombre, archivo: this.archivo(), usuario: this.session.usuario()?.nombre, total: this.filas().length, importadas: buenas.length,
         columnas: d.columnas.map((c) => c.titulo), errores: this.erroresReporte(),
       }));
-      this.toast.show(this.esAjuste() ? "Ajustes aplicados" : this.esCodigos() ? "Códigos cargados" : "Archivo cargado");
+      this.toast.show(this.esCodigos() ? "Códigos cargados" : "Archivo cargado");
       this.terminada.emit();
       this.paso.set(3);
     } catch (e: any) {

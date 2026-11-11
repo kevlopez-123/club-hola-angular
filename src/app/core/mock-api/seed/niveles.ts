@@ -3,90 +3,54 @@ export type NivelId = "clasico" | "plata" | "oro" | "diamante";
 export type Nivel = {
   id: NivelId;
   nombre: string;
-  desde: number;
-  hasta: number | null;
   color: string;
   beneficios: string[];
 };
 
-/** Los niveles se calculan con los puntos acumulados en los últimos 12 meses. */
+/** El nivel corresponde al segmento que asigna el banco a cada participante (no se calcula). */
 export const niveles: Nivel[] = [
   {
     id: "clasico",
     nombre: "Clásico",
-    desde: 0,
-    hasta: 49999,
     color: "#8A93A6",
-    beneficios: [
-      "Acceso al catálogo base de productos",
-      "Envío gratis en canjes desde $50 en agencias Banco Solidario",
-    ],
+    beneficios: ["Acceso al catálogo base de beneficios", "Participación en Spin & Win", "Validación de códigos en Lucky Code"],
   },
   {
     id: "plata",
     nombre: "Plata",
-    desde: 50000,
-    hasta: 149999,
     color: "#20A6FF",
-    beneficios: [
-      "Promociones anticipadas en campañas de temporada",
-    ],
+    beneficios: ["Beneficios exclusivos nivel Plata", "Beneficios del nivel Clásico"],
   },
   {
     id: "oro",
     nombre: "Oro",
-    desde: 150000,
-    hasta: 299999,
     color: "#BED500",
-    beneficios: [
-      "Beneficios exclusivos nivel Oro",
-      "Descuentos adicionales en materiales seleccionados",
-    ],
+    beneficios: ["Beneficios exclusivos nivel Oro", "Beneficios de los niveles Clásico y Plata", "Acceso preferente a eventos"],
   },
   {
     id: "diamante",
     nombre: "Diamante",
-    desde: 300000,
-    hasta: null,
     color: "#924FF5",
-    beneficios: [
-      "Todo el catálogo desbloqueado, sin restricciones de nivel",
-      "Asesor dedicado y atención preferente",
-    ],
+    beneficios: ["Beneficios exclusivos nivel Diamante", "Beneficios de todos los niveles anteriores", "Asesor dedicado y atención preferente"],
   },
 ];
 
-export const nivelPorPuntos = (puntos: number): Nivel =>
-  [...niveles].reverse().find((n) => puntos >= n.desde) ?? niveles[0]!;
+export const nivelPorId = (id: string): Nivel => niveles.find((n) => n.id === id || n.nombre === id) ?? niveles[0]!;
 
-export const siguienteNivel = (puntos: number): Nivel | null => {
-  const actual = nivelPorPuntos(puntos);
-  const idx = niveles.findIndex((n) => n.id === actual.id);
-  return niveles[idx + 1] ?? null;
+/** ¿El nivel del participante alcanza el mínimo pedido? Sin mínimo, todos acceden. */
+export const tieneAcceso = (lista: Nivel[], nivelUsuario: string, minimo?: string): boolean => {
+  if (!minimo) return true;
+  const pos = (x: string) => lista.findIndex((n) => n.id === x || n.nombre === x);
+  return pos(nivelUsuario) >= pos(minimo);
 };
 
-/** Avance porcentual dentro del nivel actual (0-100). */
-export const progresoNivel = (puntos: number): number => {
-  const actual = nivelPorPuntos(puntos);
-  const siguiente = siguienteNivel(puntos);
-  if (!siguiente) return 100;
-  return Math.min(100, Math.round(((puntos - actual.desde) / (siguiente.desde - actual.desde)) * 100));
-};
-
-export const faltanParaSiguiente = (puntos: number): number => {
-  const siguiente = siguienteNivel(puntos);
-  return siguiente ? Math.max(0, siguiente.desde - puntos) : 0;
-};
-
-/** Textos configurables de "Mi nivel" y "¿Cómo funcionan los niveles?". Admiten {empresa}, {programa}, {unidad} y {meses}. */
+/** Textos configurables de "Mi nivel". Admiten {empresa} y {programa}. */
 export const nivelesTexto = {
-  meses: 12,
-  subtitulo: "Tu nivel se define por los {unidad} que acumulas con tus compras en {empresa} en los últimos {meses} meses.",
-  intro: "Mientras más compres en {empresa}, más rápido subes de nivel y accedes a más beneficios.",
+  subtitulo: "Tu nivel corresponde al segmento que te asigna {empresa}.",
+  intro: "Cada nivel incluye beneficios exclusivos y acceso a los de los niveles anteriores.",
   reglas: [
-    "Tu nivel se calcula con los {unidad} acumulados por tus compras en {empresa} en los últimos {meses} meses, no con tu saldo disponible.",
-    "Canjear productos no reduce tu nivel: los {unidad} usados siguen contando para el periodo.",
-    "Los {unidad} comprados no suman para el cálculo de nivel.",
-    "El nivel se actualiza el primer día de cada mes y se mantiene por {meses} meses desde que lo alcanzas.",
+    "Tu nivel corresponde al segmento que te asigna {empresa}.",
+    "Cada nivel incluye beneficios exclusivos y acceso a los de los niveles anteriores.",
+    "Las condiciones y la disponibilidad se consultan en el detalle de cada beneficio.",
   ],
 };

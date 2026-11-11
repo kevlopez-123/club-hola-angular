@@ -1,12 +1,10 @@
 import { db } from "./db";
 import { coincideAudiencia, type AudienciaCampana, type Campana } from "../campanas";
-import { nivelPorPuntos } from "../format";
 import { enviarCorreoLibre } from "./correos";
 
 /** Participantes a los que llegaría la campaña y cuántos quedan fuera (bloqueados o que no aceptan novedades). */
 export function audienciaDe(a: AudienciaCampana) {
-  const niveles = (db as any).niveles ?? [];
-  const dentro = (db.admin.participantes as any[]).filter((p) => coincideAudiencia(a, p, niveles.length ? nivelPorPuntos(niveles, p.puntos).nombre : ""));
+  const dentro = (db.admin.participantes as any[]).filter((p) => coincideAudiencia(a, p, String(p.nivel ?? "")));
   const destinatarios = dentro.filter((p) => p.estado === "Activo" && p.recibeNovedades !== false);
   return { destinatarios, total: destinatarios.length, excluidos: dentro.length - destinatarios.length };
 }

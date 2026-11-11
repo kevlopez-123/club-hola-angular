@@ -7,9 +7,9 @@ import { NOMBRE_LEGAL, TIPOS_LEGALES, type EstadoLegalesParticipante, type TipoL
 import { CatalogService } from '../core/catalog.service';
 import { BrandService } from '../core/brand.service';
 import { AdminSession } from './session';
-import { formatPuntos, formatUSD, nivelPorPuntos } from '../core/format';
-import { estadoLabels, tipoLabels } from '../core/labels';
-import type { BeneficioUsuario, Cotizacion, Direccion, Movimiento, Participante } from '../core/models';
+import { formatUSD } from '../core/format';
+import { estadoLabels } from '../core/labels';
+import type { BeneficioUsuario, Direccion, Participante } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
 import { TelefonoInputComponent } from '../shared/telefono-input';
 import { edadA, validarNombrePersona, validarTelefono } from '../core/validaciones';
@@ -17,24 +17,18 @@ import { agruparCampos } from '../core/validar-perfil';
 import { AdminModalComponent, BtnDirective, ConfirmComponent, FieldComponent, INPUT_CLS, OrdenColumnaComponent, PagerComponent, PillComponent, ToastService, descargarTabla } from './kit';
 import { BarraListaComponent, ListaLocal } from './lista-local';
 
-type Ajuste = { fecha: string; puntos: number; motivo: string; usuario: string };
-type Ficha = Participante & { direcciones: Direccion[]; ajustes: Ajuste[] };
+type Ficha = Participante & { direcciones: Direccion[] };
 type Pedido = {
   codigo: string;
   fecha: string;
   estadoAdmin: string;
-  puntosUsados: number;
   montoUSD: number;
   items: { nombre: string; cantidad: number }[];
 };
-type CompraPuntos = { codigo: string; fecha: string; cantidad: number; monto: number; estado: string };
 type Auditoria = { fecha: string; usuario: string; accion: string; seccion: string };
 type Actividad = {
-  movimientos: Movimiento[];
   pedidos: Pedido[];
-  comprasPuntos: CompraPuntos[];
   beneficios: BeneficioUsuario[];
-  cotizaciones: (Cotizacion & { cliente?: string })[];
   auditoria: Auditoria[];
   legales?: EstadoLegalesParticipante;
 };
@@ -42,18 +36,16 @@ type Actividad = {
 const TABS = [
   { k: 'resumen', l: 'Resumen' },
   { k: 'datos', l: 'Datos y direcciones' },
-  { k: 'movimientos', l: 'Movimientos' },
   { k: 'compras', l: 'Compras' },
   { k: 'beneficios', l: 'Beneficios' },
-  { k: 'cotizaciones', l: 'Cotizaciones' },
   { k: 'historial', l: 'Historial' },
-  { k: 'ajustes', l: 'Ajustes' },
+  { k: 'nivel', l: 'Nivel' },
 ] as const;
 type TabK = (typeof TABS)[number]['k'];
 
 /**
  * Ficha del participante en su propia página (/admin/participantes/:id). Todo lo que muestra sale de la información de ese
- * participante: sus movimientos, compras, beneficios, cotizaciones, ajustes y los registros de auditoría que lo mencionan.
+ * participante: sus compras, beneficios, nivel y los registros de auditoría que lo mencionan.
  */
 @Component({
   selector: 'a-participante-page',
@@ -75,9 +67,8 @@ type TabK = (typeof TABS)[number]['k'];
             <a-pill [tone]="s.estado === 'Activo' ? 'ok' : 'bad'">{{ s.estado }}</a-pill>
           </p>
         </div>
-        <dl class="grid grid-cols-3 gap-3 text-sm">
-          <div class="rounded-xl bg-card px-4 py-2 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Saldo</dt><dd class="text-lg font-bold">{{ puntos(s.puntos) }}</dd></div>
-          <div class="rounded-xl bg-card px-4 py-2 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Nivel</dt><dd class="text-lg font-bold">{{ nivel(s.acumulados12m) }}</dd></div>
+        <dl class="grid grid-cols-2 gap-3 text-sm">
+          <div class="rounded-xl bg-card px-4 py-2 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Nivel</dt><dd class="text-lg font-bold">{{ s.nivel }}</dd></div>
           <div class="rounded-xl bg-card px-4 py-2 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Canal</dt><dd class="text-lg font-bold">{{ s.canal }}</dd></div>
         </dl>
       </header>
@@ -95,18 +86,6 @@ type TabK = (typeof TABS)[number]['k'];
         @switch (tab()) {
           @case ('resumen') {
             <div class="grid gap-6 lg:grid-cols-2">
-              <section class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-                <h2 class="font-semibold">Últimos movimientos</h2>
-                <ul class="mt-2 divide-y divide-border text-sm">
-                  @for (m of ultimosMov(); track m.id) {
-                    <li class="flex justify-between gap-3 py-2">
-                      <span>{{ m.detalle }}<span class="block text-xs text-muted-foreground">{{ m.fecha }} · {{ tipoLabels[m.tipo] }}</span></span>
-                      <b>{{ m.puntos > 0 ? '+' : '' }}{{ puntos(m.puntos) }}</b>
-                    </li>
-                  } @empty { <li class="py-2 text-muted-foreground">Sin movimientos todavía.</li> }
-                </ul>
-                <button type="button" class="mt-2 text-sm font-semibold text-primary hover:underline" (click)="irA('movimientos')">Ver todos</button>
-              </section>
               <section class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
                 <h2 class="font-semibold">Últimas compras</h2>
                 <ul class="mt-2 divide-y divide-border text-sm">
@@ -203,30 +182,11 @@ type TabK = (typeof TABS)[number]['k'];
               </section>
             </div>
           }
-          @case ('movimientos') {
-            <a-barra-lista [lista]="movs" etiqueta="movimientos" placeholder="Buscar por detalle" [filtros]="filtroTipoMov" (exportar)="exportarMovs()" />
-            <div class="adm-wrap">
-              <table class="adm-table" aria-label="Movimientos">
-                <thead><tr><th aOrden="fecha" [pag]="movs" etiquetaOrden="Fecha">Fecha</th><th aOrden="tipo" [pag]="movs" etiquetaOrden="Tipo">Tipo</th><th aOrden="puntos" [pag]="movs" etiquetaOrden="Puntos">Puntos</th><th aOrden="detalle" [pag]="movs" etiquetaOrden="Detalle">Detalle</th></tr></thead>
-                <tbody>
-                  @for (m of movs.items(); track m.id) {
-                    <tr>
-                      <td><b>{{ m.fecha }}@if ($any(m).hora) { · {{ $any(m).hora }} }</b></td>
-                      <td class="det-completo det-chip"><a-pill [tone]="m.tipo === 'canje' ? 'warn' : 'ok'">{{ tipoLabels[m.tipo] }}</a-pill></td>
-                      <td><b>{{ m.puntos > 0 ? '+' : '' }}{{ puntos(m.puntos) }}</b></td>
-                      <td class="adm-ancha">{{ m.detalle }}</td>
-                    </tr>
-                  } @empty { <tr><td colspan="4" class="adm-empty">{{ act().movimientos.length ? 'Ningún movimiento coincide con la búsqueda.' : 'Este participante no tiene movimientos.' }}</td></tr> }
-                </tbody>
-              </table>
-            </div>
-            <a-pager [p]="movs" />
-          }
           @case ('compras') {
-            <h2 class="mb-2 font-semibold">Pedidos de canje</h2>
+            <h2 class="mb-2 font-semibold">Compras de beneficios</h2>
             <a-barra-lista [lista]="pedidos" etiqueta="pedidos" placeholder="Código o artículo" [filtros]="[{ k: 'estado', l: 'Estado' }]" (exportar)="exportarPedidos()" />
             <div class="adm-wrap">
-              <table class="adm-table" aria-label="Pedidos de canje">
+              <table class="adm-table" aria-label="Compras de beneficios">
                 <thead><tr><th aOrden="codigo" [pag]="pedidos" etiquetaOrden="Código">Código</th><th aOrden="estado" [pag]="pedidos" etiquetaOrden="Estado">Estado</th><th aOrden="fecha" [pag]="pedidos" etiquetaOrden="Fecha">Fecha</th><th aOrden="pago" [pag]="pedidos" etiquetaOrden="Pago">Pago</th><th>Artículos</th></tr></thead>
                 <tbody>
                   @for (c of pedidos.items(); track c.codigo) {
@@ -242,19 +202,6 @@ type TabK = (typeof TABS)[number]['k'];
               </table>
             </div>
             <a-pager [p]="pedidos" />
-            <h2 class="mb-2 mt-8 font-semibold">Compras de puntos</h2>
-            <a-barra-lista [lista]="compras" etiqueta="compras de puntos" placeholder="Operación" [filtros]="[{ k: 'estado', l: 'Estado' }]" (exportar)="exportarCompras()" />
-            <div class="adm-wrap">
-              <table class="adm-table" aria-label="Compras de puntos">
-                <thead><tr><th aOrden="codigo" [pag]="compras" etiquetaOrden="Operación">Operación</th><th aOrden="estado" [pag]="compras" etiquetaOrden="Estado">Estado</th><th aOrden="fecha" [pag]="compras" etiquetaOrden="Fecha">Fecha</th><th aOrden="puntos" [pag]="compras" etiquetaOrden="Puntos">Puntos</th><th aOrden="monto" [pag]="compras" etiquetaOrden="Monto pagado">Monto pagado</th></tr></thead>
-                <tbody>
-                  @for (c of compras.items(); track c.codigo) {
-                    <tr><td><a routerLink="/admin/compras-puntos" [queryParams]="{ ver: c.codigo }" class="font-bold text-primary hover:underline" [attr.aria-label]="'Ver la operación ' + c.codigo">{{ c.codigo }}</a></td><td class="det-completo det-chip"><a-pill [tone]="c.estado === 'Aprobada' ? 'ok' : 'muted'">{{ c.estado }}</a-pill></td><td>{{ c.fecha }}@if ($any(c).hora) { · {{ $any(c).hora }} }</td><td>{{ puntos(c.cantidad) }}</td><td>{{ usd(c.monto) }}</td></tr>
-                  } @empty { <tr><td colspan="5" class="adm-empty">{{ act().comprasPuntos.length ? 'Ninguna compra coincide con la búsqueda.' : 'Este participante no ha comprado puntos.' }}</td></tr> }
-                </tbody>
-              </table>
-            </div>
-            <a-pager [p]="compras" />
           }
           @case ('beneficios') {
             <a-barra-lista [lista]="benefs" etiqueta="beneficios" placeholder="Beneficio, marca o cupón" [filtros]="[{ k: 'estado', l: 'Estado', opciones: opcionesEstadoBenef }]" (exportar)="exportarBenefs()" />
@@ -272,22 +219,6 @@ type TabK = (typeof TABS)[number]['k'];
             </ul>
             <a-pager [p]="benefs" />
           }
-          @case ('cotizaciones') {
-            <a-barra-lista [lista]="cotiz" etiqueta="cotizaciones" placeholder="Código, origen o destino" [filtros]="[{ k: 'estado', l: 'Estado' }]" (exportar)="exportarCotiz()" />
-            <ul class="space-y-3">
-              @for (c of cotiz.items(); track c.codigo) {
-                <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
-                  <div>
-                    <p class="font-semibold"><a routerLink="/admin/cotizaciones" [queryParams]="{ ver: c.codigo }" class="text-primary hover:underline" [attr.aria-label]="'Ver la cotización ' + c.codigo">{{ c.codigo }}</a> · {{ ciudad(c.origen) }} → {{ ciudad(c.destino) }}</p>
-                    <p class="text-sm text-muted-foreground">{{ c.fecha }} · {{ c.tipoViaje }} · {{ c.clase }} · {{ c.pasajeros }} pasajero(s)@if (c.ejecutiva) { · {{ c.ejecutiva }} }</p>
-                  </div>
-                  <a-pill [tone]="c.estado === 'Cotizada' ? 'ok' : c.estado === 'Cerrada' ? 'muted' : 'warn'">{{ c.estado }}</a-pill>
-                </li>
-              } @empty { <li class="rounded-xl bg-card p-6 text-center text-muted-foreground">{{ act().cotizaciones.length ? 'Ninguna cotización coincide con la búsqueda.' : 'Este participante no ha pedido cotizaciones de vuelos.' }}</li> }
-            </ul>
-            <a-pager [p]="cotiz" />
-            <a routerLink="/admin/cotizaciones" class="mt-3 inline-block text-sm font-semibold text-primary hover:underline">Ir a Cotizaciones</a>
-          }
           @case ('historial') {
             <p class="mb-3 text-sm text-muted-foreground">Cambios del panel que mencionan a este participante: ajustes, correo de acceso, códigos reenviados y bloqueos.</p>
             <a-barra-lista [lista]="historial" etiqueta="historial" placeholder="Buscar en los cambios" [filtros]="[{ k: 'usuario', l: 'Usuario' }]" (exportar)="exportarHistorial()" />
@@ -298,31 +229,17 @@ type TabK = (typeof TABS)[number]['k'];
             </ul>
             <a-pager [p]="historial" />
           }
-          @case ('ajustes') {
-            <div class="grid gap-6 lg:grid-cols-2">
-              <section class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-                <h2 class="font-semibold">Ajuste manual de puntos</h2>
-                <div class="mt-3 grid gap-3 sm:grid-cols-[140px_1fr]">
-                  <a-field label="Puntos (+/−)"><input [class]="input" type="number" [value]="ajPuntos()" (input)="ajPuntos.set($any($event.target).value)" /></a-field>
-                  <a-field label="Motivo"><input [class]="input" [value]="ajMotivo()" (input)="ajMotivo.set($any($event.target).value)" placeholder="Ej. compensación por reclamo" /></a-field>
-                </div>
-                @if (pts() < 0 && -pts() > s.puntos) { <p class="mt-2 text-sm font-semibold text-destructive">No puede descontar más que el saldo actual.</p> }
-                <button aBtn class="mt-3" [disabled]="!pts() || !ajMotivo() || (pts() < 0 && -pts() > s.puntos)" (click)="confirm.set('ajuste')">Aplicar ajuste</button>
-              </section>
-              <section class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-                <h2 class="font-semibold">Ajustes anteriores</h2>
-                <div class="mt-3"><a-barra-lista [lista]="ajustes" etiqueta="ajustes" placeholder="Motivo o usuario" [filtros]="[{ k: 'tipo', l: 'Tipo' }]" (exportar)="exportarAjustes()" /></div>
-                <ul class="mt-2 divide-y divide-border">
-                  @for (a of ajustes.items(); track $index) {
-                    <li class="flex justify-between gap-3 py-3">
-                      <div><p class="font-medium">{{ a.motivo }}</p><p class="text-xs text-muted-foreground">{{ a.fecha }} · por {{ a.usuario }}</p></div>
-                      <b [class]="a.puntos < 0 ? 'text-destructive' : ''">{{ a.puntos > 0 ? '+' : '' }}{{ puntos(a.puntos) }}</b>
-                    </li>
-                  } @empty { <li class="py-3 text-muted-foreground">{{ s.ajustes.length ? 'Ningún ajuste coincide con la búsqueda.' : 'Sin ajustes manuales.' }}</li> }
-                </ul>
-                <a-pager [p]="ajustes" />
-              </section>
-            </div>
+          @case ('nivel') {
+            <section class="max-w-xl rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+              <h2 class="font-semibold">Nivel del participante</h2>
+              <p class="mt-1 text-sm text-muted-foreground">El nivel corresponde al segmento que asigna el banco. Al cambiarlo, el participante recibe un aviso por correo.</p>
+              <a-field label="Nivel" class="mt-4">
+                <select [class]="input" [value]="nivelSel() || s.nivel" (change)="nivelSel.set($any($event.target).value)">
+                  @for (n of catalog.niveles(); track n.id) { <option [value]="n.nombre" [selected]="n.nombre === (nivelSel() || s.nivel)">{{ n.nombre }}</option> }
+                </select>
+              </a-field>
+              <button aBtn class="mt-3" [disabled]="!nivelSel() || nivelSel() === s.nivel" (click)="confirm.set('nivel')">Guardar nivel</button>
+            </section>
           }
         }
       </div>
@@ -333,18 +250,15 @@ type TabK = (typeof TABS)[number]['k'];
       </div>
     }
 
-    <a-confirm [open]="confirm() === 'ajuste'" title="Confirmar ajuste de puntos" confirmLabel="Aplicar" (closed)="confirm.set(null)" (confirmed)="aplicarAjuste()">
-      @if (f(); as s) {
-        Se {{ pts() > 0 ? 'sumarán' : 'descontarán' }} <b class="text-foreground">{{ puntos(abs(pts())) }} puntos</b> a {{ s.nombre }}. Nuevo saldo:
-        <b class="text-foreground">{{ puntos(s.puntos + pts()) }}</b>.<br />Motivo: “{{ ajMotivo() }}”.
-      }
+    <a-confirm [open]="confirm() === 'nivel'" title="Confirmar cambio de nivel" confirmLabel="Guardar" (closed)="confirm.set(null)" (confirmed)="aplicarNivel()">
+      @if (f(); as s) { Se cambiará el nivel de {{ s.nombre }} de <b class="text-foreground">{{ s.nivel }}</b> a <b class="text-foreground">{{ nivelSel() }}</b>. }
     </a-confirm>
     <a-confirm [open]="confirm() === 'estado'" [danger]="f()?.estado === 'Activo'" [title]="f()?.estado === 'Activo' ? '¿Bloquear esta cuenta?' : '¿Activar esta cuenta?'"
       [confirmLabel]="f()?.estado === 'Activo' ? 'Bloquear' : 'Activar'" (closed)="confirm.set(null)" (confirmed)="cambiarEstado()">
-      {{ f()?.estado === 'Activo' ? f()?.nombre + ' no podrá ingresar a la web ni a la app ni canjear puntos hasta que se reactive.' : f()?.nombre + ' podrá volver a ingresar y canjear.' }}
+      {{ f()?.estado === 'Activo' ? f()?.nombre + ' no podrá ingresar a la web ni a la app ni comprar beneficios hasta que se reactive.' : f()?.nombre + ' podrá volver a ingresar y canjear.' }}
     </a-confirm>
     <a-confirm [open]="!!confirm()?.startsWith('dir:')" [danger]="true" title="¿Eliminar dirección?" confirmLabel="Eliminar" (closed)="confirm.set(null)" (confirmed)="eliminarDireccion()">
-      La dirección dejará de estar disponible para nuevos canjes.
+      La dirección dejará de estar disponible.
     </a-confirm>
     <a-modal [open]="cambioCorreo() !== null" title="Cambiar correo de acceso" (closed)="cambioCorreo.set(null)">
       @if (f(); as s) {
@@ -378,9 +292,7 @@ export class ParticipanteFichaPage {
   private readonly route = inject(ActivatedRoute);
   protected readonly toast = inject(ToastService);
   protected readonly input = INPUT_CLS;
-  protected readonly puntos = formatPuntos;
   protected readonly usd = formatUSD;
-  protected readonly tipoLabels = tipoLabels;
   protected readonly estadoLabels = estadoLabels;
   protected readonly tabs = TABS;
 
@@ -390,20 +302,17 @@ export class ParticipanteFichaPage {
   protected pendienteLegal(t: TipoLegal) {
     return !!this.act().legales?.pendientes.some((p) => p.tipo === t);
   }
-  protected readonly act = signal<Actividad>({ movimientos: [], pedidos: [], comprasPuntos: [], beneficios: [], cotizaciones: [], auditoria: [] });
+  protected readonly act = signal<Actividad>({ pedidos: [], beneficios: [], auditoria: [] });
   protected readonly datos = signal({ nombre: '', celular: '' });
   protected readonly confirm = signal<string | null>(null);
-  protected readonly ajPuntos = signal('');
-  protected readonly ajMotivo = signal('');
+  protected readonly nivelSel = signal('');
   protected readonly cambioCorreo = signal<string | null>(null);
   protected readonly errorCorreo = signal('');
-  protected readonly pts = computed(() => Number(this.ajPuntos()));
 
   /** La pestaña activa vive en la URL (?tab=movimientos): se puede compartir el enlace y el botón atrás funciona. */
   private readonly tabParam = toSignal(this.route.queryParamMap.pipe(map((p) => p.get('tab'))), { initialValue: null });
   protected readonly tab = computed<TabK>(() => (TABS.find((t) => t.k === this.tabParam())?.k ?? 'resumen') as TabK);
 
-  protected readonly ultimosMov = computed(() => this.act().movimientos.filter((m) => m.tipo !== 'vencimiento').slice(0, 5));
   protected readonly misBeneficios = computed(() => this.act().beneficios.map((mb) => ({ mb, b: this.catalog.beneficioPorId(mb.beneficioId) })));
 
   /* ---- Búsqueda, filtros, exportación y paginación de cada sección (la actividad del participante ya está en el navegador) ---- */
@@ -411,74 +320,35 @@ export class ParticipanteFichaPage {
     const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(f ?? '');
     return m ? `${m[3]}-${m[2]}-${m[1]}` : (f ?? '').slice(0, 10);
   }
-  protected readonly filtroTipoMov = [{ k: 'tipo', l: 'Tipo', opciones: Object.entries(tipoLabels).map(([v, l]) => ({ v, l: String(l) })) }];
   protected readonly opcionesEstadoBenef = Object.entries(estadoLabels).map(([v, l]) => ({ v, l: String(l) }));
 
-  protected readonly movs = new ListaLocal<Movimiento>(() => this.act().movimientos, {
-    texto: (m) => `${m.detalle} ${m.fecha} ${tipoLabels[m.tipo]}`,
-    filtros: { tipo: (m) => m.tipo },
-    campos: { fecha: (m) => (m as { fechaISO?: string }).fechaISO ?? '', detalle: (m) => m.detalle, tipo: (m) => m.tipo, puntos: (m) => m.puntos },
-    fecha: (m) => (m as { fechaISO?: string }).fechaISO ?? '',
-    orden: { k: 'fecha', dir: 'desc' },
-  });
   protected readonly pedidos = new ListaLocal<Pedido>(() => this.act().pedidos, {
     texto: (p) => `${p.codigo} ${this.resumenItems(p)}`,
     filtros: { estado: (p) => p.estadoAdmin },
-    campos: { codigo: (p) => p.codigo, fecha: (p) => (p as { fechaISO?: string }).fechaISO ?? '', pago: (p) => p.puntosUsados, estado: (p) => p.estadoAdmin },
+    campos: { codigo: (p) => p.codigo, fecha: (p) => (p as { fechaISO?: string }).fechaISO ?? '', pago: (p) => p.montoUSD, estado: (p) => p.estadoAdmin },
     fecha: (p) => (p as { fechaISO?: string }).fechaISO ?? '',
-    orden: { k: 'fecha', dir: 'desc' },
-  });
-  protected readonly compras = new ListaLocal<CompraPuntos>(() => this.act().comprasPuntos, {
-    texto: (c) => c.codigo,
-    filtros: { estado: (c) => c.estado },
-    campos: { codigo: (c) => c.codigo, fecha: (c) => (c as { fechaISO?: string }).fechaISO ?? '', puntos: (c) => c.cantidad, monto: (c) => c.monto, estado: (c) => c.estado },
-    fecha: (c) => (c as { fechaISO?: string }).fechaISO ?? '',
     orden: { k: 'fecha', dir: 'desc' },
   });
   protected readonly benefs = new ListaLocal<{ mb: BeneficioUsuario; b: ReturnType<CatalogService['beneficioPorId']> }>(() => this.misBeneficios(), {
     texto: (x) => `${x.b?.nombre ?? ''} ${x.b?.marca ?? ''} ${x.mb.codigo}`,
     filtros: { estado: (x) => x.mb.estado },
   });
-  protected readonly cotiz = new ListaLocal<Cotizacion>(() => this.act().cotizaciones, {
-    texto: (c) => `${c.codigo} ${this.ciudad(c.origen)} ${this.ciudad(c.destino)} ${c.ejecutiva ?? ''}`,
-    filtros: { estado: (c) => c.estado },
-    campos: { fecha: (c) => c.fecha },
-    fecha: (c) => c.fecha.slice(0, 10),
-  });
   protected readonly historial = new ListaLocal<Auditoria>(() => this.act().auditoria, {
     texto: (a) => `${a.accion} ${a.usuario}`,
     filtros: { usuario: (a) => a.usuario },
-  });
-  protected readonly ajustes = new ListaLocal<Ajuste>(() => this.f()?.ajustes ?? [], {
-    texto: (a) => `${a.motivo} ${a.usuario}`,
-    filtros: { tipo: (a) => (a.puntos < 0 ? 'Descuento' : 'Suma'), usuario: (a) => a.usuario },
-    campos: { fecha: (a) => ParticipanteFichaPage.iso(a.fecha), puntos: (a) => a.puntos },
-    fecha: (a) => ParticipanteFichaPage.iso(a.fecha),
   });
 
   private exportar(nombre: string, cabecera: string[], filas: (string | number)[][]) {
     descargarTabla(`${this.f()?.id ?? 'participante'}-${nombre}`, [cabecera, ...filas], `${nombre.replace(/-/g, ' ')} de ${this.f()?.nombre ?? 'participante'}`);
   }
-  protected exportarMovs() {
-    this.exportar('movimientos', ['Fecha', 'Detalle', 'Tipo', 'Puntos'], this.movs.filtrados().map((m) => [m.fecha, m.detalle, tipoLabels[m.tipo], m.puntos]));
-  }
   protected exportarPedidos() {
-    this.exportar('pedidos', ['Código', 'Fecha', 'Artículos', 'Puntos', 'Dinero', 'Estado'], this.pedidos.filtrados().map((p) => [p.codigo, p.fecha, this.resumenItems(p), p.puntosUsados, p.montoUSD, p.estadoAdmin]));
-  }
-  protected exportarCompras() {
-    this.exportar('compras-de-puntos', ['Operación', 'Fecha', 'Puntos', 'Monto', 'Estado'], this.compras.filtrados().map((c) => [c.codigo, c.fecha, c.cantidad, c.monto, c.estado]));
+    this.exportar('pedidos', ['Código', 'Fecha', 'Beneficios', 'Monto', 'Estado'], this.pedidos.filtrados().map((p) => [p.codigo, p.fecha, this.resumenItems(p), p.montoUSD, p.estadoAdmin]));
   }
   protected exportarBenefs() {
     this.exportar('beneficios', ['Beneficio', 'Marca', 'Cupón', 'Fecha', 'Estado'], this.benefs.filtrados().map((x) => [x.b?.nombre ?? '', x.b?.marca ?? '', x.mb.codigo, x.mb.fecha, estadoLabels[x.mb.estado]]));
   }
-  protected exportarCotiz() {
-    this.exportar('cotizaciones', ['Código', 'Fecha', 'Origen', 'Destino', 'Clase', 'Pasajeros', 'Ejecutiva', 'Estado'], this.cotiz.filtrados().map((c) => [c.codigo, c.fecha, this.ciudad(c.origen), this.ciudad(c.destino), c.clase, c.pasajeros, c.ejecutiva ?? '', c.estado]));
-  }
   protected exportarHistorial() {
     this.exportar('historial', ['Fecha', 'Usuario', 'Cambio'], this.historial.filtrados().map((a) => [a.fecha, a.usuario, a.accion]));
-  }
-  protected exportarAjustes() {
-    this.exportar('ajustes', ['Fecha', 'Usuario', 'Motivo', 'Puntos'], this.ajustes.filtrados().map((a) => [a.fecha, a.usuario, a.motivo, a.puntos]));
   }
 
   constructor() {
@@ -507,30 +377,21 @@ export class ParticipanteFichaPage {
   protected cuenta(k: TabK): number | null {
     const a = this.act();
     switch (k) {
-      case 'movimientos': return a.movimientos.length;
-      case 'compras': return a.pedidos.length + a.comprasPuntos.length;
+      case 'compras': return a.pedidos.length;
       case 'beneficios': return a.beneficios.length;
-      case 'cotizaciones': return a.cotizaciones.length;
       case 'historial': return a.auditoria.length;
-      case 'ajustes': return this.f()?.ajustes.length ?? 0;
+      case 'nivel': return null;
       default: return null;
     }
   }
-  protected nivel(acum: number) {
-    const n = this.catalog.niveles();
-    return n.length ? nivelPorPuntos(n, acum).nombre : '';
-  }
   protected abs(n: number) {
     return Math.abs(n);
-  }
-  protected ciudad(c: string) {
-    return this.catalog.ciudades().find((x) => x.codigo === c || x.ciudad === c)?.ciudad ?? c;
   }
   protected resumenItems(c: Pedido) {
     return c.items.map((i) => (i.cantidad > 1 ? `${i.cantidad} × ${i.nombre}` : i.nombre)).join(', ');
   }
   protected pago(c: Pedido) {
-    return [c.puntosUsados ? `${formatPuntos(c.puntosUsados)} pts` : '', c.montoUSD ? formatUSD(c.montoUSD) : ''].filter(Boolean).join(' + ') || '—';
+    return c.montoUSD ? formatUSD(c.montoUSD) : '—';
   }
 
   protected setDato(k: 'nombre' | 'celular', e: Event) {
@@ -580,16 +441,13 @@ export class ParticipanteFichaPage {
     this.patch({ nombre: this.datos().nombre.trim(), celular: this.datos().celular });
     this.toast.show('Datos actualizados');
   }
-  protected aplicarAjuste() {
+  protected aplicarNivel() {
     const s = this.f();
-    if (!s) return;
-    this.patch({
-      puntos: s.puntos + this.pts(),
-      ajustes: [{ fecha: new Date().toLocaleDateString('es-EC'), puntos: this.pts(), motivo: this.ajMotivo(), usuario: this.session.usuario()?.nombre ?? 'Sistema' }, ...s.ajustes],
-    });
-    this.ajPuntos.set('');
-    this.ajMotivo.set('');
-    this.toast.show('Ajuste aplicado y registrado');
+    if (!s || !this.nivelSel()) return;
+    this.patch({ nivel: this.nivelSel() });
+    this.nivelSel.set('');
+    this.confirm.set(null);
+    this.toast.show('Nivel actualizado y registrado');
   }
   protected cambiarEstado() {
     const s = this.f();

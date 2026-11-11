@@ -113,11 +113,10 @@ export interface Dashboard {
   /** Enlace al reporte de cada indicador (id del reporte por tipo). */
   enlaces: Record<string, string>;
   alertas: AlertaDashboard[];
-  serie: { x: string; emitidos: number; canjeados: number; emitidosPrevio: number; canjeadosPrevio: number }[];
+  serie: { x: string; ventas: number; ventasPrevio: number }[];
   canales: { name: string; value: number }[];
-  topCanjes: { name: string; unidades: number }[];
+  topCompras: { name: string; unidades: number }[];
   embudo: { etiqueta: string; visitas: number }[];
-  pedidos: { codigo: string; fecha: string; cliente: string; estadoAdmin: string; puntosUsados: number; montoUSD: number; entrega: string; items: { nombre: string; marca: string; cantidad: number }[] }[];
+  pedidos: { codigo: string; fecha: string; cliente: string; estadoAdmin: string; montoUSD: number; entrega: string; items: { nombre: string; marca: string; cantidad: number }[] }[];
   mensajes: { id: string; asunto: string; nombre: string; email: string; mensaje: string; fecha: string; estado: string }[];
-  vistos: { id: string; nombre: string; marca: string; imagen: string; vistas: number }[];
 }

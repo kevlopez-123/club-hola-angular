@@ -6,7 +6,7 @@ import { ApiError } from "./types";
  * El cliente manda la versión que cargó en `If-Match`; si otro usuario guardó antes, la versión ya no coincide y
  * el servidor responde 412 (Precondition Failed) en vez de pisar su cambio.
  */
-const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", destinos: "slug", mensajes: "id", usuarios: "id", ciudades: "codigo", marcas: "id", comprasPuntos: "codigo", plantillasCorreo: "id", correosEnviados: "id" };
+const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", mensajes: "id", usuarios: "id", marcas: "id", comprasPuntos: "codigo", plantillasCorreo: "id", correosEnviados: "id" };
 export const claveDeColeccion = (c: string) => CLAVES[c] ?? "id";
 
 type Recurso = { leer: () => any | undefined };

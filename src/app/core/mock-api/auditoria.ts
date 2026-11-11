@@ -34,7 +34,7 @@ function acotar(v: unknown, prof = 0): unknown {
   return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([k]) => k !== "version").map(([k, x]) => [k, acotar(x, prof + 1)]));
 }
 
-const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", destinos: "slug", mensajes: "id", usuarios: "id", ciudades: "codigo", marcas: "id", comprasPuntos: "codigo", plantillasCorreo: "id", correosEnviados: "id" };
+const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", mensajes: "id", usuarios: "id", marcas: "id", comprasPuntos: "codigo", plantillasCorreo: "id", correosEnviados: "id" };
 const claveDe = (c: string) => CLAVES[c] ?? "id";
 const nombreDe = (it: any, col: string) => String(it?.nombre ?? it?.titulo ?? it?.label ?? it?.asunto ?? it?.codigo ?? it?.[claveDe(col)] ?? "");
 
@@ -109,7 +109,6 @@ export function capturar(metodo: string, ruta: string, body: any): Captura | nul
     return { seccion: etiquetaSeccion(seccion), accion, antes, despues: () => acotar(structuredClone(leer())) };
   };
   switch (q) {
-    case "reglas": return simple("reglas", "Editó las reglas de puntos", () => ({ ...admin.reglas, condiciones: (db.config as any).condicionesCompra }));
     case "niveles": return simple("niveles", "Editó los niveles", () => ({ niveles: (db as any).niveles, texto: (db as any).nivelesTexto }));
     case "sitio": return simple("configuracion", "Editó los datos del programa", () => (db.config as any).sitio);
     case "config": {
@@ -140,25 +139,7 @@ export function capturar(metodo: string, ruta: string, body: any): Captura | nul
       if (p[2] === "restaurar") return simple("correos", "Restauró plantillas de correo a su texto original", () => admin.plantillasCorreo);
       return null; // envíos, pruebas y reenvíos: ya quedan en Correos → Enviados
     }
-    case "compras-puntos": {
-      const compra = (admin.comprasPuntos as any[]).find((x) => x.codigo === p[2]);
-      const leer = () => { const c = (admin.comprasPuntos as any[]).find((x) => x.codigo === p[2]); return c ? { estado: c.estado, motivo: c.motivo } : undefined; };
-      return { seccion: etiquetaSeccion("compras-puntos"), entidad: p[2], antes: acotar(structuredClone(compra ? { estado: compra.estado, motivo: compra.motivo } : undefined)), accion: `${body?.resultado === "aprobado" ? "Confirmó" : "Rechazó"} el pago de la compra de puntos ${p[2]}`, despues: () => acotar(leer()) };
-    }
-    case "cotizaciones": {
-      const cot = ((db as any).cotizaciones as any[]).find((x) => x.codigo === p[2]);
-      return {
-        seccion: etiquetaSeccion("cotizaciones"), entidad: p[2], antes: acotar(structuredClone(cot ? { estado: cot.estado, monto: cot.monto, ejecutiva: cot.ejecutiva, nota: cot.nota } : undefined)),
-        accion: body?.estado ? `Cambió la cotización ${p[2]} a ${body.estado}` : `Actualizó la cotización ${p[2]}`,
-        despues: () => { const c2 = ((db as any).cotizaciones as any[]).find((x) => x.codigo === p[2]); return acotar(structuredClone(c2 ? { estado: c2.estado, monto: c2.monto, ejecutiva: c2.ejecutiva, nota: c2.nota } : undefined)); },
-      };
-    }
     case "participantes": {
-      if (p[2] === "ajustes-masivos") {
-        if (!body?.aplicar) return null; // la simulación no cambia nada
-        const n = Array.isArray(body?.items) ? body.items.length : 0;
-        return { seccion: etiquetaSeccion("participantes"), accion: `Aplicó un ajuste masivo de puntos (${n} filas)`, despues: () => undefined };
-      }
       const part = admin.participantes.find((x: any) => x.id === p[2]);
       const quien = part?.nombre ?? p[2];
       if (p[3] === "codigo") return { seccion: etiquetaSeccion("participantes"), accion: `Reenvió el código de acceso a ${quien}`, entidad: p[2], despues: () => undefined };

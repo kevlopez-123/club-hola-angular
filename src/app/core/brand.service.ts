@@ -103,14 +103,17 @@ export class BrandService {
 
     set("--primary", primario);
     set("--primary-foreground", t.tema.textoPrimario || "#ffffff");
-    for (const k of ["--celeste", "--lima", "--brand-red", "--ring", "--chart-1", "--chart-2", "--sidebar-primary", "--sidebar-ring"]) set(k, primario);
-    set("--gradient-header", primario);
-    set("--secondary", mezclar(primario, "#ffffff", 0.9));
-    set("--secondary-foreground", texto);
+    for (const k of ["--brand-red", "--ring", "--chart-1", "--chart-2", "--sidebar-primary", "--sidebar-ring"]) set(k, primario);
+    set("--celeste", t.tema.acento || primario);
+    set("--lima", t.tema.acento2 || primario);
+    set("--gradient-header", t.tema.gradiente || primario);
+    set("--secondary", t.tema.secundario || mezclar(primario, "#ffffff", 0.9));
+    set("--secondary-foreground", t.tema.secundarioTexto || texto);
     set("--chart-3", oscuro(0.35));
     set("--shadow-card-hover", `0 18px 40px -16px ${primario}1a`);
 
     for (const k of ["--ink", "--foreground", "--card-foreground", "--popover-foreground", "--brand-dark", "--sidebar-foreground", "--sidebar-accent-foreground", "--chart-5"]) set(k, texto);
+    set("--brand-dark", t.tema.oscuro || texto);
     set("--ink-strong", mezclar(texto, "#000000", 0.5));
     for (const k of ["--background", "--card", "--popover", "--sidebar"]) set(k, fondo);
     for (const k of ["--surface", "--muted", "--sidebar-accent"]) set(k, superficie);

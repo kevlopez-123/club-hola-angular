@@ -4,7 +4,7 @@ import { TokenService } from "./token.service";
 
 /**
  * Sesión del participante en el sitio. Se considera iniciada si hay token (lo emite el servidor tras validar el código OTP).
- * Las rutas privadas usan `participanteGuard`; las páginas públicas (catálogo, vuelos, textos legales) no exigen ingreso.
+ * Las rutas privadas usan `participanteGuard`; las páginas públicas (catálogo, textos legales) no exigen ingreso.
  */
 @Injectable({ providedIn: "root" })
 export class SesionService {

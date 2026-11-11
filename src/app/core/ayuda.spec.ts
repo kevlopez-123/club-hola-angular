@@ -65,7 +65,7 @@ describe("guías iniciales", () => {
   });
   it("Atención no ve guías que no le tocan", () => {
     const t = guiasPara(GUIAS_INICIALES, "Atención").map((x) => x.id);
-    expect(t).toContain("pedidos-cotizaciones");
+    expect(t).toContain("pedidos");
     expect(t).not.toContain("roles");
     expect(t).not.toContain("cargas-excel");
   });

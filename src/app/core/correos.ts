@@ -3,7 +3,7 @@
 export interface PlantillaCorreo {
   id: string;
   nombre: string;
-  grupo: "Seguridad y acceso" | "Compras y puntos" | "Beneficios y vuelos" | "Alertas internas";
+  grupo: "Seguridad y acceso" | "Compras y nivel" | "Beneficios y contacto" | "Alertas internas";
   descripcion: string;
   /** Cuándo se dispara. */
   evento: string;
@@ -33,7 +33,7 @@ export interface NotificacionPlantilla {
   texto: string;
   /** Ruta del sitio a la que lleva el aviso (puede usar variables, p. ej. /mis-compras/{codigo}). */
   enlace?: string;
-  tipo: "pedido" | "puntos" | "beneficio" | "vuelo" | "cuenta" | "info";
+  tipo: "pedido" | "beneficio" | "cuenta" | "info";
 }
 
 export type TipoBloque = "titulo" | "texto" | "imagen" | "boton" | "divisor";
@@ -115,7 +115,7 @@ export interface AjustesCorreo {
   cco: {
     activo: boolean;
     direcciones: string[];
-    /** Correos automáticos a participantes (códigos, pedidos, puntos…). Los avisos internos del equipo no llevan copia. */
+    /** Correos automáticos a participantes (códigos, compras, nivel…). Los avisos internos del equipo no llevan copia. */
     sistema: boolean;
     campanas: boolean;
   };
@@ -149,44 +149,36 @@ export const PLANTILLAS_BASE: PlantillaCorreo[] = [
   p("otp", "Seguridad y acceso", "Código de acceso", "El participante pide ingresar al sitio",
     "Tu código de acceso a {programa}", "Hola {nombre},\n\nTu código de acceso es {codigo}. Vence en {minutos} minutos.\n\nSi no lo pediste, ignora este correo.", ["codigo", "minutos"], { fija: true }),
   p("bienvenida", "Seguridad y acceso", "Bienvenida", "Se da de alta a un participante (individual o carga masiva)",
-    "Te damos la bienvenida a {programa}", "Hola {nombre},\n\nYa eres parte de {programa}. Ingresa con tu documento y canjea tus puntos por productos, beneficios y vuelos.", [], { boton: { texto: "Ingresar a {programa}", url: "{sitio}/login" } }),
+    "Te damos la bienvenida a {programa}", "Hola {nombre},\n\nYa eres parte de {programa}. Ingresa con tu documento y disfruta tus beneficios.", [], { boton: { texto: "Ingresar a {programa}", url: "{sitio}/login" } }),
   p("correo-cambiado", "Seguridad y acceso", "Cambio de correo de acceso", "Se cambia el correo con el que el participante ingresa",
     "Cambiamos tu correo de acceso", "Hola {nombre},\n\nTu correo de acceso a {programa} ahora es {correoNuevo}. Si no fuiste tú, comunícate con atención al cliente.", ["correoNuevo"], { fija: true }),
   p("cuenta-bloqueada", "Seguridad y acceso", "Cuenta bloqueada", "Un administrador bloquea la cuenta",
     "Tu cuenta de {programa} fue bloqueada", "Hola {nombre},\n\nBloqueamos temporalmente tu cuenta. Para reactivarla comunícate con atención al cliente."),
   p("cuenta-activada", "Seguridad y acceso", "Cuenta reactivada", "Un administrador reactiva la cuenta",
-    "Tu cuenta de {programa} está activa", "Hola {nombre},\n\nTu cuenta volvió a estar activa. Ya puedes ingresar y canjear tus puntos."),
+    "Tu cuenta de {programa} está activa", "Hola {nombre},\n\nTu cuenta volvió a estar activa. Ya puedes ingresar y usar tus beneficios."),
   p("admin-invitacion", "Seguridad y acceso", "Invitación al panel", "Se crea un usuario del panel",
     "Te invitaron al panel de {programa}", "Hola {nombre},\n\nTe dieron acceso al panel con el rol {rol}. Ingresa y crea tu contraseña.", ["rol"]),
 
-  p("pedido-confirmado", "Compras y puntos", "Pedido confirmado", "El participante completa un canje",
-    "Recibimos tu pedido {codigo}", "Hola {nombre},\n\nRecibimos tu pedido {codigo}. Usaste {puntos} puntos. Te avisaremos cuando salga a entrega.", ["codigo", "puntos"], { boton: { texto: "Ver mis pedidos", url: "{sitio}/historial" } }),
+  p("pedido-confirmado", "Compras y nivel", "Compra confirmada", "El participante completa una compra",
+    "Recibimos tu compra {codigo}", "Hola {nombre},\n\nRecibimos tu compra {codigo} por US$ {monto}. Te enviamos tus beneficios por correo.", ["codigo", "monto"], { boton: { texto: "Ver mis compras", url: "{sitio}/mis-compras" } }),
   p("legales-actualizados", "Seguridad y acceso", "Textos legales actualizados", "Se publica una versión de Términos o Privacidad que exige aceptación",
     "Actualizamos {documento}", "Hola {nombre},\n\nPublicamos la versión {version} de {documento}. {entrada}\n\nQué cambió: {notas}\n\nLa próxima vez que ingreses a {programa} te pediremos leerla y aceptarla para continuar.", ["documento", "version", "entrada", "notas", "ruta"], { boton: { texto: "Leer el documento", url: "{sitio}{ruta}" } }),
-  p("pedido-estado", "Compras y puntos", "Pedido: cambio de estado", "El panel cambia el estado de un pedido",
+  p("pedido-estado", "Compras y nivel", "Pedido: cambio de estado", "El panel cambia el estado de un pedido",
     "Tu pedido {codigo} está {estado}", "Hola {nombre},\n\nTu pedido {codigo} cambió a: {estado}.", ["codigo", "estado"]),
-  p("compra-puntos-fallida", "Compras y puntos", "Pago de puntos rechazado", "Un pago de la compra de puntos es rechazado o falla",
-    "No pudimos procesar tu pago {codigo}", "Hola {nombre},\n\nTu pago de la operación {codigo} no se completó: {motivo}.\n\nPuedes volver a intentarlo desde Compra de puntos; no se hizo ningún cargo.", ["codigo", "motivo"], { boton: { texto: "Reintentar mi compra", url: "{sitio}/mis-puntos/compra" } }),
-  p("compra-puntos", "Compras y puntos", "Recibo de compra de puntos", "Se aprueba una compra de puntos",
-    "Recibo de tu compra de puntos {codigo}", "Hola {nombre},\n\nAcreditamos {puntos} puntos por US$ {monto}. Operación {codigo}.", ["codigo", "puntos", "monto"]),
-  p("puntos-por-vencer", "Compras y puntos", "Puntos por vencer", "Faltan pocos días para que venzan puntos",
-    "Tienes puntos por vencer", "Hola {nombre},\n\n{puntos} de tus puntos vencen el {fecha}. Canjéalos antes en {programa}.", ["puntos", "fecha"]),
-  p("nivel-cambio", "Compras y puntos", "Cambio de nivel", "El participante sube o baja de nivel",
+  p("nivel-cambio", "Compras y nivel", "Cambio de nivel", "El participante sube o baja de nivel",
     "Ahora eres nivel {nivel}", "Hola {nombre},\n\nTu nivel en {programa} es {nivel}. Revisa tus nuevos beneficios.", ["nivel"]),
 
-  p("cupon-generado", "Beneficios y vuelos", "Cupón generado", "El participante genera el cupón de un beneficio",
+  p("cupon-generado", "Beneficios y contacto", "Cupón generado", "El participante genera el cupón de un beneficio",
     "Tu cupón de {beneficio}", "Hola {nombre},\n\nTu código para {beneficio} es {codigo}. Es válido por {horas} horas.", ["beneficio", "codigo", "horas"], { boton: { texto: "Ver mis beneficios", url: "{sitio}/mis-beneficios" } }),
-  p("cotizacion-recibida", "Beneficios y vuelos", "Cotización recibida", "El participante envía una cotización de vuelo",
-    "Recibimos tu cotización {codigo}", "Hola {nombre},\n\nRecibimos tu solicitud {codigo} ({origen} → {destino}). Una ejecutiva la revisará y te escribirá pronto.", ["codigo", "origen", "destino"], { boton: { texto: "Ver mis cotizaciones", url: "{sitio}/vuelos/cotizaciones" } }),
-  p("cotizacion-estado", "Beneficios y vuelos", "Cotización: cambio de estado", "El panel cambia el estado de una cotización",
-    "Tu cotización {codigo} está {estado}", "Hola {nombre},\n\nTu cotización {codigo} ({origen} → {destino}) cambió a: {estado}.", ["codigo", "origen", "destino", "estado"]),
-  p("contacto-acuse", "Beneficios y vuelos", "Acuse de consulta", "El participante envía el formulario Contáctanos",
+  p("evento-preinscripcion", "Beneficios y contacto", "Pre-inscripción a un evento", "El participante se pre-inscribe a un evento",
+    "Tu pre-inscripción a {evento}", "Hola {nombre},\n\nRegistramos tu pre-inscripción a {evento}. Código {codigo}: está {estado}. Te confirmaremos el cupo por correo.", ["evento", "codigo", "estado"]),
+  p("premio-ganado", "Beneficios y contacto", "Premio ganado", "El participante gana un premio en Spin & Win o Lucky Code",
+    "Ganaste: {premio}", "Hola {nombre},\n\n¡Felicitaciones! Ganaste {premio}. {detalle}\n\nTu premio es digital y llega a este correo.", ["premio", "detalle"]),
+  p("contacto-acuse", "Beneficios y contacto", "Acuse de consulta", "El participante envía el formulario Contáctanos",
     "Recibimos tu consulta", "Hola {nombre},\n\nRecibimos tu consulta y te responderemos a este correo. Gracias por escribirnos.\n\n\"{consulta}\""  , ["consulta"]),
 
   p("lote-alerta", "Alertas internas", "Lote de códigos con poco stock", "Quedan pocos códigos sin usar en un lote",
     "Quedan {restantes} códigos de {beneficio}", "El lote de {beneficio} tiene {restantes} códigos sin usar. Carga un nuevo lote para no quedarte sin cupones.", ["beneficio", "restantes"], { interna: true }),
-  p("equipo-cotizacion", "Alertas internas", "Nueva cotización para el equipo", "Llega una cotización nueva",
-    "Nueva cotización {codigo}", "Llegó la cotización {codigo} de {nombre} ({origen} → {destino}). Asígnala desde el panel.", ["codigo", "origen", "destino"], { interna: true }),
 ];
 
 /** Reemplaza {variable} por su valor; las que no se conocen se dejan visibles para detectar el error. */
@@ -196,25 +188,20 @@ export function renderPlantilla(texto: string, vars: Record<string, unknown>): s
 
 /** Valores de ejemplo para la vista previa y el envío de prueba. */
 export const EJEMPLO_VARS: Record<string, string> = {
-  nombre: "María Fernanda", programa: "Banco Solidario Puntos", banco: "Banco Solidario", codigo: "ABC-12345", minutos: "10",
-  correoNuevo: "nuevo@correo.com", rol: "Atención", puntos: "2.500", monto: "25,00", estado: "En camino", fecha: "31/12/2026",
-  nivel: "Oro", beneficio: "2x1 en entradas 2D", horas: "3", origen: "UIO", destino: "MAD", restantes: "12", consulta: "¿Cómo canjeo mis puntos?",
+  nombre: "María Fernanda", programa: "Club Hola", banco: "BanBif", codigo: "ABC-12345", minutos: "10",
+  correoNuevo: "nuevo@correo.com", rol: "Atención", monto: "25,00", estado: "En camino", fecha: "31/12/2026",
+  nivel: "Oro", beneficio: "2x1 en entradas 2D", horas: "3", origen: "UIO", destino: "MAD", restantes: "12", consulta: "¿Cómo uso mi beneficio?",
 };
 
 /** Avisos dentro del sitio de fábrica, por plantilla (las de seguridad y las internas no llevan). */
 const NOTIFICACIONES_BASE: Record<string, NotificacionPlantilla> = {
-  "pedido-confirmado": { activo: true, tipo: "pedido", titulo: "Recibimos tu pedido {codigo}", texto: "Usaste {puntos} puntos. Te avisaremos cuando salga a entrega.", enlace: "/mis-compras/{codigo}" },
+  "pedido-confirmado": { activo: true, tipo: "pedido", titulo: "Recibimos tu compra {codigo}", texto: "Te enviamos tus beneficios por correo.", enlace: "/mis-compras/{codigo}" },
   "legales-actualizados": { activo: true, tipo: "cuenta", titulo: "Actualizamos {documento}", texto: "Versión {version}. {notas}", enlace: "{ruta}" },
   "pedido-estado": { activo: true, tipo: "pedido", titulo: "Tu pedido {codigo} está {estado}", texto: "Revisa el detalle y el seguimiento de tu pedido.", enlace: "/mis-compras/{codigo}" },
-  "compra-puntos-fallida": { activo: true, tipo: "puntos", titulo: "No pudimos procesar tu pago", texto: "{motivo}. Puedes reintentar la compra {codigo}.", enlace: "/mis-puntos/compra" },
-  "compra-puntos": { activo: true, tipo: "puntos", titulo: "Acreditamos {puntos} puntos", texto: "Tu compra de puntos {codigo} fue aprobada.", enlace: "/mis-puntos/historial" },
-  "puntos-por-vencer": { activo: true, tipo: "puntos", titulo: "Tienes puntos por vencer", texto: "{puntos} de tus puntos vencen el {fecha}. Canjéalos a tiempo.", enlace: "/canjea" },
-  "nivel-cambio": { activo: true, tipo: "puntos", titulo: "Ahora eres nivel {nivel}", texto: "Revisa los beneficios de tu nuevo nivel.", enlace: "/mi-nivel" },
+  "nivel-cambio": { activo: true, tipo: "beneficio", titulo: "Ahora eres nivel {nivel}", texto: "Revisa los beneficios de tu nuevo nivel.", enlace: "/mi-nivel" },
   "cupon-generado": { activo: true, tipo: "beneficio", titulo: "Tu cupón de {beneficio}", texto: "Código {codigo}, válido por {horas} horas.", enlace: "/mis-beneficios" },
-  "cotizacion-recibida": { activo: true, tipo: "vuelo", titulo: "Recibimos tu cotización {codigo}", texto: "{origen} → {destino}. Una ejecutiva la revisará pronto.", enlace: "/vuelos/cotizaciones" },
-  "cotizacion-estado": { activo: true, tipo: "vuelo", titulo: "Tu cotización {codigo} está {estado}", texto: "{origen} → {destino}. Revisa los detalles.", enlace: "/vuelos/cotizaciones" },
   "contacto-acuse": { activo: true, tipo: "info", titulo: "Recibimos tu consulta", texto: "Te responderemos al correo de tu cuenta.", enlace: "/contacto" },
-  bienvenida: { activo: true, tipo: "info", titulo: "Te damos la bienvenida a {programa}", texto: "Canjea tus puntos por productos, beneficios y vuelos.", enlace: "/canjea" },
+  bienvenida: { activo: true, tipo: "info", titulo: "Te damos la bienvenida a {programa}", texto: "Disfruta tus beneficios.", enlace: "/beneficios" },
 };
 for (const p of PLANTILLAS_BASE) if (NOTIFICACIONES_BASE[p.id]) p.notificar = NOTIFICACIONES_BASE[p.id]!;
 

@@ -10,9 +10,8 @@ import { firstValueFrom } from "rxjs";
 import { BrandService } from "../core/brand.service";
 import { resetMockDb } from "../core/mock-api/db";
 import { CatalogService, type SitioConfig , TEXTOS_INGRESO, TEXTOS_HOME, PIE_ATENCION, PIE_INFORMACION, type EnlacePie, type TextosHome, type TextosIngreso } from "../core/catalog.service";
-import { PRECIO_POR_PUNTO, PUNTOS_POR_DOLAR, formatPuntos, formatUSD } from "../core/format";
-import { tipoLabels } from "../core/labels";
-import type { Compra, Mensaje, Movimiento, Nivel, RolAdmin, TipoMovimiento } from "../core/models";
+import { formatUSD } from "../core/format";
+import type { Compra, Mensaje, Nivel, RolAdmin } from "../core/models";
 import { IconComponent } from "../shared/icon.component";
 import { MarcaEditorComponent } from "./pages-marca";
 import { LimpiarFiltrosComponent } from "../shared/limpiar-filtros";
@@ -29,76 +28,6 @@ import {
 } from "./kit";
 
 /* ------------------------------------------------------------------ */
-/* Movimientos de puntos                                               */
-/* ------------------------------------------------------------------ */
-@Component({
-  selector: "a-movimientos-page",
-  imports: [AdminModalComponent, OrdenColumnaComponent, FilaEsqueletoComponent, LimpiarFiltrosComponent, PageHeaderComponent, PillComponent, BtnDirective, IconComponent, PagerComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <a-header vista="movimientos" title="Movimientos de puntos" desc="Acumulación por compras, canjes y compra de puntos.">
-      <button aBtn variant="outline" (click)="exportar()"><app-icon name="Download" class="h-4 w-4" /> Descargar</button>
-    </a-header>
-    <div class="adm-filtros">
-      <div class="adm-busca"><app-icon name="Search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input type="search" aria-label="Buscar movimiento" placeholder="Buscar por participante o detalle" [class]="input + ' pl-9'" (input)="pag.buscar($any($event.target).value)" /></div>
-<select aria-label="Tipo" [class]="input + ' w-auto'" (change)="pag.filtrar('tipo', $any($event.target).value)">
-        <option value="">Todos los tipos</option>
-        @for (x of tipos; track x) { <option [value]="x">{{ labels[x] }}</option> }
-      </select>
-      <input aria-label="Desde" type="date" [class]="input + ' w-auto'" (input)="pag.filtrar('desde', $any($event.target).value)" />
-      <input aria-label="Hasta" type="date" [class]="input + ' w-auto'" (input)="pag.filtrar('hasta', $any($event.target).value)" />
-      
-      <app-limpiar-filtros [activo]="pag.activo()" (limpiar)="pag.limpiar()" />
-    </div>
-    <div class="adm-wrap">
-      <table class="adm-table">
-        <thead><tr><th aOrden="fechaISO" [pag]="pag" etiquetaOrden="Fecha">Fecha</th><th aOrden="tipo" [pag]="pag" etiquetaOrden="Tipo">Tipo</th><th aOrden="cliente" [pag]="pag" etiquetaOrden="Participante">Participante</th><th aOrden="puntos" [pag]="pag" etiquetaOrden="Puntos">Puntos</th><th aOrden="detalle" [pag]="pag" etiquetaOrden="Detalle">Detalle</th><th aria-label="Ver detalle"></th></tr></thead>
-        <tbody>
-          @for (r of pag.items(); track r.id) {
-            <tr><td><button type="button" class="font-bold hover:underline" [attr.aria-label]="'Ver detalle del movimiento del ' + r.fecha" (click)="detalle.set(r)">{{ r.fecha }}@if ($any(r).hora) { · {{ $any(r).hora }} }</button></td>
-              <td class="det-completo det-chip"><a-pill [tone]="r.tipo === 'canje' ? 'warn' : 'ok'">{{ labels[r.tipo] }}</a-pill></td>
-              <td>{{ r.cliente }}</td>
-              <td><b>{{ r.puntos > 0 ? "+" : "" }}{{ puntos(r.puntos) }}</b></td>
-              <td class="adm-ancha">{{ r.detalle }}</td>
-              <td class="det-ojo"><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" [attr.aria-label]="'Ver detalle del movimiento de ' + r.cliente" title="Ver detalle" (click)="detalle.set(r)"><app-icon name="Eye" class="h-4 w-4" /></button></td></tr>
-          } @empty { @if (pag.cargando()) { @for (n of [1, 2, 3, 4, 5]; track n) { <tr aEsqueleto [cols]="6"></tr> } } @else { <tr><td colspan="6" class="adm-empty">Sin resultados</td></tr> } }
-        </tbody>
-      </table>
-    </div>
-    <a-pager [p]="pag" />
-    <a-modal [open]="!!detalle()" title="Detalle del movimiento" (closed)="detalle.set(null)">
-      @if (detalle(); as m) {
-        <dl class="grid gap-3">
-          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Participante</dt><dd class="text-sm font-semibold">{{ m.cliente }}</dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Fecha</dt><dd class="text-sm font-semibold">{{ m.fecha }}</dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Tipo</dt><dd><a-pill [tone]="m.tipo === 'canje' ? 'warn' : 'ok'">{{ labels[m.tipo] }}</a-pill></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Detalle</dt><dd class="text-sm">{{ m.detalle }}</dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Puntos</dt><dd class="text-lg font-bold">{{ m.puntos > 0 ? "+" : "" }}{{ puntos(m.puntos) }}</dd></div>
-        </dl>
-        <div class="det-pie"><button aBtn (click)="detalle.set(null)">Cerrar</button></div>
-      }
-    </a-modal>
-  `,
-})
-export class MovimientosPage {
-  protected readonly detalle = signal<(Movimiento & { cliente: string }) | null>(null);
-  /** Descarga en CSV los movimientos de la página y filtros actuales. */
-  protected exportar() {
-    descargarTabla("movimientos", [["Fecha", "Detalle", "Tipo", "Puntos"], ...this.pag.items().map((m) => [m.fecha, m.detalle, this.labels[m.tipo], m.puntos])], "Movimientos de puntos");
-  }
-  protected readonly toast = inject(ToastService);
-  protected readonly pag = new Paginado<Movimiento & { cliente: string }>(inject(ApiService), "movimientos");
-  protected readonly input = INPUT_CLS;
-  protected readonly labels = tipoLabels;
-  protected readonly puntos = formatPuntos;
-  protected readonly tipos: TipoMovimiento[] = ["acumulacion", "canje", "compra", "ajuste"];
-
-  constructor() {
-    this.pag.recargar();
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /* Niveles                                                             */
 /* ------------------------------------------------------------------ */
 @Component({
@@ -106,13 +35,12 @@ export class MovimientosPage {
   imports: [PageHeaderComponent, PanelComponent, FieldComponent, BtnDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a-header title="Niveles" desc="Se calculan con los puntos acumulados en compras. Los textos se muestran en Mi nivel y en “¿Cómo funcionan los niveles?”.">
+    <a-header title="Niveles" desc="El nivel corresponde al segmento que asigna el banco a cada participante (se cambia en su ficha). Los textos se muestran en Mi nivel y en “¿Cómo funcionan los niveles?”.">
       <button aBtn (click)="guardar()">Guardar niveles</button>
     </a-header>
     <a-panel title="Textos de Mi nivel y de “¿Cómo funcionan los niveles?”" class="mb-6">
-      <p class="mb-4 text-sm text-muted-foreground">Puedes usar <code>&#123;empresa&#125;</code>, <code>&#123;programa&#125;</code>, <code>&#123;unidad&#125;</code> y <code>&#123;meses&#125;</code>: se reemplazan por los datos de la marca.</p>
+      <p class="mb-4 text-sm text-muted-foreground">Puedes usar <code>&#123;empresa&#125;</code>, <code>&#123;programa&#125;</code>: se reemplazan por los datos de la marca.</p>
       <div class="grid gap-4 lg:grid-cols-2">
-        <a-field label="Meses considerados para calcular el nivel"><input [class]="input" type="number" min="1" [value]="txt().meses" (input)="setTxt({ meses: +$any($event.target).value })" /></a-field>
         <a-field label="Subtítulo de Mi nivel (debajo del título)"><textarea [class]="input + ' h-20 py-2'" [value]="txt().subtitulo" (input)="setTxt({ subtitulo: $any($event.target).value })"></textarea></a-field>
         <a-field label="Introducción de “¿Cómo funcionan los niveles?”"><textarea [class]="input + ' h-20 py-2'" [value]="txt().intro" (input)="setTxt({ intro: $any($event.target).value })"></textarea></a-field>
         <a-field label="Reglas: “Cómo funcionan los niveles” (una por línea)"><textarea [class]="input + ' h-32 py-2'" [value]="txt().reglas.join('\n')" (input)="setTxt({ reglas: $any($event.target).value.split('\n') })"></textarea></a-field>
@@ -124,10 +52,6 @@ export class MovimientosPage {
           <div class="mb-4 flex items-center gap-3">
             <input type="color" aria-label="Color" [value]="n.color" (input)="patch(i, { color: $any($event.target).value })" class="h-11 w-11 cursor-pointer rounded-xl border border-border" />
             <input [class]="input + ' text-lg font-bold'" [value]="n.nombre" (input)="patch(i, { nombre: $any($event.target).value })" />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <a-field label="Desde (puntos)"><input [class]="input" type="number" [value]="n.desde" (input)="patch(i, { desde: +$any($event.target).value })" /></a-field>
-            <a-field label="Hasta (puntos)"><input [class]="input" type="number" [value]="n.hasta ?? ''" placeholder="Sin límite" (input)="patch(i, { hasta: $any($event.target).value ? +$any($event.target).value : null })" /></a-field>
           </div>
           <a-field label="Beneficios del nivel (uno por línea)" class="mt-3">
             <textarea [class]="input + ' h-32 py-2'" [value]="n.beneficios.join('\\n')" (input)="patch(i, { beneficios: $any($event.target).value.split('\\n') })"></textarea>
@@ -143,11 +67,11 @@ export class NivelesPage {
   private readonly catalog = inject(CatalogService);
   protected readonly input = INPUT_CLS;
   private readonly editados = signal<Nivel[] | null>(null);
-  private readonly textoEditado = signal<{ meses: number; subtitulo: string; intro: string; reglas: string[] } | null>(null);
+  private readonly textoEditado = signal<{ subtitulo: string; intro: string; reglas: string[] } | null>(null);
   protected readonly niv = computed(() => this.editados() ?? this.catalog.niveles().map((n) => ({ ...n, beneficios: n.beneficios })));
-  protected readonly txt = computed(() => this.textoEditado() ?? this.catalog.textosNiveles() ?? { meses: 12, subtitulo: "", intro: "", reglas: [] as string[] });
+  protected readonly txt = computed(() => this.textoEditado() ?? this.catalog.textosNiveles() ?? { subtitulo: "", intro: "", reglas: [] as string[] });
 
-  protected setTxt(p: Partial<{ meses: number; subtitulo: string; intro: string; reglas: string[] }>) {
+  protected setTxt(p: Partial<{ subtitulo: string; intro: string; reglas: string[] }>) {
     this.textoEditado.set({ ...this.txt(), ...p });
   }
 
@@ -161,84 +85,6 @@ export class NivelesPage {
       this.textoEditado.set(null);
       this.toast.show();
     });
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* Reglas de puntos                                                    */
-/* ------------------------------------------------------------------ */
-type Reglas = { porDolar: number; precio: number; min: number; max: number; mensual: number; paquetes: number[]; compraActiva: boolean; soloDinero: boolean; vigenciaMeses?: number; avisoVencimientoDias?: number; version?: number };
-
-@Component({
-  selector: "a-reglas-page",
-  imports: [ErrorCargaComponent, PageHeaderComponent, PanelComponent, FieldComponent, ToggleComponent, BtnDirective],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <a-header title="Reglas de puntos" desc="Aplica igual en web y app."><button aBtn (click)="guardar()">Guardar reglas</button></a-header>
-    @if (errorCarga()) { <a-error-carga (reintentar)="cargar()" /> }
-    @if (r(); as r) {
-      <div class="grid gap-6 lg:grid-cols-2">
-        <a-panel title="Equivalencia entre puntos y dólares">
-          <a-field label="Equivalencia: puntos por cada US$ 1 (pago mixto y solo dinero)"><input [class]="input" type="number" [value]="r.porDolar" (input)="set('porDolar', +$any($event.target).value)" /></a-field>
-          <p class="mt-3 text-sm text-muted-foreground">Un canje de US$ 100 equivale a <b class="text-foreground">{{ (r.porDolar * 100).toLocaleString("es-EC") }} puntos</b>.</p>
-        </a-panel>
-        <a-panel title="Formas de pago en checkout">
-          <div class="flex items-center justify-between py-2"><span>Solo puntos</span><a-toggle label="Solo puntos" [on]="true" /></div>
-          <div class="flex items-center justify-between py-2"><span>Solo dinero (tarjeta)</span><a-toggle label="Solo dinero" [on]="r.soloDinero" (onChange)="set('soloDinero', $event)" /></div>
-        </a-panel>
-        <a-panel title="Compra de puntos">
-          <a-toggle actions label="Compra de puntos activa" [on]="r.compraActiva" (onChange)="set('compraActiva', $event)" />
-          <div class="grid gap-4 sm:grid-cols-2">
-            <a-field label="Precio por punto (US$)"><input [class]="input" type="number" step="0.001" [value]="r.precio" (input)="set('precio', +$any($event.target).value)" /></a-field>
-            <a-field label="Mínimo por compra"><input [class]="input" type="number" [value]="r.min" (input)="set('min', +$any($event.target).value)" /></a-field>
-            <a-field label="Máximo por compra"><input [class]="input" type="number" [value]="r.max" (input)="set('max', +$any($event.target).value)" /></a-field>
-            <a-field label="Máximo mensual por participante"><input [class]="input" type="number" [value]="r.mensual" (input)="set('mensual', +$any($event.target).value)" /></a-field>
-            <a-field label="Vigencia de los puntos (meses)"><input [class]="input" type="number" min="1" max="120" [value]="r.vigenciaMeses ?? 24" (input)="set('vigenciaMeses', +$any($event.target).value)" /></a-field>
-            <a-field label="Avisar puntos por vencer (días antes)"><input [class]="input" type="number" min="1" max="365" [value]="r.avisoVencimientoDias ?? 30" (input)="set('avisoVencimientoDias', +$any($event.target).value)" /></a-field>
-            <a-field label="Opciones rápidas de compra (puntos, separados por coma)" class="sm:col-span-2"><input [class]="input" [value]="r.paquetes.join(', ')" (input)="setPaquetes($any($event.target).value)" /></a-field>
-          </div>
-          <p class="mt-3 text-sm text-muted-foreground">1 000 puntos cuestan <b class="text-foreground">{{ usd(r.precio * 1000) }}</b>.</p>
-        </a-panel>
-        <a-panel title="Consideraciones de la compra de puntos">
-          <textarea [class]="input + ' h-48 py-2'" [value]="cond()" (input)="cond.set($any($event.target).value)"></textarea>
-          <p class="mt-2 text-xs text-muted-foreground">Una condición por línea. Se muestran como “Consideraciones” en la página de compra de puntos.</p>
-        </a-panel>
-      </div>
-    }
-  `,
-})
-export class ReglasPage {
-  private readonly api = inject(ApiService);
-  private readonly toast = inject(ToastService);
-  protected readonly input = INPUT_CLS;
-  protected readonly usd = formatUSD;
-  protected readonly r = signal<Reglas | null>(null);
-  protected readonly cond = signal("");
-
-  protected readonly errorCarga = signal(false);
-  constructor() {
-    this.cargar();
-  }
-  protected cargar() {
-    this.errorCarga.set(false);
-    this.api.get<{ reglas: Reglas; condiciones: string[] }>("admin/reglas").subscribe({
-      next: (x) => {
-        this.r.set(x.reglas);
-        this.cond.set(x.condiciones.join("\n"));
-      },
-      error: () => this.errorCarga.set(true),
-    });
-  }
-  /** Opciones rápidas: números positivos, sin repetir y ordenados. */
-  protected setPaquetes(texto: string) {
-    const n = [...new Set(texto.split(/[,;\s]+/).map(Number).filter((x) => Number.isFinite(x) && x > 0))].sort((a, b) => a - b);
-    this.r.update((x) => (x ? { ...x, paquetes: n } : x));
-  }
-  protected set(k: keyof Reglas, v: number | boolean) {
-    this.r.update((x) => (x ? { ...x, [k]: v } : x));
-  }
-  protected guardar() {
-    this.api.put("admin/reglas", { reglas: this.r(), condiciones: this.cond().split("\n").filter(Boolean) }).subscribe(() => this.toast.show());
   }
 }
 
@@ -260,7 +106,7 @@ export class ReglasPage {
             <a-field label="Correo de soporte (se muestra en el pie)"><input [class]="input" type="email" [value]="s.correoSoporte" (input)="set('correoSoporte', $event)" /></a-field>
             <a-field label="Teléfono (se muestra en el pie)"><input [class]="input" [value]="s.telefonoPie" (input)="set('telefonoPie', $event)" /></a-field>
             <a-field label="WhatsApp de soporte (botón flotante)"><input [class]="input" [value]="s.whatsapp" (input)="set('whatsapp', $event)" /></a-field>
-            <a-field label="Ciudades con agencia (se muestran en el pie)"><input [class]="input" placeholder="Quito · Guayaquil · Cuenca" [value]="s.ciudadesPie ?? ''" (input)="set('ciudadesPie', $event)" /></a-field>
+            <a-field label="Ciudades con agencia (se muestran en el pie)"><input [class]="input" placeholder="Lima · Arequipa · Cusco" [value]="s.ciudadesPie ?? ''" (input)="set('ciudadesPie', $event)" /></a-field>
             <a-field label="Texto del enlace a las agencias"><input [class]="input" placeholder="Encuentra tu agencia" [value]="s.agenciasTexto ?? ''" (input)="set('agenciasTexto', $event)" /></a-field>
             <a-field label="Enlace “Encuentra tu agencia”"><input [class]="input" type="url" [value]="s.agenciasUrl" (input)="set('agenciasUrl', $event)" /></a-field>
           </div>
@@ -371,10 +217,8 @@ export class ConfiguracionPage {
   }
   protected readonly textosHomeBase = TEXTOS_HOME;
   protected readonly camposHome: { k: keyof TextosHome; l: string }[] = [
-    { k: "productosTitulo", l: "Productos: título" }, { k: "productosResalte", l: "Productos: palabra destacada" },
-    { k: "beneficiosTitulo", l: "Beneficios: título" }, { k: "beneficiosResalte", l: "Beneficios: palabra destacada" },
+        { k: "beneficiosTitulo", l: "Beneficios: título" }, { k: "beneficiosResalte", l: "Beneficios: palabra destacada" },
     { k: "categoriasTitulo", l: "Categorías: título" }, { k: "categoriasResalte", l: "Categorías: palabra destacada" },
-    { k: "destinosTitulo", l: "Destinos: título" }, { k: "destinosResalte", l: "Destinos: palabra destacada" },
     { k: "ctaCatalogoTitulo", l: "Tarjeta Catálogo: título" }, { k: "ctaCatalogoBoton", l: "Tarjeta Catálogo: botón" },
     { k: "ctaCatalogoTexto", l: "Tarjeta Catálogo: texto" }, { k: "ctaContactoTitulo", l: "Tarjeta Contacto: título" },
     { k: "ctaContactoBoton", l: "Tarjeta Contacto: botón" }, { k: "ctaContactoTexto", l: "Tarjeta Contacto: texto" },

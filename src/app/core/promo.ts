@@ -1,8 +1,6 @@
-import { PUNTOS_POR_DOLAR } from "./format";
-
-/** Campos de promoción que el panel guarda en cada producto o beneficio. */
+/** Campos de promoción que el panel guarda en cada beneficio. */
 export type PromoCampos = {
-  /** "porcentaje": baja puntos y precio ese %. "monto": baja ese monto en US$ (y su equivalente en puntos). */
+  /** "porcentaje": baja el precio ese %. "monto": baja ese monto. */
   promoTipo?: "" | "porcentaje" | "monto" | undefined;
   promoValor?: number | undefined;
   /** Vigencia opcional (ISO yyyy-mm-dd, ambas incluidas). */
@@ -10,9 +8,8 @@ export type PromoCampos = {
   promoHasta?: string | undefined;
 };
 
-/** Lo que el sitio recibe cuando hay promoción vigente: valores ya rebajados y los originales para tacharlos. */
+/** Lo que el sitio recibe cuando hay promoción vigente: precio ya rebajado y el original para tacharlo. */
 export type PromoAplicada = {
-  puntosOriginal?: number | undefined;
   precioOriginal?: number | undefined;
   /** Texto de la insignia: "-20%" o "-$10". */
   promoEtiqueta?: string | undefined;
@@ -24,32 +21,23 @@ const redondea = (n: number) => Math.round(n * 100) / 100;
 export const promoVigente = (p: PromoCampos, hoy = hoyISO()) =>
   !!p.promoTipo && (p.promoValor ?? 0) > 0 && (!p.promoDesde || p.promoDesde <= hoy) && (!p.promoHasta || p.promoHasta >= hoy);
 
-/** Devuelve el artículo con puntos y precio rebajados si su promoción está vigente; si no, tal cual. */
-export function aplicarPromo<T extends { puntos?: number | undefined; precio?: number | undefined } & PromoCampos>(
-  item: T,
-  porDolar = PUNTOS_POR_DOLAR,
-  hoy = hoyISO(),
-): T & PromoAplicada {
+/** Devuelve el artículo con el precio rebajado si su promoción está vigente; si no, tal cual. */
+export function aplicarPromo<T extends { precio?: number | undefined } & PromoCampos>(item: T, hoy = hoyISO()): T & PromoAplicada {
   if (!promoVigente(item, hoy)) return item;
   const v = item.promoValor!;
-  const puntos = item.puntos;
   const precio = item.precio;
   if (item.promoTipo === "porcentaje") {
     const pct = Math.min(100, v);
     return {
       ...item,
-      puntos: puntos == null ? puntos : Math.round(puntos * (1 - pct / 100)),
       precio: precio == null ? precio : redondea(precio * (1 - pct / 100)),
-      puntosOriginal: puntos,
       precioOriginal: precio,
       promoEtiqueta: `-${Number.isInteger(pct) ? pct : pct.toFixed(1)}%`,
     };
   }
   return {
     ...item,
-    puntos: puntos == null ? puntos : Math.max(0, puntos - Math.round(v * porDolar)),
     precio: precio == null ? precio : Math.max(0, redondea(precio - v)),
-    puntosOriginal: puntos,
     precioOriginal: precio,
     promoEtiqueta: `-$${Number.isInteger(v) ? v : v.toFixed(2)}`,
   };

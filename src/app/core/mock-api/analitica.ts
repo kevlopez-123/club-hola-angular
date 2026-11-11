@@ -33,7 +33,7 @@ export function pasosDe(desde: string, hasta: string) {
 }
 
 const nombreDe = (id: string, k: "p" | "b") => {
-  const lista = (k === "p" ? db.admin.productos : db.admin.beneficios) as any[];
+  const lista = (k === "p" ? [] : db.admin.beneficios) as any[];
   const x = lista.find((y) => y.id === id);
   return x ? `${x.nombre}${x.marca ? ` · ${x.marca}` : ""}` : id;
 };

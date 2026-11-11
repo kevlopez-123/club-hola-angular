@@ -9,13 +9,12 @@ import { LogoComponent } from "./ui";
 import { StoreService } from "../core/store.service";
 import { CatalogService, PIE_ATENCION, PIE_INFORMACION } from "../core/catalog.service";
 import { BrandService } from "../core/brand.service";
-import { formatPuntos } from "../core/format";
 import { ToasterComponent } from "./toast";
 import { CampanitaComponent } from "./notificaciones";
 import { SesionService } from "../core/sesion.service";
 import { ConsentimientoService } from "../core/consentimiento.service";
 
-type Resultado = { id: string; nombre: string; marca: string; imagen: string; tipo: "producto" | "beneficio" };
+type Resultado = { id: string; nombre: string; marca: string; imagen: string; tipo: "beneficio" };
 
 /* ------------------------------------------------------------------ */
 /* Buscador del header                                                 */
@@ -28,7 +27,7 @@ type Resultado = { id: string; nombre: string; marca: string; imagen: string; ti
     <div class="relative">
       <form role="search" (submit)="$event.preventDefault(); irABusqueda()">
         <input type="search" [value]="q()" (input)="onInput($event)" (focus)="abierto.set(true)"
-          placeholder="Buscar aquí" aria-label="Buscar productos o beneficios"
+          placeholder="Buscar aquí" aria-label="Buscar beneficios"
           class="h-12 w-full rounded-full bg-background pl-5 pr-12 text-base text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/60" />
         <button type="submit" aria-label="Buscar"
           class="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-ink">
@@ -42,12 +41,12 @@ type Resultado = { id: string; nombre: string; marca: string; imagen: string; ti
             <p class="px-3 py-4 text-base text-muted-foreground">Sin resultados para “{{ q() }}”.</p>
           }
           @for (r of resultados(); track r.tipo + r.id) {
-            <a [routerLink]="[r.tipo === 'producto' ? '/canjea' : '/beneficios', r.id]" (click)="cerrar()"
+            <a [routerLink]="['/beneficios', r.id]" (click)="cerrar()"
               class="flex min-h-14 items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted">
               <img [src]="r.imagen" alt="" class="h-10 w-10 shrink-0 rounded-lg object-cover" />
               <span class="min-w-0">
                 <span class="block truncate text-base font-semibold text-ink">{{ r.nombre }}</span>
-                <span class="block text-sm text-muted-foreground">{{ r.marca }} · {{ r.tipo === 'producto' ? 'Producto' : 'Beneficio' }}</span>
+                <span class="block text-sm text-muted-foreground">{{ r.marca }} · Beneficio</span>
               </span>
             </a>
           }
@@ -73,15 +72,11 @@ export class SearchBoxComponent {
   protected readonly resultados = computed<Resultado[]>(() => {
     const t = this.q().trim().toLowerCase();
     if (t.length < 2) return [];
-    const prods = this.catalog.productos()
-      .filter((p) => `${p.nombre} ${p.marca} ${p.categoriaLabel}`.toLowerCase().includes(t))
-      .slice(0, 5)
-      .map((p): Resultado => ({ id: p.id, nombre: p.nombre, marca: p.marca, imagen: p.imagen, tipo: "producto" }));
     const bens = this.catalog.beneficios()
       .filter((b) => `${b.nombre} ${b.marca} ${b.categoria}`.toLowerCase().includes(t))
       .slice(0, 5)
       .map((b): Resultado => ({ id: b.id, nombre: b.nombre, marca: b.marca, imagen: b.imagen, tipo: "beneficio" }));
-    return [...prods, ...bens];
+    return bens;
   });
 
   @HostListener("document:mousedown", ["$event"])
@@ -134,9 +129,6 @@ export class SearchBoxComponent {
 
           <div class="ml-auto hidden shrink-0 items-center gap-3 lg:flex xl:gap-4">
             @if (sesion.logged()) {
-            <span class="hdr-pildora whitespace-nowrap rounded-full bg-white/10 px-4 py-2 text-base text-white xl:px-5">
-              Tienes <strong class="font-extrabold text-white">{{ puntos(store.puntos()) }}</strong> puntos
-            </span>
             }
             @if (sesion.logged()) { <app-search-box class="w-[150px] xl:w-[300px]" /> }
             @if (sesion.logged()) {
@@ -213,9 +205,6 @@ export class SearchBoxComponent {
               <app-icon name="Gem" class="h-4 w-4 text-celeste" />
               Nivel {{ store.usuario().nivel }}
             </a>
-            <span class="rounded-full bg-white/10 px-5 py-2 text-base text-white">
-              Tienes <strong class="font-extrabold text-celeste">{{ puntos(store.puntos()) }}</strong> puntos
-            </span>
           </div>
           }
 
@@ -282,7 +271,6 @@ export class SiteHeaderComponent {
   /** Menú publicado desde Admin → Contenido → Menú (solo ítems activos). */
   /** Sin sesión no hay menú: el sitio solo se explora iniciando sesión. */
   protected readonly nav = computed(() => (this.sesion.logged() ? this.catalog.menu() : []));
-  protected readonly puntos = formatPuntos;
   protected readonly open = signal(false);
   protected readonly submenu = signal<string | null>(null);
 

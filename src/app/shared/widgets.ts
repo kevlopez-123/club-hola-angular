@@ -4,12 +4,14 @@ import {
 import { RouterLink } from "@angular/router";
 import { CatIconComponent, IconComponent } from "./icon.component";
 import { LimpiarFiltrosComponent } from "./limpiar-filtros";
-import { AddedToCartModalComponent, BenefitCardComponent, ModalComponent, ProductCardComponent, SectionTitleComponent, agregarProducto } from "./ui";
+import { BenefitCardComponent, ModalComponent, SectionTitleComponent } from "./ui";
 import { CatalogService } from "../core/catalog.service";
 import { BrandService } from "../core/brand.service";
 import { StoreService } from "../core/store.service";
-import { faltanParaSiguiente, formatPuntos, formatUSD, nivelPorPuntos, progresoNivel, siguienteNivel } from "../core/format";
-import type { Categoria, Ciudad, Orden_Producto, Producto } from "../core/models";
+import { formatUSD } from "../core/format";
+import type { Categoria } from "../core/models";
+
+export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
 
 /* ------------------------------------------------------------------ */
 /* Franja de categorías (+ subcategorías)                              */
@@ -79,10 +81,10 @@ export class CategoryStripComponent {
 /* ------------------------------------------------------------------ */
 /* Orden y barra de búsqueda/filtros                                   */
 /* ------------------------------------------------------------------ */
-export const ordenes: { value: Orden_Producto; label: string }[] = [
+export const ordenes: { value: OrdenCatalogo; label: string }[] = [
   { value: "recomendado", label: "Recomendado" },
-  { value: "puntos-asc", label: "Menor cantidad de puntos" },
-  { value: "puntos-desc", label: "Mayor cantidad de puntos" },
+  { value: "precio-asc", label: "Menor precio" },
+  { value: "precio-desc", label: "Mayor precio" },
   { value: "az", label: "Nombre (A - Z)" },
 ];
 
@@ -102,7 +104,7 @@ export const ordenes: { value: Orden_Producto; label: string }[] = [
   `,
 })
 export class OrdenSelectComponent {
-  readonly value = model<Orden_Producto>("recomendado");
+  readonly value = model<OrdenCatalogo>("recomendado");
   protected readonly ordenes = ordenes;
 }
 
@@ -161,129 +163,6 @@ export class SearchFilterBarComponent {
 }
 
 /* ------------------------------------------------------------------ */
-/* Selector de ciudad (combobox)                                       */
-/* ------------------------------------------------------------------ */
-let cityUid = 0;
-
-@Component({
-  selector: "app-city-combobox",
-  imports: [IconComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="relative">
-      <label [for]="id" class="block text-base font-semibold text-ink">{{ label() }}</label>
-      <div class="relative mt-2">
-        <app-icon name="MapPin" class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-        <input [id]="id" type="text" role="combobox" [attr.aria-expanded]="abierto()" [attr.aria-controls]="id + '-list'"
-          aria-autocomplete="list" autocomplete="off" [placeholder]="placeholder()"
-          [value]="abierto() ? query() : seleccion() ? texto(seleccion()!) : ''"
-          (focus)="abrir()" (input)="onInput($event)" (keydown)="onKey($event)"
-          class="h-14 w-full rounded-2xl border border-border bg-surface pl-12 pr-11 text-base text-ink outline-none focus:ring-2 focus:ring-primary/50" />
-        @if (seleccion() && !abierto()) {
-          <button type="button" [attr.aria-label]="'Limpiar ' + label()" (click)="limpiar()"
-            class="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-muted">
-            <app-icon name="X" class="h-4 w-4" />
-          </button>
-        }
-      </div>
-
-      @if (abierto()) {
-        <ul [id]="id + '-list'" role="listbox"
-          class="absolute z-30 mt-2 max-h-72 w-full overflow-auto rounded-2xl border border-border bg-card p-2 shadow-[var(--shadow-card)]">
-          @for (c of opciones(); track c.codigo; let i = $index) {
-            <li role="option" [attr.aria-selected]="c.codigo === value()">
-              <button type="button" (mouseenter)="activo.set(i)" (click)="elegir(c)"
-                [class]="'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left ' + (i === activo() ? 'bg-muted' : '')">
-                <app-icon name="Plane" class="h-4 w-4 shrink-0 text-primary" />
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-base font-semibold text-ink">{{ c.ciudad }}</span>
-                  <span class="block truncate text-sm text-muted-foreground">{{ c.pais }}</span>
-                </span>
-                <span class="rounded-lg bg-muted px-2 py-1 text-sm font-bold text-ink">{{ c.codigo }}</span>
-              </button>
-            </li>
-          }
-          @if (opciones().length === 0) {
-            <li class="px-3 py-4 text-base text-muted-foreground">No encontramos esa ciudad.</li>
-          }
-        </ul>
-      }
-    </div>
-  `,
-})
-export class CityComboboxComponent {
-  private readonly catalog = inject(CatalogService);
-  private readonly el = inject(ElementRef<HTMLElement>);
-  protected readonly id = `city-${++cityUid}`;
-
-  readonly label = input.required<string>();
-  readonly value = model("");
-  readonly excluir = input<string | undefined>(undefined);
-  readonly placeholder = input("Ciudad o código IATA");
-
-  protected readonly abierto = signal(false);
-  protected readonly query = signal("");
-  protected readonly activo = signal(0);
-
-  protected readonly seleccion = computed(() => this.catalog.ciudades().find((c) => c.codigo === this.value()) ?? null);
-  protected readonly opciones = computed(() => {
-    const q = this.query().trim().toLowerCase();
-    return this.catalog.ciudades()
-      .filter((c) => c.codigo !== this.excluir())
-      .filter((c) => !q || `${c.ciudad} ${c.codigo} ${c.pais}`.toLowerCase().includes(q))
-      .slice(0, 8);
-  });
-
-  protected texto(c: Ciudad) {
-    return `${c.ciudad} (${c.codigo}) · ${c.pais}`;
-  }
-  protected abrir() {
-    this.abierto.set(true);
-    this.query.set("");
-    this.activo.set(0);
-  }
-  protected cerrar() {
-    this.abierto.set(false);
-    this.query.set("");
-  }
-  protected limpiar() {
-    this.value.set("");
-    this.abierto.set(true);
-    this.query.set("");
-  }
-  protected elegir(c: Ciudad) {
-    this.value.set(c.codigo);
-    this.cerrar();
-  }
-  protected onInput(e: Event) {
-    this.query.set((e.target as HTMLInputElement).value);
-    this.abierto.set(true);
-    this.activo.set(0);
-  }
-  protected onKey(e: KeyboardEvent) {
-    const n = this.opciones().length;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      this.abierto.set(true);
-      this.activo.update((i) => Math.min(i + 1, n - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      this.activo.update((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && this.abierto() && this.opciones()[this.activo()]) {
-      e.preventDefault();
-      this.elegir(this.opciones()[this.activo()]!);
-    } else if (e.key === "Escape") {
-      this.cerrar();
-    }
-  }
-
-  @HostListener("document:mousedown", ["$event"])
-  protected onDoc(e: MouseEvent) {
-    if (this.abierto() && !this.el.nativeElement.contains(e.target as Node)) this.cerrar();
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /* Niveles                                                             */
 /* ------------------------------------------------------------------ */
 @Component({
@@ -297,17 +176,14 @@ export class CityComboboxComponent {
       <ul class="mt-5 space-y-3">
         @for (n of catalog.niveles(); track n.id) {
           <li class="flex flex-wrap items-center gap-3 rounded-2xl border border-border p-4"
-            [style.border-color]="n.id === actual().id ? n.color : null" [style.border-width.px]="n.id === actual().id ? 2 : null">
+            [style.border-color]="esActual(n) ? n.color : null" [style.border-width.px]="esActual(n) ? 2 : null">
             <span class="grid h-10 w-10 place-items-center rounded-full" [style.background]="n.color + '22'">
               <app-icon name="Gem" class="h-5 w-5" [style.color]="n.color" />
             </span>
             <div class="min-w-0 flex-1">
               <p class="text-base font-extrabold text-ink">
                 {{ n.nombre }}
-                @if (n.id === actual().id) { <span class="ml-2 text-sm font-bold text-primary">Tu nivel actual</span> }
-              </p>
-              <p class="text-sm text-muted-foreground">
-                {{ puntos(n.desde) }}{{ n.hasta ? ' – ' + puntos(n.hasta) : ' a más' }} puntos
+                @if (esActual(n)) { <span class="ml-2 text-sm font-bold text-primary">Tu nivel actual</span> }
               </p>
               <ul class="mt-2 space-y-1 text-sm text-muted-foreground">
                 @for (b of n.beneficios; track b) { <li class="flex gap-2"><span aria-hidden="true" class="text-primary">•</span>{{ b }}</li> }
@@ -333,10 +209,12 @@ export class CityComboboxComponent {
 export class NivelesModalComponent {
   protected readonly catalog = inject(CatalogService);
   readonly open = input(false);
-  readonly puntosActuales = input.required<number>();
+  /** Nivel que le asignó el banco al participante (nombre o id). */
+  readonly nivelActual = input.required<string>();
   readonly closed = output<void>();
-  protected readonly puntos = formatPuntos;
-  protected readonly actual = computed(() => nivelPorPuntos(this.catalog.niveles(), this.puntosActuales()) ?? { id: "", color: "" });
+  protected esActual(n: { id: string; nombre: string }) {
+    return n.id === this.nivelActual() || n.nombre === this.nivelActual();
+  }
 }
 
 @Component({
@@ -360,37 +238,20 @@ export class NivelesModalComponent {
           </button>
         </div>
 
-        <div class="mt-4">
-          <div class="h-3 w-full overflow-hidden rounded-full bg-surface">
-            <div class="h-full rounded-full transition-all" [style.width.%]="progreso()" [style.background]="a.color"></div>
-          </div>
-          <p class="mt-2 text-base text-muted-foreground">
-            @if (siguiente(); as s) {
-              Te faltan <strong class="text-ink">{{ puntos(faltan()) }}</strong> puntos para alcanzar el nivel {{ s.nombre }}.
-            } @else {
-              Estás en el nivel más alto del programa. ¡Felicitaciones!
-            }
-          </p>
-        </div>
+        <ul class="mt-4 space-y-1 text-base text-muted-foreground">
+          @for (b of a.beneficios; track b) { <li class="flex gap-2"><span aria-hidden="true" class="text-primary">•</span>{{ b }}</li> }
+        </ul>
 
-        <app-niveles-modal [open]="open()" [puntosActuales]="puntosActuales()" (closed)="open.set(false)" />
+        <app-niveles-modal [open]="open()" [nivelActual]="nivel()" (closed)="open.set(false)" />
       </div>
     }
   `,
 })
 export class NivelResumenCardComponent {
   private readonly catalog = inject(CatalogService);
-  readonly puntosActuales = input.required<number>({ alias: "puntos" });
+  readonly nivel = input.required<string>();
   protected readonly open = signal(false);
-  protected readonly puntos = formatPuntos;
-
-  protected readonly actual = computed(() => {
-    const n = this.catalog.niveles();
-    return n.length ? nivelPorPuntos(n, this.puntosActuales()) : null;
-  });
-  protected readonly siguiente = computed(() => siguienteNivel(this.catalog.niveles(), this.puntosActuales()));
-  protected readonly progreso = computed(() => progresoNivel(this.catalog.niveles(), this.puntosActuales()));
-  protected readonly faltan = computed(() => faltanParaSiguiente(this.catalog.niveles(), this.puntosActuales()));
+  protected readonly actual = computed(() => this.catalog.niveles().find((n) => n.id === this.nivel() || n.nombre === this.nivel()) ?? null);
 }
 
 /* ------------------------------------------------------------------ */
@@ -401,44 +262,32 @@ export class NivelResumenCardComponent {
   imports: [ModalComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-modal [open]="open()" title="Pasarela de pago Nuvei" (closed)="closed.emit()">
+    <app-modal [open]="open()" title="Paga con tu tarjeta del banco" (closed)="closed.emit()">
       <div class="rounded-2xl bg-header-gradient p-5 text-white">
         <p class="text-xs uppercase tracking-wide opacity-80">Total a pagar</p>
         <p class="text-3xl font-extrabold">{{ usd(monto()) }}</p>
       </div>
 
-      <div class="mt-5 grid gap-3">
-        <label class="text-sm font-medium text-ink">
-          Número de tarjeta
-          <input [value]="tarjeta()" (input)="tarjeta.set($any($event.target).value)" class="mt-1 w-full rounded-xl border border-border px-4 py-2.5 text-sm" />
-        </label>
-        <div class="grid grid-cols-2 gap-3">
-          <label class="text-sm font-medium text-ink">
-            Vencimiento
-            <input value="09/29" class="mt-1 w-full rounded-xl border border-border px-4 py-2.5 text-sm" />
-          </label>
-          <label class="text-sm font-medium text-ink">
-            CVV
-            <input value="•••" class="mt-1 w-full rounded-xl border border-border px-4 py-2.5 text-sm" />
-          </label>
+      <fieldset class="mt-5">
+        <legend class="text-sm font-medium text-ink">Elige tu tarjeta</legend>
+        <p class="mt-1 text-sm text-muted-foreground">Todo pago se valida con una tarjeta del banco.</p>
+        <div class="mt-3 grid gap-2">
+          @for (t of tarjetas(); track t.id) {
+            <label [class]="'flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors ' + (elegida() === t.id ? 'border-primary bg-secondary text-ink' : 'border-border text-ink hover:border-primary')">
+              <input type="radio" name="tarjeta-banco" [value]="t.id" [checked]="elegida() === t.id" (change)="elegida.set(t.id)" class="h-4 w-4 accent-[var(--primary)]" />
+              <app-icon name="CreditCard" class="h-4 w-4 text-primary" />
+              {{ t.label }}
+            </label>
+          }
         </div>
-      </div>
+      </fieldset>
 
       <p class="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
         <app-icon name="ShieldCheck" class="h-4 w-4 text-primary" /> Transacción protegida.
       </p>
-      <details class="mt-3 text-xs text-muted-foreground">
-        <summary class="cursor-pointer font-semibold">Tarjetas de prueba (entorno de demostración)</summary>
-        <ul class="mt-1 list-disc space-y-0.5 pl-5">
-          <li><code>4111 1111 1111 1111</code> · aprobada</li>
-          <li><code>4000 0000 0000 0002</code> · rechazada por el banco</li>
-          <li><code>4000 0000 0000 9995</code> · fondos insuficientes</li>
-          <li><code>4000 0000 0000 0127</code> · pendiente de confirmación</li>
-        </ul>
-      </details>
 
-      <button type="button" [disabled]="procesando()" (click)="pagar()"
-        class="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-base font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:scale-[1.02] disabled:opacity-60">
+      <button type="button" [disabled]="procesando() || !elegida()" (click)="pagar()"
+        class="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-base font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60">
         <app-icon [name]="procesando() ? 'Loader2' : 'CreditCard'" [class]="'h-4 w-4 ' + (procesando() ? 'animate-spin' : '')" />
         {{ procesando() ? "Procesando pago…" : "Pagar ahora" }}
       </button>
@@ -446,95 +295,30 @@ export class NivelResumenCardComponent {
   `,
 })
 export class PaymentGatewayModalComponent {
+  private readonly catalog = inject(CatalogService);
   readonly open = input(false);
   readonly monto = input.required<number>();
   readonly closed = output<void>();
-  /** Lo que respondió la pasarela (en producción llega del proveedor de pagos, no de la pantalla). */
-  readonly resultado = output<{ resultado: "aprobado" | "rechazado" | "pendiente"; motivo?: string; referencia: string }>();
+  /** Id de la tarjeta del banco con la que se paga. */
+  readonly pagado = output<string>();
   protected readonly usd = formatUSD;
   protected readonly procesando = signal(false);
-  protected readonly tarjeta = signal("4532 •••• •••• 8821");
+  protected readonly tarjetas = computed(() => this.catalog.config()?.tarjetas ?? []);
+  protected readonly elegida = signal("");
 
   protected pagar() {
+    if (!this.elegida()) return;
     this.procesando.set(true);
-    const digitos = this.tarjeta().replace(/\D/g, "");
-    const referencia = `NVI-${Date.now().toString(36).toUpperCase()}`;
     setTimeout(() => {
       this.procesando.set(false);
-      // Tarjetas de prueba del entorno de demostración; cualquier otra se aprueba.
-      if (digitos.endsWith("0002")) this.resultado.emit({ resultado: "rechazado", motivo: "El banco rechazó la tarjeta", referencia });
-      else if (digitos.endsWith("9995")) this.resultado.emit({ resultado: "rechazado", motivo: "Fondos insuficientes", referencia });
-      else if (digitos.endsWith("0127")) this.resultado.emit({ resultado: "pendiente", referencia });
-      else this.resultado.emit({ resultado: "aprobado", referencia });
-    }, 1600);
+      this.pagado.emit(this.elegida());
+    }, 1200);
   }
 }
 
 /* ------------------------------------------------------------------ */
 /* Secciones de la portada                                             */
 /* ------------------------------------------------------------------ */
-@Component({
-  selector: "app-product-section",
-  imports: [IconComponent, SectionTitleComponent, ProductCardComponent, AddedToCartModalComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <section class="bg-background py-14 sm:py-16">
-      <div class="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10">
-        <app-section-title [text]="catalog.textosHome().productosTitulo" [highlight]="catalog.textosHome().productosResalte" />
-
-        <div class="mt-7 flex justify-center">
-          <div class="flex gap-1 rounded-full bg-muted p-1">
-            @for (t of tabs(); track t) {
-              <button type="button" (click)="tab.set(t)"
-                [class]="'rounded-full px-5 py-2 text-sm font-medium transition-colors ' + (tabActiva() === t ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-ink')">
-                {{ t }}
-              </button>
-            }
-          </div>
-        </div>
-
-        <div #scroller class="no-scrollbar scroll-gutter mt-6 flex snap-x gap-5 overflow-x-auto">
-          @for (p of lista(); track tabActiva() + p.id) {
-            <app-product-card [producto]="p" (add)="onAdd($event)" class="w-[240px] shrink-0 snap-start sm:w-[260px]" />
-          }
-        </div>
-
-        <div class="mt-6 flex justify-center gap-3">
-          <button type="button" aria-label="Ver productos anteriores" (click)="scroll(-1)"
-            class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary transition-colors hover:bg-primary hover:text-primary-foreground">
-            <app-icon name="ChevronLeft" class="h-4 w-4" />
-          </button>
-          <button type="button" aria-label="Ver más productos" (click)="scroll(1)"
-            class="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105">
-            <app-icon name="ChevronRight" class="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      <app-added-to-cart-modal [producto]="agregado()" (closed)="agregado.set(null)" />
-    </section>
-  `,
-})
-export class ProductSectionComponent {
-  private readonly catalog = inject(CatalogService);
-  private readonly store = inject(StoreService);
-  private readonly scroller = viewChild.required<ElementRef<HTMLElement>>("scroller");
-
-  protected readonly tab = signal<string | null>(null);
-  protected readonly agregado = signal<Producto | null>(null);
-  protected readonly tabs = computed(() => Object.keys(this.catalog.productosPorTab()));
-  protected readonly tabActiva = computed(() => this.tab() ?? this.tabs()[0] ?? "");
-  protected readonly lista = computed(() => this.catalog.productosPorTab()[this.tabActiva()] ?? []);
-
-  protected onAdd(p: Producto) {
-    agregarProducto(this.store, p);
-    this.agregado.set(p);
-  }
-  protected scroll(dir: number) {
-    this.scroller().nativeElement.scrollBy({ left: dir * 300, behavior: "smooth" });
-  }
-}
-
 @Component({
   selector: "app-benefits-section",
   imports: [IconComponent, SectionTitleComponent, BenefitCardComponent],
@@ -609,7 +393,7 @@ export class CtaDuoComponent {
   protected readonly items = computed(() => {
     const t = this.catalog.textosHome();
     return [
-      { icon: "ShoppingBag", imagen: "cat", titulo: t.ctaCatalogoTitulo, texto: t.ctaCatalogoTexto, cta: t.ctaCatalogoBoton, to: "/canjea" },
+      { icon: "ShoppingBag", imagen: "cat", titulo: t.ctaCatalogoTitulo, texto: t.ctaCatalogoTexto, cta: t.ctaCatalogoBoton, to: "/beneficios" },
       { icon: "MessageCircleQuestion", imagen: "con", titulo: t.ctaContactoTitulo, texto: t.ctaContactoTexto, cta: t.ctaContactoBoton, to: "/contacto" },
     ];
   });
@@ -627,8 +411,8 @@ export class CtaDuoComponent {
       <div class="page-container">
         <app-section-title [text]="catalog.textosHome().categoriasTitulo" [highlight]="catalog.textosHome().categoriasResalte" />
         <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          @for (c of catalog.categoriasProducto(); track c.slug) {
-            <a [routerLink]="['/canjea']" [queryParams]="{ categoria: c.slug }"
+          @for (c of catalog.categoriasBeneficio(); track c.slug) {
+            <a [routerLink]="['/beneficios']" [queryParams]="{ categoria: c.slug }"
               class="card-elevate flex flex-col items-center gap-3 rounded-2xl bg-card px-3 py-5 text-center">
               <span class="grid h-14 w-14 place-items-center rounded-full bg-secondary text-primary"><app-cat-icon [icon]="c.icon" [imagen]="c.imagen" class="h-7 w-7" /></span>
               <span class="text-sm font-semibold text-ink">{{ c.label }}</span>
@@ -640,59 +424,5 @@ export class CtaDuoComponent {
   `,
 })
 export class HomeCategoriesComponent {
-  protected readonly catalog = inject(CatalogService);
-}
-
-@Component({
-  selector: "app-home-destinos",
-  imports: [RouterLink, SectionTitleComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <section class="bg-surface py-14 sm:py-16">
-      <div class="page-container">
-        <app-section-title [text]="catalog.textosHome().destinosTitulo" [highlight]="catalog.textosHome().destinosResalte" />
-        <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          @for (d of catalog.destinos(); track d.slug) {
-            <article class="card-elevate flex h-full flex-col overflow-hidden rounded-2xl bg-card">
-              <a [routerLink]="['/vuelos/destinos', d.slug]" class="block overflow-hidden">
-                <img [src]="d.imagen" [alt]="d.ciudad + ', ' + d.pais" width="1024" height="768" loading="lazy" class="h-44 w-full object-cover transition-transform duration-500 hover:scale-105" />
-              </a>
-              <div class="flex flex-1 flex-col p-4">
-                <p class="text-sm uppercase tracking-wide text-muted-foreground">{{ d.pais }}</p>
-                <h3 class="mt-1 text-base font-extrabold text-ink">{{ d.ciudad }}</h3>
-                <p class="mt-2 flex-1 text-sm text-muted-foreground">{{ d.resumen }}</p>
-                <p class="mt-3 text-base font-bold text-primary">Desde {{ '$' + d.desdeUSD }}</p>
-              </div>
-            </article>
-          }
-        </div>
-      </div>
-    </section>
-  `,
-})
-export class HomeDestinosComponent {
-  protected readonly catalog = inject(CatalogService);
-}
-
-@Component({
-  selector: "app-home-cta-puntos",
-  imports: [RouterLink, IconComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (catalog.reglas().compraActiva) {
-      <section class="bg-background py-14 sm:py-16">
-        <div class="page-container">
-          <div class="flex flex-col items-center gap-4 rounded-3xl bg-header-gradient p-8 text-center text-white sm:p-12">
-            <app-icon name="Sparkles" class="h-8 w-8" />
-            <h2 class="text-2xl font-extrabold sm:text-3xl">¿Te faltan puntos para tu próximo premio?</h2>
-            <p class="max-w-xl text-base text-white/90">Cómpralos en segundos con tu tarjeta y se acreditan al instante.</p>
-            <a routerLink="/mis-puntos/compra" class="mt-2 inline-flex min-h-12 items-center rounded-full bg-white px-8 text-sm font-bold uppercase tracking-wide text-primary transition-transform hover:scale-[1.03]">Comprar puntos</a>
-          </div>
-        </div>
-      </section>
-    }
-  `,
-})
-export class HomeCtaPuntosComponent {
   protected readonly catalog = inject(CatalogService);
 }

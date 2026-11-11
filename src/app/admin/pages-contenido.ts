@@ -76,7 +76,7 @@ type SeccionHome = { s: string; on: boolean };
 
     @switch (tab()) {
       @case ('banners') {
-        <p class="mb-4 text-sm text-muted-foreground">Banners del Home. Los de Productos, Beneficios y Vuelos están en su módulo, en la pestaña Banners.</p>
+        <p class="mb-4 text-sm text-muted-foreground">Banners del Home. Los de Productos y Beneficios están en su módulo, en la pestaña Banners.</p>
         <a-banners-editor [ubicaciones]="['Home']" />
       }
       @case ('onboarding') {

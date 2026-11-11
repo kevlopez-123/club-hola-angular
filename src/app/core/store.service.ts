@@ -9,11 +9,6 @@ import { Router } from "@angular/router";
 import { codigoAleatorio, fechaLarga } from "./format";
 import type { CartItem, Cupon, Direccion, Orden, Perfil, Usuario, Notificacion } from "./models";
 
-type UltimaCompraPuntos = { cantidad: number; monto: number; codigo: string };
-/** Lo que informa la pasarela de pago. */
-export type ResultadoPasarela = { resultado: "aprobado" | "rechazado" | "pendiente"; motivo?: string; referencia?: string };
-export type ResultadoCompraPuntos = { estado: "Aprobada" | "Pendiente" | "Fallida"; codigo: string; motivo?: string; puntos: number; monto?: number };
-
 const LS_CART = "bs_carrito";
 const LS_FAV = "bs_favoritos";
 
@@ -53,9 +48,8 @@ export class StoreService {
     return false;
   }
 
-  readonly usuario = signal<Usuario>({ nombre: "", nivel: "Oro", puntosNivel: 0, puntos: 0 });
+  readonly usuario = signal<Usuario>({ nombre: "", nivel: "Oro" });
   readonly perfil = signal<Perfil | null>(null);
-  readonly puntos = signal(0);
   readonly items = signal<CartItem[]>(leer<CartItem[]>(LS_CART, []));
   readonly favoritos = signal<string[]>(leer<string[]>(LS_FAV, []));
   readonly cupones = signal<Record<string, Cupon>>({});
@@ -65,18 +59,14 @@ export class StoreService {
   /** Avisos dentro del sitio (campanita), del más nuevo al más antiguo. */
   readonly notificaciones = signal<Notificacion[]>([]);
   readonly noLeidas = computed(() => this.notificaciones().filter((n) => !n.leida).length);
-  readonly ultimaCompraPuntos = signal<UltimaCompraPuntos | null>(null);
 
   readonly totalItems = computed(() => this.items().reduce((a, i) => a + i.cantidad, 0));
-  readonly totalPuntos = computed(() => this.items().reduce((a, i) => a + i.puntos * i.cantidad, 0));
+  readonly totalMonto = computed(() => this.items().reduce((a, i) => a + i.precio * i.cantidad, 0));
 
   /** Carga el estado inicial desde la API (se ejecuta al arrancar la app). */
   init() {
     if (!this.sesion.logged()) return; // visitante: solo catálogo y páginas públicas
-    this.api.get<Usuario>("me").subscribe((u) => {
-      this.usuario.set(u);
-      this.puntos.set(u.puntos);
-    });
+    this.api.get<Usuario>("me").subscribe((u) => this.usuario.set(u));
     this.api.get<Perfil>("me/perfil").subscribe({ next: (p) => this.perfil.set(p), error: this.falla });
     this.api.get<Direccion[]>("me/direcciones").subscribe({ next: (d) => this.direcciones.set(d), error: this.falla });
     this.api.get<string[]>("me/correos").subscribe({ next: (c) => this.correos.set(c), error: this.falla });
@@ -165,45 +155,20 @@ export class StoreService {
     this.api.post("me/correos", { correo }).subscribe();
   }
 
-  /* ---------------- Operaciones con puntos ---------------- */
+  /* ---------------- Compras ---------------- */
   /** Mensaje legible de un error HTTP de la API. */
   mensajeError(e: unknown, defecto = "No pudimos completar la operación. Inténtalo de nuevo.") {
     return (e as { error?: { message?: string } })?.error?.message ?? defecto;
   }
 
-  sumarPuntos(cantidad: number) {
-    this.api.post<{ puntos: number }>("me/puntos/sumar", { cantidad }).subscribe({
-      next: (r) => this.puntos.set(r.puntos),
-      error: (e) => this.toast.error(this.mensajeError(e)),
-    });
-  }
-
-  /** Confirma el canje en la API (valida saldo y cuenta) y solo entonces actualiza el estado local. */
-  finalizarCompra(o: Omit<Orden, "codigo" | "fecha" | "hora">): Observable<Orden> {
-    return this.api.post<{ codigo: string; fecha: string; hora: string; puntos: number }>("ordenes", o).pipe(
-      map((r): Orden => ({ ...o, codigo: r.codigo, fecha: r.fecha, hora: r.hora })),
+  /** Confirma la compra en la API (valida la cuenta y la tarjeta del banco) y solo entonces actualiza el estado local. */
+  finalizarCompra(o: Omit<Orden, "codigo" | "fecha" | "hora"> & { tarjeta: string }): Observable<Orden> {
+    return this.api.post<{ codigo: string; fecha: string; hora: string }>("ordenes", o).pipe(
+      map((r): Orden => ({ items: o.items, montoUSD: o.montoUSD, entrega: o.entrega, codigo: r.codigo, fecha: r.fecha, hora: r.hora })),
       tap((orden) => {
-        this.puntos.update((p) => Math.max(0, p - o.puntosUsados));
         for (const i of o.items) this.analitica.registrar({ tipo: "canje", itemId: i.id, itemTipo: i.tipo });
         this.setItems([]);
         this.ultimaOrden.set(orden);
-      }),
-    );
-  }
-
-  /** Paso 1: crea la compra (queda pendiente de pago, sin acreditar nada). */
-  iniciarCompraPuntos(cantidad: number): Observable<{ codigo: string; cantidad: number; monto: number }> {
-    return this.api.post<{ codigo: string; cantidad: number; monto: number }>("me/puntos/compra", { cantidad });
-  }
-  /** Paso 2: registra lo que respondió la pasarela. Si se aprobó, el saldo ya viene actualizado. Una compra fallida se puede reintentar. */
-  pagarCompraPuntos(compra: { codigo: string; cantidad: number; monto: number }, pago: ResultadoPasarela): Observable<ResultadoCompraPuntos> {
-    return this.api.post<ResultadoCompraPuntos>(`me/puntos/compra/${compra.codigo}/pago`, pago).pipe(
-      tap((r) => {
-        if (r.estado === "Aprobada") {
-          this.puntos.set(r.puntos);
-          this.ultimaCompraPuntos.set({ cantidad: compra.cantidad, monto: compra.monto, codigo: compra.codigo });
-        }
-        this.cargarNotificaciones();
       }),
     );
   }

@@ -41,6 +41,18 @@ export type TenantConfig = {
     superficie: string;
     /** Radio base de las esquinas, en rem. */
     radio: number;
+    /** Acento secundario (etiquetas, descuentos). Por defecto, el color principal. */
+    acento?: string;
+    /** Acento terciario (nivel Oro, detalles). Por defecto, el color principal. */
+    acento2?: string;
+    /** Fondo de la cabecera: color o gradiente CSS. Por defecto, el color principal. */
+    gradiente?: string;
+    /** Fondo de los chips y tarjetas suaves. Por defecto, una mezcla clara del principal. */
+    secundario?: string;
+    /** Texto sobre el fondo suave. Por defecto, el color del texto. */
+    secundarioTexto?: string;
+    /** Color de los fondos oscuros (pie de página, menú móvil). Por defecto, el color del texto. */
+    oscuro?: string;
     /** Familia tipográfica (Google Fonts u otra). */
     fuente: string;
     /** URL de la hoja de estilos de la fuente (opcional). */

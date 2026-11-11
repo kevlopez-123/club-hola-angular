@@ -5,12 +5,11 @@ import { ApiService } from "../core/api.service";
 import { CatalogService } from "../core/catalog.service";
 import { StoreService } from "../core/store.service";
 import { BrandService } from "../core/brand.service";
-import { estadoLabels, tipoLabels } from "../core/labels";
-import { formatPuntos, formatUSD, nivelPorPuntos } from "../core/format";
-import type { BeneficioUsuario, Compra, EstadoBeneficio, Movimiento, Notificacion, TipoMovimiento } from "../core/models";
+import { estadoLabels } from "../core/labels";
+import { formatUSD } from "../core/format";
+import type { BeneficioUsuario, Compra, EstadoBeneficio, Notificacion } from "../core/models";
 import { haceTiempo } from "../core/tiempo";
-import { descargarBlob } from "../core/pdf-cotizacion";
-import { pdfEstadoCuenta } from "../core/pdf-estado-cuenta";
+import { descargarBlob } from "../core/pdf-base";
 import { ToastService } from "../shared/toast";
 import { ICONO_NOTIFICACION } from "../shared/notificaciones";
 import { IconComponent } from "../shared/icon.component";
@@ -30,12 +29,11 @@ import { NivelResumenCardComponent } from "../shared/widgets";
         <h1 class="text-2xl font-extrabold text-ink lg:text-3xl">Mi nivel</h1>
         <p class="mt-2 max-w-2xl text-base text-muted-foreground">
           {{ catalog.subtituloNiveles() }}
-          Llevas <strong class="text-ink">{{ puntos(puntosNivel()) }}</strong> {{ brand.unidad() }} acumulados en el periodo.
         </p>
 
-        <div class="mt-7"><app-nivel-resumen-card [puntos]="puntosNivel()" /></div>
+        <div class="mt-7"><app-nivel-resumen-card [nivel]="store.usuario().nivel" /></div>
 
-        <h2 class="mt-10 text-xl font-extrabold text-ink lg:text-2xl">Rangos y beneficios por nivel</h2>
+        <h2 class="mt-10 text-xl font-extrabold text-ink lg:text-2xl">Beneficios por nivel</h2>
         <div class="mt-5 grid gap-5 lg:grid-cols-2 xl:grid-cols-4">
           @for (n of catalog.niveles(); track n.id; let i = $index) {
             <article class="flex flex-col rounded-2xl bg-card p-6 shadow-[var(--shadow-card)]"
@@ -44,7 +42,6 @@ import { NivelResumenCardComponent } from "../shared/widgets";
                 <app-icon name="Gem" class="h-6 w-6" [style.color]="n.color" />
               </span>
               <h3 class="mt-4 text-lg font-extrabold text-ink">{{ n.nombre }}</h3>
-              <p class="text-base text-muted-foreground">{{ puntos(n.desde) }}{{ n.hasta ? ' – ' + puntos(n.hasta) : ' a más' }} {{ brand.unidad() }}</p>
               <ul class="mt-4 space-y-2 text-base text-muted-foreground">
                 @for (b of n.beneficios; track b) {
                   <li class="flex gap-2">
@@ -70,12 +67,10 @@ import { NivelResumenCardComponent } from "../shared/widgets";
 export class MiNivelPage {
   protected readonly catalog = inject(CatalogService);
   protected readonly brand = inject(BrandService);
-  private readonly store = inject(StoreService);
-  protected readonly puntos = formatPuntos;
-  protected readonly puntosNivel = computed(() => this.store.usuario().puntosNivel);
+  protected readonly store = inject(StoreService);
   protected readonly actual = computed(() => {
-    const n = this.catalog.niveles();
-    return n.length ? nivelPorPuntos(n, this.puntosNivel()) : null;
+    const nivel = this.store.usuario().nivel;
+    return this.catalog.niveles().find((n) => n.id === nivel || n.nombre === nivel) ?? null;
   });
   protected readonly idxActual = computed(() => this.catalog.niveles().findIndex((n) => n.id === this.actual()?.id));
 }
@@ -189,12 +184,12 @@ export class MisBeneficiosPage {
   template: `
     <div class="bg-surface py-10 lg:py-14">
       <div class="page-container">
-        <h1 class="text-2xl font-extrabold text-ink lg:text-3xl">Historial de compras y canjes</h1>
-        <p class="mt-2 max-w-2xl text-base text-muted-foreground">Revisa el detalle de cada pedido, su estado y la forma de pago utilizada.</p>
+        <h1 class="text-2xl font-extrabold text-ink lg:text-3xl">Historial de compras</h1>
+        <p class="mt-2 max-w-2xl text-base text-muted-foreground">Revisa el detalle de cada compra y su estado.</p>
 
         <div class="relative mt-7 max-w-xl">
           <label for="buscar-compras" class="sr-only">Buscar compra</label>
-          <input id="buscar-compras" type="search" [value]="q()" (input)="q.set($any($event.target).value)" placeholder="Buscar por código o producto"
+          <input id="buscar-compras" type="search" [value]="q()" (input)="q.set($any($event.target).value)" placeholder="Buscar por código o beneficio"
             class="h-12 w-full rounded-full bg-card pl-5 pr-12 text-base text-ink shadow-[var(--shadow-card)] outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50" />
           <app-icon name="Search" class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink" />
         </div>
@@ -204,12 +199,12 @@ export class MisBeneficiosPage {
             <article class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
               <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div class="min-w-0">
-                  <p class="text-base text-muted-foreground">Pedido {{ c.codigo }} · {{ c.fecha }}@if (c.hora) { · {{ c.hora }} }</p>
+                  <p class="text-base text-muted-foreground">Compra {{ c.codigo }} · {{ c.fecha }}@if (c.hora) { · {{ c.hora }} }</p>
                   <h2 class="truncate text-base font-extrabold text-ink">{{ nombres(c) }}</h2>
-                  <p class="text-base text-muted-foreground">{{ puntos(c.puntosUsados) }} puntos{{ c.montoUSD > 0 ? ' + ' + usd(c.montoUSD) : '' }}</p>
+                  <p class="text-base text-muted-foreground">{{ usd(c.montoUSD) }}</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
-                  <span class="rounded-full bg-secondary px-4 py-1.5 text-sm font-bold text-secondary-foreground">{{ c.estado }}</span>
+                  <span [class]="'rounded-full px-4 py-1.5 text-sm font-bold ' + (c.estado === 'Anulado' ? 'bg-muted text-muted-foreground' : 'bg-secondary text-secondary-foreground')">{{ c.estado }}</span>
                   <a [routerLink]="['/mis-compras', c.codigo]"
                     class="inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-base font-bold text-primary-foreground lg:min-h-14">Ver detalles</a>
                 </div>
@@ -229,7 +224,6 @@ export class MisBeneficiosPage {
 })
 export class MisComprasPage {
   private readonly compras = leer(inject(ApiService).get<Compra[]>("me/compras"), [] as Compra[]);
-  protected readonly puntos = formatPuntos;
   protected readonly usd = formatUSD;
   protected readonly q = signal("");
 
@@ -258,7 +252,7 @@ export class MisComprasPage {
           <div class="mt-4 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] lg:p-8">
             <div class="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 class="text-2xl font-extrabold text-ink">Pedido {{ compra.codigo }}</h1>
+                <h1 class="text-2xl font-extrabold text-ink">Compra {{ compra.codigo }}</h1>
                 <p class="mt-1 text-base text-muted-foreground">Realizado el {{ compra.fecha }}@if (compra.hora) { a las {{ compra.hora }} }</p>
               </div>
               <span class="rounded-full bg-secondary px-5 py-2 text-base font-bold text-secondary-foreground">{{ compra.estado }}</span>
@@ -271,7 +265,7 @@ export class MisComprasPage {
                   <div class="min-w-0">
                     <p class="text-sm uppercase tracking-wide text-muted-foreground">{{ i.marca }}</p>
                     <p class="text-base font-extrabold text-ink">{{ i.nombre }}</p>
-                    <p class="text-base text-muted-foreground">Cantidad: {{ i.cantidad }} · {{ puntos(i.puntos * i.cantidad) }} puntos</p>
+                    <p class="text-base text-muted-foreground">Cantidad: {{ i.cantidad }} · {{ usd(i.precio * i.cantidad) }}</p>
                   </div>
                 </div>
               }
@@ -279,12 +273,11 @@ export class MisComprasPage {
 
             <dl class="mt-6 space-y-3 border-t border-border pt-6 text-base">
               <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Entrega</dt><dd class="text-right font-semibold text-ink">{{ compra.entrega }}</dd></div>
-              <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Puntos utilizados</dt><dd class="font-semibold text-ink">{{ puntos(compra.puntosUsados) }} puntos</dd></div>
               <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Pagado con tarjeta</dt><dd class="font-semibold text-ink">{{ usd(compra.montoUSD) }}</dd></div>
             </dl>
           </div>
         } @else if (compras()) {
-          <p class="mt-6 rounded-2xl bg-card p-8 text-center text-base text-muted-foreground shadow-[var(--shadow-card)]">No encontramos ese pedido.</p>
+          <p class="mt-6 rounded-2xl bg-card p-8 text-center text-base text-muted-foreground shadow-[var(--shadow-card)]">No encontramos esa compra.</p>
         }
       </div>
     </div>
@@ -294,180 +287,8 @@ export class DetalleCompraPage {
   readonly codigo = input.required<string>();
   protected readonly compras = leer(inject(ApiService).get<Compra[] | undefined>("me/compras"), undefined);
   protected readonly compra = computed(() => this.compras()?.find((c) => c.codigo === this.codigo()));
-  protected readonly puntos = formatPuntos;
   protected readonly usd = formatUSD;
 }
-
-/* ------------------------------------------------------------------ */
-/* Historial de puntos                                                 */
-/* ------------------------------------------------------------------ */
-@Component({
-  selector: "app-historial-puntos-page",
-  imports: [IconComponent, NivelResumenCardComponent, LimpiarFiltrosComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="bg-surface py-10 lg:py-14">
-      <div class="page-container">
-        <h1 class="text-2xl font-extrabold text-ink lg:text-3xl">Historial de puntos</h1>
-        <p class="mt-2 max-w-2xl text-base text-muted-foreground">Revisa el movimiento de tus puntos por periodo y descarga tu estado de cuenta.</p>
-
-        <div class="mt-7"><app-nivel-resumen-card [puntos]="store.usuario().puntosNivel" /></div>
-
-        <div class="mt-6 grid gap-4 sm:grid-cols-3">
-          <div class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-            <span class="flex items-center gap-2 text-base text-muted-foreground"><app-icon name="PiggyBank" class="h-5 w-5 text-primary" /> Saldo actual</span>
-            <p class="mt-2 text-2xl font-extrabold text-primary">{{ puntos(store.puntos()) }}</p>
-          </div>
-          <div class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-            <span class="text-base text-muted-foreground">Ganados en el periodo</span>
-            <p class="mt-2 text-2xl font-extrabold text-ink">+{{ puntos(ganados()) }}</p>
-          </div>
-          <div class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-            <span class="text-base text-muted-foreground">Usados en el periodo</span>
-            <p class="mt-2 text-2xl font-extrabold text-ink">{{ puntos(usados()) }}</p>
-          </div>
-        </div>
-
-        <div class="mt-6 grid gap-4 rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end">
-          <label class="text-base font-semibold text-ink">
-            Desde
-            <input type="date" [value]="desde()" (input)="desde.set($any($event.target).value)"
-              class="mt-1 h-12 w-full rounded-xl border border-border px-4 text-base text-ink focus:ring-2 focus:ring-primary/50" />
-          </label>
-          <label class="text-base font-semibold text-ink">
-            Hasta
-            <input type="date" [value]="hasta()" (input)="hasta.set($any($event.target).value)"
-              class="mt-1 h-12 w-full rounded-xl border border-border px-4 text-base text-ink focus:ring-2 focus:ring-primary/50" />
-          </label>
-          <label class="text-base font-semibold text-ink">
-            Tipo de movimiento
-            <select [value]="tipo()" (change)="tipo.set($any($event.target).value)"
-              class="select-field mt-1 h-12 w-full rounded-xl border border-border bg-card px-4 text-base text-ink focus:ring-2 focus:ring-primary/50">
-              @for (t of tipos; track t) {
-                <option [value]="t" [selected]="t === tipo()">{{ t === "todos" ? "Todos" : tipoLabels[t] }}</option>
-              }
-            </select>
-          </label>
-          <app-limpiar-filtros [activo]="filtrosActivos()" (limpiar)="restablecerFiltros()" />
-          <button type="button" (click)="descargar()" [disabled]="generando()" [attr.aria-busy]="generando()"
-            class="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-bold text-primary-foreground transition-all hover:scale-[1.03] hover:bg-primary/90 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 disabled:cursor-wait disabled:opacity-70 disabled:hover:scale-100 lg:min-h-14">
-            @if (generando()) {
-              <span class="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground" aria-hidden="true"></span> Generando PDF…
-            } @else {
-              <app-icon name="ArrowDownToLine" class="h-5 w-5" />
-              Estado de cuenta
-            }
-          </button>
-        </div>
-
-        <!-- Móvil: tarjetas -->
-        <ul class="mt-6 grid gap-3 lg:hidden">
-          @for (m of lista(); track m.id) {
-            <li class="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
-              <div class="flex items-start justify-between gap-3">
-                <p class="min-w-0 text-base font-semibold text-ink">{{ m.detalle }}</p>
-                <p [class]="'shrink-0 text-base font-extrabold ' + (m.puntos > 0 ? 'text-primary' : 'text-ink')">{{ m.puntos > 0 ? "+" : "" }}{{ puntos(m.puntos) }}</p>
-              </div>
-              <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <span class="rounded-full bg-surface px-3 py-1 font-semibold text-ink">{{ tipoLabels[m.tipo] }}</span>
-                <span>{{ m.fecha }}</span>
-              </div>
-            </li>
-          }
-          @if (lista().length === 0) {
-            <li class="rounded-2xl bg-card p-6 text-center text-base text-muted-foreground shadow-[var(--shadow-card)]">No hay movimientos en el rango seleccionado.</li>
-          }
-        </ul>
-
-        <!-- Desktop: tabla -->
-        <div class="mt-6 hidden overflow-x-auto rounded-2xl bg-card shadow-[var(--shadow-card)] lg:block">
-          <table class="w-full min-w-[640px] text-left text-base">
-            <caption class="sr-only">Movimientos de puntos del periodo seleccionado</caption>
-            <thead class="bg-surface text-sm uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th scope="col" class="px-5 py-4">Fecha</th>
-                <th scope="col" class="px-5 py-4">Detalle</th>
-                <th scope="col" class="px-5 py-4">Tipo</th>
-                <th scope="col" class="px-5 py-4 text-right">Puntos</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (m of lista(); track m.id) {
-                <tr class="border-t border-border">
-                  <td class="px-5 py-4 text-muted-foreground">{{ m.fecha }}</td>
-                  <td class="px-5 py-4 font-semibold text-ink">{{ m.detalle }}</td>
-                  <td class="px-5 py-4 text-muted-foreground">{{ tipoLabels[m.tipo] }}</td>
-                  <td [class]="'px-5 py-4 text-right font-extrabold ' + (m.puntos > 0 ? 'text-primary' : 'text-ink')">{{ m.puntos > 0 ? "+" : "" }}{{ puntos(m.puntos) }}</td>
-                </tr>
-              }
-              @if (lista().length === 0) {
-                <tr><td colspan="4" class="px-5 py-8 text-center text-muted-foreground">No hay movimientos en el rango seleccionado.</td></tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `,
-})
-export class HistorialPuntosPage {
-  protected readonly store = inject(StoreService);
-  private readonly movimientos = leer(inject(ApiService).get<Movimiento[]>("me/movimientos"), [] as Movimiento[]);
-  protected readonly puntos = formatPuntos;
-  protected readonly tipoLabels = tipoLabels;
-  protected readonly tipos: (TipoMovimiento | "todos")[] = ["todos", "acumulacion", "canje", "compra", "vencimiento", "ajuste"];
-
-  protected readonly tipo = signal<TipoMovimiento | "todos">("todos");
-  protected readonly desde = signal("2026-05-01");
-  protected readonly hasta = signal("2026-12-31");
-  /** El periodo por defecto no cuenta como filtro: solo lo que se cambió. */
-  protected readonly filtrosActivos = computed(() => this.tipo() !== "todos" || this.desde() !== "2026-05-01" || this.hasta() !== "2026-12-31");
-  protected restablecerFiltros() {
-    this.tipo.set("todos");
-    this.desde.set("2026-05-01");
-    this.hasta.set("2026-12-31");
-  }
-
-  protected readonly lista = computed(() =>
-    this.movimientos().filter((m) => (this.tipo() === "todos" || m.tipo === this.tipo()) && m.fechaISO >= this.desde() && m.fechaISO <= this.hasta()),
-  );
-  protected readonly ganados = computed(() => this.lista().filter((m) => m.puntos > 0).reduce((a, m) => a + m.puntos, 0));
-  protected readonly usados = computed(() => this.lista().filter((m) => m.puntos < 0).reduce((a, m) => a + m.puntos, 0));
-
-  private readonly toast = inject(ToastService);
-  private readonly brand = inject(BrandService);
-  protected readonly generando = signal(false);
-
-  /** Genera el estado de cuenta en PDF con el periodo y los filtros que se están viendo. */
-  protected descargar() {
-    if (this.generando()) return;
-    this.generando.set(true);
-    // Deja pintar el estado "Generando" antes de armar el archivo.
-    setTimeout(() => {
-      try {
-        const color = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim();
-        const f = (iso: string) => iso.split("-").reverse().join("/");
-        const blob = pdfEstadoCuenta({
-          programa: this.brand.programa(),
-          participante: this.store.usuario().nombre,
-          periodo: `${f(this.desde())} al ${f(this.hasta())}${this.tipo() !== "todos" ? ` - ${tipoLabels[this.tipo() as TipoMovimiento]}` : ""}`,
-          generado: new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "long", year: "numeric" }),
-          color: /^#[0-9a-f]{6}$/i.test(color) ? color : "#00bdd2",
-          saldo: formatPuntos(this.store.puntos()),
-          ganados: formatPuntos(this.ganados()),
-          usados: formatPuntos(this.usados()),
-          filas: this.lista().map((m) => ({ fecha: m.fecha, detalle: m.detalle, tipo: tipoLabels[m.tipo], puntos: m.puntos })),
-          formatoPuntos: formatPuntos,
-        });
-        descargarBlob(blob, `estado-de-cuenta-puntos-${this.desde()}-${this.hasta()}.pdf`);
-        this.toast.show("Estado de cuenta descargado");
-      } catch {
-        this.toast.error("No pudimos generar el estado de cuenta. Inténtalo de nuevo.");
-      } finally {
-        this.generando.set(false);
-      }
-    }, 120);
-  }}
 
 /* ------------------------------------------------------------------ */
 /* Notificaciones                                                      */
@@ -482,7 +303,7 @@ export class HistorialPuntosPage {
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 class="text-2xl font-extrabold text-ink lg:text-3xl">Notificaciones</h1>
-            <p class="mt-2 max-w-2xl text-base text-muted-foreground">Novedades de tus pedidos, puntos, beneficios y cotizaciones de vuelos.</p>
+            <p class="mt-2 max-w-2xl text-base text-muted-foreground">Novedades de tus pedidos, puntos y beneficios.</p>
           </div>
           @if (store.noLeidas()) {
             <button type="button" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground hover:bg-primary/90" (click)="store.marcarLeidas()">

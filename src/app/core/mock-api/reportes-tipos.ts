@@ -55,11 +55,7 @@ interface Def extends TipoReporte {
   extra?(c: Ctx): ReporteTipo["extra"];
 }
 
-const ETIQUETA_MOV = { acumulacion: "Acumulación", canje: "Canje", compra: "Compra", ajuste: "Ajuste" };
-const movs = (d: string, h: string) => A(db.admin.movimientos).filter((m) => enRango(m.fechaISO, d, h));
-const compras = (d: string, h: string) => A(db.admin.comprasPuntos).filter((m) => enRango(m.fechaISO, d, h));
 const pedidos = (d: string, h: string) => A(db.admin.pedidos).filter((m) => enRango(m.fechaISO, d, h));
-const cotizaciones = (d: string, h: string) => [...A(db.cotizaciones), ...A((db as any).cotizacionesExtra)].filter((m) => enRango(m.fecha, d, h));
 const correos = (d: string, h: string) => A(db.admin.correosEnviados).filter((m) => enRango(m.fechaISO, d, h));
 const unidadesDe = (p: any) => suma(A(p.items).map((i) => i.cantidad ?? 1));
 
@@ -73,114 +69,42 @@ export const altaISO = (alta: unknown): string => {
 
 const DEFS: Def[] = [
   {
-    id: "resumen", titulo: "Resumen", icono: "LayoutDashboard", descripcion: "Visión general del programa: puntos, ventas, pedidos y vuelos.",
+    id: "resumen", titulo: "Resumen", icono: "LayoutDashboard", descripcion: "Visión general del programa: compras de beneficios y su monto.",
     kpis: [
-      { id: "emitidos", etiqueta: "Puntos emitidos", icono: "Coins", formato: "n" },
-      { id: "canjeados", etiqueta: "Puntos canjeados", icono: "Gift", formato: "n" },
-      { id: "tasaCanje", etiqueta: "Tasa de canje", icono: "BarChart3", formato: "pct" },
-      { id: "comprasPuntosUSD", etiqueta: "Ventas de puntos", icono: "DollarSign", formato: "usd" },
-      { id: "pedidos", etiqueta: "Pedidos", icono: "ShoppingBag", formato: "n" },
-      { id: "cotizaciones", etiqueta: "Cotizaciones de vuelos", icono: "PlaneTakeoff", formato: "n" },
+      { id: "compras", etiqueta: "Compras pagadas", icono: "ShoppingBag", formato: "n" },
+      { id: "ventas", etiqueta: "Monto pagado", icono: "DollarSign", formato: "usd" },
+      { id: "ticket", etiqueta: "Ticket promedio", icono: "Receipt", formato: "usd" },
+      { id: "anuladas", etiqueta: "Compras anuladas", icono: "AlertCircle", formato: "n" },
     ],
     metricas: (d, h) => ({ ...metricasGenerales(d, h) }),
     graficos: (c) => {
       const r = reporteResumen(c.desde, c.hasta);
-      const mil = (x: number) => Math.round(x / 100) / 10;
       return [
-        { id: "serie", titulo: "Puntos emitidos y canjeados (miles)", tipo: "bar", etiquetas: r.serie.map((s) => s.x), series: [
-          { label: "Emitidos", data: r.serie.map((s) => mil(s.emitidos)), color: "--primary" },
-          { label: "Canjeados", data: r.serie.map((s) => mil(s.canjeados)), color: "--foreground" },
-          { label: "Emitidos (período anterior)", data: r.serie.map((s) => mil(s.emitidosPrevio)), color: "--muted-foreground" },
+        { id: "serie", titulo: "Monto pagado en el tiempo", tipo: "bar", etiquetas: r.serie.map((s) => s.x), series: [
+          { label: "Período actual", data: r.serie.map((s) => s.ventas), color: "--primary" },
+          { label: "Período anterior", data: r.serie.map((s) => s.ventasPrevio), color: "--muted-foreground" },
         ] },
         { id: "canal", titulo: "Participantes activos por canal", tipo: "doughnut", etiquetas: r.canales.map((x) => x.name), series: [{ label: "Participantes", data: r.canales.map((x) => x.value) }] },
-        { id: "top", titulo: "Más canjeados (unidades)", tipo: "bar", horizontal: true, etiquetas: r.topCanjes.map((x) => x.name), series: [{ label: "Unidades", data: r.topCanjes.map((x) => x.unidades), color: "--primary" }] },
+        { id: "top", titulo: "Más comprados (unidades)", tipo: "bar", horizontal: true, etiquetas: r.topCompras.map((x) => x.name), series: [{ label: "Unidades", data: r.topCompras.map((x) => x.unidades), color: "--primary" }] },
       ];
     },
   },
   {
-    id: "puntos", titulo: "Puntos", icono: "Coins", descripcion: "Movimientos de puntos: acumulaciones, canjes, compras y ajustes.",
+    id: "canjes", titulo: "Compras", icono: "ShoppingBag", descripcion: "Compras de beneficios con tarjeta: volumen, estado y lo más comprado.",
     kpis: [
-      { id: "emitidos", etiqueta: "Puntos emitidos", icono: "Coins", formato: "n" },
-      { id: "canjeados", etiqueta: "Puntos canjeados", icono: "Gift", formato: "n" },
-      { id: "neto", etiqueta: "Saldo neto (emitidos − canjeados)", icono: "Scale", formato: "n" },
-      { id: "movimientos", etiqueta: "Movimientos", icono: "ArrowLeftRight", formato: "n" },
-      { id: "ajustes", etiqueta: "Ajustes manuales", icono: "Pencil", formato: "n" },
-    ],
-    metricas: (d, h) => {
-      const m = movs(d, h);
-      const emitidos = suma(m.filter((x) => x.puntos > 0).map((x) => x.puntos));
-      const canjeados = suma(m.filter((x) => x.puntos < 0).map((x) => -x.puntos));
-      return { emitidos, canjeados, neto: emitidos - canjeados, movimientos: m.length, ajustes: m.filter((x) => x.tipo === "ajuste").length };
-    },
-    graficos: (c) => {
-      const m = movs(c.desde, c.hasta);
-      const por = contar(m, (x) => ETIQUETA_MOV[x.tipo as keyof typeof ETIQUETA_MOV] ?? x.tipo, (x) => Math.abs(x.puntos));
-      return [
-        { id: "serie", titulo: "Emitidos y canjeados en el tiempo", tipo: "line", etiquetas: tramos(c).map((t) => t.x), series: [
-          { label: "Emitidos", data: serie(c, m, (f) => f.fechaISO, (fs) => suma(fs.filter((x) => x.puntos > 0).map((x) => x.puntos))), color: "--primary", fill: true },
-          { label: "Canjeados", data: serie(c, m, (f) => f.fechaISO, (fs) => suma(fs.filter((x) => x.puntos < 0).map((x) => -x.puntos))), color: "--foreground", fill: true },
-        ] },
-        { id: "tipo", titulo: "Puntos por tipo de movimiento", tipo: "doughnut", etiquetas: por.map(([k]) => k), series: [{ label: "Puntos", data: por.map(([, v]) => v) }] },
-      ];
-    },
-    coleccion: "movimientos", tablaTitulo: "Movimientos de puntos", tablaPorRango: true, orden: { k: "fechaISO", dir: "desc" },
-    columnas: [
-      { k: "fecha", l: "Fecha", ordenPor: "fechaISO" }, { k: "cliente", l: "Participante" }, { k: "detalle", l: "Detalle" },
-      { k: "tipo", l: "Tipo", tipo: "estado", etiquetas: ETIQUETA_MOV }, { k: "puntos", l: "Puntos", tipo: "n" },
-    ],
-    filtros: () => [{ k: "tipo", l: "Tipo", opciones: Object.entries(ETIQUETA_MOV).map(([v, l]) => ({ v, l })) }],
-    gestion: { ruta: "/admin/movimientos", etiqueta: "Ver en Movimientos de puntos" },
-  },
-  {
-    id: "ventas", titulo: "Ventas de puntos", icono: "DollarSign", descripcion: "Compras de puntos con tarjeta: aprobadas, pendientes y fallidas.",
-    kpis: [
-      { id: "aprobadas", etiqueta: "Compras aprobadas", icono: "CheckCircle2", formato: "n" },
-      { id: "ventasUSD", etiqueta: "Ventas aprobadas", icono: "DollarSign", formato: "usd" },
-      { id: "puntosVendidos", etiqueta: "Puntos vendidos", icono: "Coins", formato: "n" },
+      { id: "pedidos", etiqueta: "Compras", icono: "ShoppingBag", formato: "n" },
+      { id: "unidades", etiqueta: "Unidades compradas", icono: "Package", formato: "n" },
+      { id: "usd", etiqueta: "Monto pagado", icono: "DollarSign", formato: "usd" },
       { id: "ticket", etiqueta: "Ticket promedio", icono: "Receipt", formato: "usd" },
-      { id: "tasaAprobacion", etiqueta: "Tasa de aprobación", icono: "Percent", formato: "pct" },
-      { id: "sinCompletar", etiqueta: "Sin completar (pendientes o fallidas)", icono: "AlertCircle", formato: "n" },
-    ],
-    metricas: (d, h) => {
-      const c = compras(d, h);
-      const ok = c.filter((x) => x.estado === "Aprobada");
-      const usd = redondear(suma(ok.map((x) => x.monto ?? 0)));
-      return { aprobadas: ok.length, ventasUSD: usd, puntosVendidos: suma(ok.map((x) => x.cantidad ?? 0)), ticket: ok.length ? redondear(usd / ok.length) : 0, tasaAprobacion: pct(ok.length, c.length), sinCompletar: c.length - ok.length };
-    },
-    graficos: (c) => {
-      const cs = compras(c.desde, c.hasta);
-      const estados = contar(cs, (x) => x.estado);
-      return [
-        { id: "serie", titulo: "Ventas aprobadas (US$)", tipo: "bar", etiquetas: tramos(c).map((t) => t.x), series: [{ label: "US$", color: "--primary", data: serie(c, cs.filter((x) => x.estado === "Aprobada"), (f) => f.fechaISO, (fs) => redondear(suma(fs.map((x) => x.monto ?? 0)))) }] },
-        { id: "estado", titulo: "Compras por estado", tipo: "doughnut", etiquetas: estados.map(([k]) => k), series: [{ label: "Compras", data: estados.map(([, v]) => v) }] },
-      ];
-    },
-    coleccion: "comprasPuntos", tablaTitulo: "Compras de puntos", tablaPorRango: true, orden: { k: "fechaISO", dir: "desc" },
-    // Tarjeta: código y estado arriba, luego fecha con hora y participante, y al final puntos y monto.
-    columnas: [
-      { k: "codigo", l: "Código" }, { k: "estado", l: "Estado", tipo: "estado", ancho: "completo", sinEtiqueta: true },
-      { k: "fecha", l: "Fecha", ancho: "mitad", ordenPor: "fechaISO" }, { k: "cliente", l: "Participante", ancho: "mitad" },
-      { k: "cantidad", l: "Puntos", tipo: "n" }, { k: "monto", l: "Monto", tipo: "usd" },
-    ],
-    filtros: () => [{ k: "estado", l: "Estado", opciones: opciones(A(db.admin.comprasPuntos).map((x) => x.estado)) }],
-    gestion: { ruta: "/admin/compras-puntos", etiqueta: "Gestionar en Compras de puntos" },
-  },
-  {
-    id: "canjes", titulo: "Pedidos y canjes", icono: "ShoppingBag", descripcion: "Pedidos de productos y beneficios: volumen, estado de entrega y lo más canjeado.",
-    kpis: [
-      { id: "pedidos", etiqueta: "Pedidos", icono: "ShoppingBag", formato: "n" },
-      { id: "unidades", etiqueta: "Unidades canjeadas", icono: "Package", formato: "n" },
-      { id: "puntos", etiqueta: "Puntos usados", icono: "Coins", formato: "n" },
-      { id: "usd", etiqueta: "Pagado en dinero", icono: "DollarSign", formato: "usd" },
-      { id: "puntosPorPedido", etiqueta: "Puntos por pedido", icono: "Scale", formato: "n" },
-      { id: "entregados", etiqueta: "Entregados o enviados (digital)", icono: "CheckCircle2", formato: "pct" },
+      { id: "pagadas", etiqueta: "Compras pagadas", icono: "CheckCircle2", formato: "pct" },
     ],
     metricas: (d, h) => {
       const p = pedidos(d, h);
-      const pts = suma(p.map((x) => x.puntosUsados ?? 0));
+      const pagadas = p.filter((x) => x.estadoAdmin !== "Anulado");
+      const usd = redondear(suma(pagadas.map((x) => x.montoUSD ?? 0)));
       return {
-        pedidos: p.length, unidades: suma(p.map(unidadesDe)), puntos: pts, usd: redondear(suma(p.map((x) => x.montoUSD ?? 0))),
-        puntosPorPedido: p.length ? Math.round(pts / p.length) : 0, entregados: pct(p.filter((x) => x.estadoAdmin === "Entregado" || x.estadoAdmin === "Digital enviado").length, p.length),
+        pedidos: p.length, unidades: suma(pagadas.map(unidadesDe)), usd,
+        ticket: pagadas.length ? redondear(usd / pagadas.length) : 0, pagadas: pct(pagadas.length, p.length),
       };
     },
     graficos: (c) => {
@@ -188,23 +112,19 @@ const DEFS: Def[] = [
       const estados = contar(p, (x) => x.estadoAdmin);
       const top = contar(p.flatMap((x) => A(x.items)), (i) => i.nombre, (i) => i.cantidad ?? 1).slice(0, 8);
       return [
-        { id: "serie", titulo: "Pedidos en el tiempo", tipo: "bar", etiquetas: tramos(c).map((t) => t.x), series: [{ label: "Pedidos", color: "--primary", data: serie(c, p, (f) => f.fechaISO, (fs) => fs.length) }] },
-        { id: "estado", titulo: "Pedidos por estado", tipo: "doughnut", etiquetas: estados.map(([k]) => k), series: [{ label: "Pedidos", data: estados.map(([, v]) => v) }] },
-        { id: "top", titulo: "Más canjeados (unidades)", tipo: "bar", horizontal: true, etiquetas: top.map(([k]) => k), series: [{ label: "Unidades", color: "--primary", data: top.map(([, v]) => v) }] },
+        { id: "serie", titulo: "Compras en el tiempo", tipo: "bar", etiquetas: tramos(c).map((t) => t.x), series: [{ label: "Compras", color: "--primary", data: serie(c, p, (f) => f.fechaISO, (fs) => fs.length) }] },
+        { id: "estado", titulo: "Compras por estado", tipo: "doughnut", etiquetas: estados.map(([k]) => k), series: [{ label: "Compras", data: estados.map(([, v]) => v) }] },
+        { id: "top", titulo: "Más comprados (unidades)", tipo: "bar", horizontal: true, etiquetas: top.map(([k]) => k), series: [{ label: "Unidades", color: "--primary", data: top.map(([, v]) => v) }] },
       ];
     },
-    coleccion: "pedidos", tablaTitulo: "Pedidos", tablaPorRango: true, orden: { k: "fechaISO", dir: "desc" },
-    // Tarjeta: código y estado arriba; fecha con hora junto al participante; ítems junto a puntos; y el dinero.
+    coleccion: "pedidos", tablaTitulo: "Compras", tablaPorRango: true, orden: { k: "fechaISO", dir: "desc" },
     columnas: [
       { k: "codigo", l: "Código" }, { k: "estadoAdmin", l: "Estado", tipo: "estado", ancho: "completo", sinEtiqueta: true },
       { k: "fecha", l: "Fecha", ancho: "mitad", ordenPor: "fechaISO" }, { k: "cliente", l: "Participante", ancho: "mitad" },
-      { k: "items", l: "Ítems", tipo: "cant", ancho: "mitad" }, { k: "puntosUsados", l: "Puntos", tipo: "n" }, { k: "montoUSD", l: "Dinero", tipo: "usd" },
+      { k: "items", l: "Ítems", tipo: "cant", ancho: "mitad" }, { k: "montoUSD", l: "Monto", tipo: "usd" },
     ],
-    filtros: () => [
-      { k: "estadoAdmin", l: "Estado", opciones: opciones(A(db.admin.estadosPedido)) },
-      { k: "digital", l: "Entrega", opciones: [{ v: "true", l: "Digital" }, { v: "false", l: "Física" }] },
-    ],
-    gestion: { ruta: "/admin/pedidos", etiqueta: "Gestionar en Pedidos" },
+    filtros: () => [{ k: "estadoAdmin", l: "Estado", opciones: opciones(A(db.admin.estadosPedido)) }],
+    gestion: { ruta: "/admin/pedidos", etiqueta: "Gestionar en Compras" },
   },
   {
     id: "participantes", titulo: "Participantes", icono: "Users", instantanea: true, descripcion: "Base de participantes: altas, canal, estado y consentimiento de comunicaciones.",
@@ -214,7 +134,6 @@ const DEFS: Def[] = [
       { id: "bloqueados", etiqueta: "Bloqueados", icono: "AlertCircle", formato: "n" },
       { id: "altas", etiqueta: "Altas en el período", icono: "UserPlus", formato: "n", comparable: true },
       { id: "novedades", etiqueta: "Aceptan novedades", icono: "Mail", formato: "pct" },
-      { id: "puntos", etiqueta: "Puntos en circulación", icono: "Coins", formato: "n" },
       { id: "legales", etiqueta: "Pendientes de aceptar textos", icono: "FileText", formato: "n" },
     ],
     metricas: (d, h) => {
@@ -222,7 +141,7 @@ const DEFS: Def[] = [
       return {
         legales: p.filter((x) => x.estado === "Activo" && estadoLegales(x.id).pendientes.length > 0).length,
         total: p.length, activos: p.filter((x) => x.estado === "Activo").length, bloqueados: p.filter((x) => x.estado !== "Activo").length,
-        altas: p.filter((x) => enRango(altaISO(x.alta), d, h)).length, novedades: pct(p.filter((x) => x.recibeNovedades !== false).length, p.length), puntos: suma(p.map((x) => x.puntos ?? 0)),
+        altas: p.filter((x) => enRango(altaISO(x.alta), d, h)).length, novedades: pct(p.filter((x) => x.recibeNovedades !== false).length, p.length),
       };
     },
     graficos: (c) => {
@@ -242,7 +161,7 @@ const DEFS: Def[] = [
     columnas: [
       { k: "nombre", l: "Participante" }, { k: "estado", l: "Estado", tipo: "estado", ancho: "completo", sinEtiqueta: true },
       { k: "alta", l: "Alta", ancho: "mitad", ordenPor: "altaISO" }, { k: "canal", l: "Canal", ancho: "mitad" },
-      { k: "cedula", l: "Documento", ancho: "mitad" }, { k: "puntos", l: "Puntos", tipo: "n" }, { k: "email", l: "Correo" },
+      { k: "cedula", l: "Documento", ancho: "mitad" }, { k: "email", l: "Correo" },
     ],
     filtros: () => [
       { k: "estado", l: "Estado", opciones: [{ v: "Activo", l: "Activo" }, { v: "Bloqueado", l: "Bloqueado" }] },
@@ -252,78 +171,39 @@ const DEFS: Def[] = [
     gestion: { ruta: "/admin/participantes", etiqueta: "Abrir la ficha", directo: true },
   },
   {
-    id: "catalogo", titulo: "Catálogo", icono: "Package", instantanea: true, descripcion: "Productos activos, los más vistos y cómo se reparten por marca.",
+    id: "catalogo", titulo: "Catálogo", icono: "Package", instantanea: true, descripcion: "Beneficios activos, por tipo y cómo se reparten por marca.",
     kpis: [
-      { id: "activos", etiqueta: "Productos activos", icono: "Package", formato: "n" },
-      { id: "inactivos", etiqueta: "Productos ocultos", icono: "EyeOff", formato: "n" },
-      { id: "destacados", etiqueta: "Destacados", icono: "Award", formato: "n" },
-      { id: "marcas", etiqueta: "Marcas con productos", icono: "Tag", formato: "n" },
-      { id: "vistas", etiqueta: "Vistas acumuladas", icono: "Eye", formato: "n" },
+      { id: "activos", etiqueta: "Beneficios activos", icono: "Package", formato: "n" },
+      { id: "inactivos", etiqueta: "Beneficios ocultos", icono: "EyeOff", formato: "n" },
+      { id: "exclusivos", etiqueta: "De pago (exclusivos)", icono: "Award", formato: "n" },
+      { id: "marcas", etiqueta: "Marcas con beneficios", icono: "Tag", formato: "n" },
     ],
     metricas: () => {
-      const todos = A(db.admin.productos);
+      const todos = A(db.admin.beneficios);
       const p = todos.filter((x) => x.activo);
-      return { activos: p.length, inactivos: todos.length - p.length, destacados: p.filter((x) => x.destacado).length, marcas: new Set(p.map((x) => x.marca)).size, vistas: suma(p.map((x) => x.vistas ?? 0)) };
+      return { activos: p.length, inactivos: todos.length - p.length, exclusivos: p.filter((x) => x.tipo === "compra").length, marcas: new Set(p.map((x) => x.marca)).size };
     },
     graficos: () => {
-      const p = A(db.admin.productos).filter((x) => x.activo);
-      const vistas = [...p].sort((a, b) => (b.vistas ?? 0) - (a.vistas ?? 0)).slice(0, 8);
-      const tipo = contar(p, (x) => (x.digital ? "Digital" : "Físico"));
+      const p = A(db.admin.beneficios).filter((x) => x.activo);
+      const tipo = contar(p, (x) => (x.tipo === "compra" ? "Con pago" : "Cupón gratuito"));
       const marca = contar(p, (x) => x.marca).slice(0, 8);
+      const cat = contar(p, (x) => x.categoria).slice(0, 8);
       return [
-        { id: "vistas", titulo: "Productos más vistos", tipo: "bar", horizontal: true, etiquetas: vistas.map((x) => x.nombre), series: [{ label: "Vistas", color: "--primary", data: vistas.map((x) => x.vistas ?? 0) }] },
-        { id: "tipo", titulo: "Digitales y físicos", tipo: "doughnut", etiquetas: tipo.map(([k]) => k), series: [{ label: "Productos", data: tipo.map(([, v]) => v) }] },
-        { id: "marca", titulo: "Productos por marca", tipo: "bar", etiquetas: marca.map(([k]) => k), series: [{ label: "Productos", color: "--primary", data: marca.map(([, v]) => v) }] },
+        { id: "tipo", titulo: "Cupones y compras", tipo: "doughnut", etiquetas: tipo.map(([k]) => k), series: [{ label: "Beneficios", data: tipo.map(([, v]) => v) }] },
+        { id: "marca", titulo: "Beneficios por marca", tipo: "bar", etiquetas: marca.map(([k]) => k), series: [{ label: "Beneficios", color: "--primary", data: marca.map(([, v]) => v) }] },
+        { id: "categoria", titulo: "Beneficios por categoría", tipo: "bar", horizontal: true, etiquetas: cat.map(([k]) => k), series: [{ label: "Beneficios", color: "--primary", data: cat.map(([, v]) => v) }] },
       ];
     },
-    coleccion: "productos", tablaTitulo: "Productos", tablaPorRango: false, orden: { k: "vistas", dir: "desc" },
+    coleccion: "beneficios", tablaTitulo: "Beneficios", tablaPorRango: false, orden: { k: "nombre", dir: "asc" },
     columnas: [
-      { k: "nombre", l: "Producto" }, { k: "activo", l: "Estado", tipo: "estado", ancho: "completo", sinEtiqueta: true, etiquetas: { true: "Activo", false: "Oculto" } },
-      { k: "marca", l: "Marca", ancho: "mitad" }, { k: "vistas", l: "Vistas", tipo: "n" },
+      { k: "nombre", l: "Beneficio" }, { k: "activo", l: "Estado", tipo: "estado", ancho: "completo", sinEtiqueta: true, etiquetas: { true: "Activo", false: "Oculto" } },
+      { k: "marca", l: "Marca", ancho: "mitad" }, { k: "categoria", l: "Categoría", ancho: "mitad" },
     ],
     filtros: () => [
-      { k: "marca", l: "Marca", opciones: opciones(A(db.admin.productos).map((x) => x.marca)) },
+      { k: "marca", l: "Marca", opciones: opciones(A(db.admin.beneficios).map((x) => x.marca)) },
       { k: "activo", l: "Estado", opciones: [{ v: "true", l: "Activo" }, { v: "false", l: "Oculto" }] },
     ],
-    gestion: { ruta: "/admin/productos", etiqueta: "Editar en Productos" },  },
-  {
-    id: "vuelos", titulo: "Vuelos", icono: "PlaneTakeoff", descripcion: "Cotizaciones de vuelos: respuesta del equipo, destinos y montos.",
-    kpis: [
-      { id: "cotizaciones", etiqueta: "Cotizaciones", icono: "PlaneTakeoff", formato: "n" },
-      { id: "cotizadas", etiqueta: "Ya cotizadas", icono: "CheckCircle2", formato: "n" },
-      { id: "respuesta", etiqueta: "Tasa de respuesta", icono: "Percent", formato: "pct" },
-      { id: "pasajeros", etiqueta: "Pasajeros", icono: "Users", formato: "n" },
-      { id: "monto", etiqueta: "Monto cotizado", icono: "DollarSign", formato: "usd" },
-    ],
-    metricas: (d, h) => {
-      const c = cotizaciones(d, h);
-      const ok = c.filter((x) => x.estado === "Cotizada");
-      return { cotizaciones: c.length, cotizadas: ok.length, respuesta: pct(ok.length, c.length), pasajeros: suma(c.map((x) => x.pasajeros ?? 0)), monto: redondear(suma(c.map((x) => x.monto ?? 0))) };
-    },
-    graficos: (c) => {
-      const cs = cotizaciones(c.desde, c.hasta);
-      const estado = contar(cs, (x) => x.estado);
-      const destino = contar(cs, (x) => x.destino).slice(0, 8);
-      return [
-        { id: "serie", titulo: "Cotizaciones en el tiempo", tipo: "bar", etiquetas: tramos(c).map((t) => t.x), series: [{ label: "Cotizaciones", color: "--primary", data: serie(c, cs, (f) => f.fecha, (fs) => fs.length) }] },
-        { id: "estado", titulo: "Por estado", tipo: "doughnut", etiquetas: estado.map(([k]) => k), series: [{ label: "Cotizaciones", data: estado.map(([, v]) => v) }] },
-        { id: "destino", titulo: "Destinos más cotizados", tipo: "bar", horizontal: true, etiquetas: destino.map(([k]) => k), series: [{ label: "Cotizaciones", color: "--primary", data: destino.map(([, v]) => v) }] },
-      ];
-    },
-    coleccion: "cotizaciones", tablaTitulo: "Cotizaciones", tablaPorRango: true, orden: { k: "fecha", dir: "desc" },
-    columnas: [
-      { k: "codigo", l: "Código" }, { k: "fecha", l: "Fecha" }, { k: "cliente", l: "Participante" }, { k: "origen", l: "Origen" }, { k: "destino", l: "Destino" },
-      { k: "clase", l: "Clase" }, { k: "pasajeros", l: "Pasajeros", tipo: "n" }, { k: "estado", l: "Estado", tipo: "estado" }, { k: "ejecutiva", l: "Ejecutiva" }, { k: "monto", l: "Monto", tipo: "usd" },
-    ],
-    filtros: () => {
-      const todas = [...A(db.cotizaciones), ...A((db as any).cotizacionesExtra)];
-      return [
-        { k: "estado", l: "Estado", opciones: opciones(todas.map((x) => x.estado)) },
-        { k: "clase", l: "Clase", opciones: opciones(todas.map((x) => x.clase)) },
-        { k: "ejecutiva", l: "Ejecutiva", opciones: opciones(todas.map((x) => x.ejecutiva)) },
-      ];
-    },
-    gestion: { ruta: "/admin/cotizaciones", etiqueta: "Gestionar en Cotizaciones" },
+    gestion: { ruta: "/admin/beneficios", etiqueta: "Editar en Beneficios" },
   },
   {
     id: "correos", titulo: "Correos", icono: "Mail", descripcion: "Entregabilidad: enviados, rebotados y fallidos, por plantilla.",

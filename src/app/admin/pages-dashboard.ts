@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../core/api.service";
-import { formatPuntos, formatUSD } from "../core/format";
+import { formatUSD } from "../core/format";
 import { formatear, variacion, type Dashboard, type KpiReporte } from "../core/reportes-tipos";
 import { IconComponent } from "../shared/icon.component";
 import { AdminModalComponent, BtnDirective, ChartComponent, DonaComponent, PageHeaderComponent, PanelComponent, PeriodFilterComponent, PillComponent, StatComponent, type Periodo } from "./kit";
@@ -15,13 +15,12 @@ type Mensaje = Dashboard["mensajes"][number];
  */
 const WIDGETS = [
   { id: "alertas", titulo: "Requiere atención", ancho: 3 },
-  { id: "serie", titulo: "Puntos emitidos y canjeados", ancho: 2 },
-  { id: "embudo", titulo: "Embudo de canje", ancho: 1 },
-  { id: "pedidos", titulo: "Últimos pedidos", ancho: 2 },
+  { id: "serie", titulo: "Monto pagado en el tiempo", ancho: 2 },
+  { id: "embudo", titulo: "Embudo de compra", ancho: 1 },
+  { id: "pedidos", titulo: "Últimas compras", ancho: 2 },
   { id: "mensajes", titulo: "Mensajes sin atender", ancho: 1 },
-  { id: "top", titulo: "Más canjeados", ancho: 1 },
+  { id: "top", titulo: "Más comprados", ancho: 1 },
   { id: "canales", titulo: "Participantes activos por canal", ancho: 1 },
-  { id: "vistos", titulo: "Más vistos", ancho: 1 },
 ] as const;
 type WidgetId = (typeof WIDGETS)[number]["id"];
 const CLAVE_OCULTOS = "bs-dash-ocultos";
@@ -82,8 +81,8 @@ const col = (ancho: number) => (ancho === 3 ? "md:col-span-2 xl:col-span-3" : an
               }
               @case ("serie") {
                 <a-panel [title]="w.titulo">
-                  <a actions routerLink="/admin/reportes" [queryParams]="{ tipo: 'puntos' }" class="text-sm font-semibold text-primary">Ver reporte</a>
-                  <a-chart type="line" [labels]="d.serie.map(s => s.x)" [series]="seriePuntos()" />
+                  <a actions routerLink="/admin/reportes" [queryParams]="{ tipo: 'resumen' }" class="text-sm font-semibold text-primary">Ver reporte</a>
+                  <a-chart type="bar" [labels]="d.serie.map(s => s.x)" [series]="serieVentas()" />
                 </a-panel>
               }
               @case ("embudo") {
@@ -98,17 +97,17 @@ const col = (ancho: number) => (ancho === 3 ? "md:col-span-2 xl:col-span-3" : an
                 <a-panel [title]="w.titulo">
                   <a actions routerLink="/admin/pedidos" class="text-sm font-semibold text-primary">Ver todos</a>
                   <div class="adm-wrap">
-                    <table class="adm-table" aria-label="Últimos pedidos">
-                      <thead><tr><th>Código</th><th>Estado</th><th>Fecha</th><th>Participante</th><th>Puntos</th><th aria-label="Detalle"></th></tr></thead>
+                    <table class="adm-table" aria-label="Últimas compras">
+                      <thead><tr><th>Código</th><th>Estado</th><th>Fecha</th><th>Participante</th><th>Monto</th><th aria-label="Detalle"></th></tr></thead>
                       <tbody>
                         @for (p of d.pedidos; track p.codigo) {
                           <tr>
                             <td><button type="button" class="font-bold hover:underline" (click)="pedido.set(p)">{{ p.codigo }}</button></td>
-                            <td class="det-completo det-chip"><a-pill [tone]="p.estadoAdmin === 'Entregado' || p.estadoAdmin === 'Digital enviado' ? 'ok' : 'warn'">{{ p.estadoAdmin }}</a-pill></td>
-                            <td>{{ p.fecha }}</td><td>{{ p.cliente }}</td><td>{{ puntos(p.puntosUsados) }}</td>
+                            <td class="det-completo det-chip"><a-pill [tone]="p.estadoAdmin === 'Anulado' ? 'bad' : 'ok'">{{ p.estadoAdmin }}</a-pill></td>
+                            <td>{{ p.fecha }}</td><td>{{ p.cliente }}</td><td>{{ usd(p.montoUSD) }}</td>
                             <td class="det-ojo"><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" [attr.aria-label]="'Ver detalle del pedido ' + p.codigo" title="Ver detalle" (click)="pedido.set(p)"><app-icon name="Eye" class="h-4 w-4" /></button></td>
                           </tr>
-                        } @empty { <tr><td colspan="6" class="adm-empty">Todavía no hay pedidos.</td></tr> }
+                        } @empty { <tr><td colspan="6" class="adm-empty">Todavía no hay compras.</td></tr> }
                       </tbody>
                     </table>
                   </div>
@@ -128,8 +127,8 @@ const col = (ancho: number) => (ancho === 3 ? "md:col-span-2 xl:col-span-3" : an
               @case ("top") {
                 <a-panel [title]="w.titulo">
                   <a actions routerLink="/admin/reportes" [queryParams]="{ tipo: 'canjes' }" class="text-sm font-semibold text-primary">Ver reporte</a>
-                  @if (d.topCanjes.length) { <a-chart type="bar" [horizontal]="true" [labels]="d.topCanjes.map(t => t.name)" [series]="[{ label: 'Unidades', data: d.topCanjes.map(t => t.unidades), color: '--primary' }]" /> }
-                  @else { <p class="adm-empty">Sin canjes en este rango.</p> }
+                  @if (d.topCompras.length) { <a-chart type="bar" [horizontal]="true" [labels]="d.topCompras.map(t => t.name)" [series]="[{ label: 'Unidades', data: d.topCompras.map(t => t.unidades), color: '--primary' }]" /> }
+                  @else { <p class="adm-empty">Sin compras en este rango.</p> }
                 </a-panel>
               }
               @case ("canales") {
@@ -139,40 +138,26 @@ const col = (ancho: number) => (ancho === 3 ? "md:col-span-2 xl:col-span-3" : an
                   @else { <p class="adm-empty">Sin actividad en este rango.</p> }
                 </a-panel>
               }
-              @case ("vistos") {
-                <a-panel [title]="w.titulo">
-                  <a actions routerLink="/admin/productos" class="text-sm font-semibold text-primary">Ver productos</a>
-                  <ul class="space-y-3">
-                    @for (p of d.vistos; track p.id) {
-                      <li class="flex items-center gap-3">
-                        <img [src]="p.imagen" alt="" class="h-11 w-11 rounded-lg object-cover" />
-                        <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold">{{ p.nombre }}</p><p class="text-xs text-muted-foreground">{{ p.marca }}</p></div>
-                        <a-pill tone="muted">{{ p.vistas }} vistas</a-pill>
-                      </li>
-                    }
-                  </ul>
-                </a-panel>
-              }
             }
           </div>
         }
       </div>
     }
 
-    <a-modal [open]="!!pedido()" [wide]="true" [title]="'Pedido ' + (pedido()?.codigo ?? '')" (closed)="pedido.set(null)">
+    <a-modal [open]="!!pedido()" [wide]="true" [title]="'Compra ' + (pedido()?.codigo ?? '')" (closed)="pedido.set(null)">
       @if (pedido(); as p) {
         <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
           <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Participante</dt><dd class="text-sm font-semibold">{{ p.cliente }}</dd></div>
           <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Fecha</dt><dd class="text-sm font-semibold">{{ p.fecha }}</dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Estado</dt><dd><a-pill [tone]="p.estadoAdmin === 'Entregado' || p.estadoAdmin === 'Digital enviado' ? 'ok' : 'warn'">{{ p.estadoAdmin }}</a-pill></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Pago</dt><dd class="text-sm font-semibold">{{ pago(p) }}</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Estado</dt><dd><a-pill [tone]="p.estadoAdmin === 'Anulado' ? 'bad' : 'ok'">{{ p.estadoAdmin }}</a-pill></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-muted-foreground">Pagado con tarjeta</dt><dd class="text-sm font-semibold">{{ usd(p.montoUSD) }}</dd></div>
           @if (p.entrega) { <div class="sm:col-span-2"><dt class="text-xs font-semibold uppercase text-muted-foreground">Entrega</dt><dd class="text-sm font-semibold">{{ p.entrega }}</dd></div> }
         </dl>
-        <h3 class="mb-2 mt-5 text-sm font-bold">Productos y beneficios</h3>
+        <h3 class="mb-2 mt-5 text-sm font-bold">Beneficios</h3>
         <ul class="divide-y divide-border rounded-xl border border-border text-sm">
           @for (i of p.items; track $index) { <li class="flex justify-between gap-3 px-3 py-2"><span>{{ i.cantidad }} × {{ i.nombre }}</span><span class="text-muted-foreground">{{ i.marca }}</span></li> }
         </ul>
-        <div class="det-pie"><a routerLink="/admin/pedidos" class="inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground">Gestionar en Pedidos</a></div>
+        <div class="det-pie"><a routerLink="/admin/pedidos" class="inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground">Gestionar en Compras</a></div>
       }
     </a-modal>
 
@@ -206,7 +191,7 @@ export class DashboardPage {
   private readonly hoy = signal<string | null>(null);
   protected readonly widgets = WIDGETS;
   protected readonly col = col;
-  protected readonly puntos = formatPuntos;
+  protected readonly usd = formatUSD;
   protected readonly per = signal<Periodo>("6m");
   protected readonly desde = signal("2026-10-01");
   protected readonly hasta = signal("2026-10-28");
@@ -268,18 +253,13 @@ export class DashboardPage {
   protected hint(k: KpiReporte) {
     return k.previo === null ? "" : `${variacion(k.valor, k.previo)} vs. anterior (${formatear(k.formato, k.previo)})`;
   }
-  protected readonly seriePuntos = computed(() => {
+  protected readonly serieVentas = computed(() => {
     const s = this.d()?.serie ?? [];
-    const mil = (x: number) => Math.round(x / 100) / 10;
     return [
-      { label: "Emitidos (miles)", data: s.map((x) => mil(x.emitidos)), color: "--primary", fill: true },
-      { label: "Canjeados (miles)", data: s.map((x) => mil(x.canjeados)), color: "--foreground", fill: true },
-      { label: "Emitidos del período anterior", data: s.map((x) => mil(x.emitidosPrevio)), color: "--muted-foreground" },
+      { label: "Período actual", data: s.map((x) => x.ventas), color: "--primary", fill: true },
+      { label: "Período anterior", data: s.map((x) => x.ventasPrevio), color: "--muted-foreground" },
     ];
   });
-  protected pago(p: Pedido) {
-    return [p.puntosUsados ? `${formatPuntos(p.puntosUsados)} pts` : "", p.montoUSD ? formatUSD(p.montoUSD) : ""].filter(Boolean).join(" + ") || "—";
-  }
 
   protected alternar(id: WidgetId) {
     this.ocultos.update((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]));

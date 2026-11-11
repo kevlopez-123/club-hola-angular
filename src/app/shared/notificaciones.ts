@@ -8,7 +8,7 @@ import type { Notificacion } from "../core/models";
 import { IconComponent } from "./icon.component";
 
 export const ICONO_NOTIFICACION: Record<Notificacion["tipo"], string> = {
-  pedido: "ShoppingBag", puntos: "Coins", beneficio: "Ticket", vuelo: "PlaneTakeoff", cuenta: "ShieldCheck", info: "Info",
+  pedido: "ShoppingBag", beneficio: "Ticket", cuenta: "ShieldCheck", info: "Info",
 };
 
 /** Campanita del encabezado: contador de avisos sin leer y lista desplegable. */

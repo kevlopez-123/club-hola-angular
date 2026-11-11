@@ -1,6 +1,8 @@
+import { ocupaCupo } from "../eventos";
+import { ajustarCupos } from "./eventos-api";
 import { db } from "./db";
 import { ApiError, type Route } from "./types";
-import { avisarAlta, avisarNivel, avisarPuntosPorVencer, enviarCorreo, enviarCorreoLibre, procesarCola, reintentarCorreo } from "./correos";
+import { avisarAlta, avisarNivel, enviarCorreo, enviarCorreoLibre, procesarCola, reintentarCorreo } from "./correos";
 import { AJUSTES_BASE, correoValido, DISENO_BASE, EJEMPLO_VARS, MAX_CCO, PLANTILLAS_BASE } from "../correos";
 import { describir, registrarCuenta } from "./auditoria";
 import { reporteResumen } from "./reportes";
@@ -20,9 +22,9 @@ import { audienciaDe, enviarCampana } from "./campanas";
 import { conservarVersiones } from "./versiones";
 
 const LISTAS = [
-  "participantes", "pedidos", "mensajes", "usuarios", "auditoria", "productos", "beneficios", "destinos", "ciudades",
-  "categoriasProducto", "categoriasBeneficio", "banners", "bannersVuelos", "onboarding", "campos", "lotes", "seccionesHome", "marcas", "comprasPuntos",
-  "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias",
+  "participantes", "pedidos", "mensajes", "usuarios", "auditoria", "beneficios",
+  "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas",
+  "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias", "premios", "codigosPromo", "giros", "eventos", "preinscripciones",
 ] as const;
 type Lista = (typeof LISTAS)[number];
 
@@ -33,17 +35,6 @@ const vigente = (b: any) => b.activo && b.inicio <= hoy() && b.fin >= hoy();
 
 /** Al guardar una colección del admin se refleja lo publicado en el sitio del participante. */
 const sincronizar: Partial<Record<Lista, (anterior: any[]) => void>> = {
-  productos: () => {
-    const cats = db.admin.categoriasProducto;
-    db.catalogo.productos = db.admin.productos
-      .filter((p) => p.activo)
-      .map((p) => {
-        const cat = cats.find((c) => c.slug === p.categoria);
-        // La subcategoría debe seguir existiendo en la categoría (si se quitó o se cambió de categoría, se limpia).
-        const sub = cat?.subcategorias?.find((s: any) => s.slug === p.subcategoria);
-        return { ...p, categoriaLabel: cat?.label ?? p.categoriaLabel, subcategoria: sub ? p.subcategoria : "", subcategoriaLabel: sub?.label ?? "", galeria: p.imagenes?.length ? p.imagenes : p.galeria };
-      });
-  },
   pedidos: (anterior) => {
     // Un pedido que cambia de estado avisa al participante.
     for (const a of anterior) {
@@ -62,38 +53,26 @@ const sincronizar: Partial<Record<Lista, (anterior: any[]) => void>> = {
         enviarCorreo(ahora.estado === "Bloqueado" ? "cuenta-bloqueada" : "cuenta-activada", ahora.email, {}, { destinatario: ahora.nombre, participanteId: ahora.id });
       }
     }
-    // Los ajustes manuales a la participante demo (p1) cambian su saldo real y quedan en su historial.
     const antes = anterior.find((p) => p.id === "p1");
     const ahora = db.admin.participantes.find((p) => p.id === "p1");
-    if (!antes || !ahora) return;
-    const nuevos = ahora.ajustes.slice(0, Math.max(0, ahora.ajustes.length - antes.ajustes.length));
-    const saldoAntes = db.usuario.puntos;
-    for (const a of nuevos) {
-      db.usuario.puntos = Math.max(0, db.usuario.puntos + a.puntos);
-      const d = new Date();
-      db.movimientos.unshift({
-        id: `m${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
-        fechaISO: d.toISOString().slice(0, 10),
-        fecha: d.toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric" }),
-        detalle: `Ajuste manual: ${a.motivo}`,
-        tipo: "ajuste",
-        puntos: a.puntos,
-      });
+    // El nivel de la participante demo es el que asigna el panel en su ficha.
+    if (antes && ahora && ahora.nivel && ahora.nivel !== antes.nivel) {
+      db.usuario.nivel = ahora.nivel;
+      avisarNivel(antes.nivel, ahora.nivel);
     }
-    ahora.puntos = db.usuario.puntos;
-    avisarNivel(saldoAntes, db.usuario.puntos);
+  },
+  preinscripciones: (anterior) => {
+    // Cambiar el estado de una pre-inscripción (o su número de acompañantes) mueve los cupos del evento.
+    const antes = new Map(anterior.map((p: any) => [p.id, p]));
+    for (const p of db.admin.preinscripciones as any[]) {
+      const a: any = antes.get(p.id);
+      if (!a) continue;
+      const delta = (ocupaCupo(p.estado) ? 1 + p.acompanantes : 0) - (ocupaCupo(a.estado) ? 1 + a.acompanantes : 0);
+      if (delta) ajustarCupos(p.eventoId, -delta);
+    }
   },
   beneficios: () => {
     db.catalogo.beneficios = db.admin.beneficios.filter((b) => b.activo).map((b) => ({ ...b, galeria: b.imagenes?.length ? b.imagenes : b.galeria }));
-  },
-  categoriasProducto: () => {
-    db.catalogo.categoriasProducto = db.admin.categoriasProducto.filter((c) => c.activo).map((c) => ({
-      icon: c.icon ?? (db.catalogo.categoriasProducto.find((x) => x.slug === c.slug) as any)?.icon ?? "Tag",
-      imagen: c.imagen,
-      slug: c.slug,
-      label: c.label,
-      subcategorias: c.subcategorias,
-    })) as any;
   },
   categoriasBeneficio: () => {
     db.catalogo.categoriasBeneficio = db.admin.categoriasBeneficio.filter((c) => c.activo).map((c) => ({
@@ -103,21 +82,11 @@ const sincronizar: Partial<Record<Lista, (anterior: any[]) => void>> = {
       label: c.label,
     })) as any;
   },
-  destinos: () => {
-    db.vuelos.destinos = db.admin.destinos.filter((d) => d.activo).map((d) => ({ ...d, imagen: d.galeria?.[0] ?? d.imagen }));
-  },
-  ciudades: () => {
-    db.vuelos.ciudades = db.admin.ciudades.filter((c) => c.activo).map(({ codigo, ciudad, pais }) => ({ codigo, ciudad, pais }));
-  },
   banners: () => {
     const web = db.admin.banners.filter((b) => b.canal === "Web" && vigente(b));
-    const por = (u: string) => web.filter((b) => b.ubicacion === u).map(({ id, imagen, imagenMovil, alt, to }) => ({ id: id ?? crypto.randomUUID(), imagen, imagenMovil, alt, to }));
+    const por = (u: string) => web.filter((b) => b.ubicacion === u).map(({ id, imagen, imagenMovil, alt, to, marca, titulo, descuento, cta }: any) => ({ id: id ?? crypto.randomUUID(), imagen, imagenMovil, alt, to, marca, titulo, descuento, cta }));
     db.catalogo.banners["home"] = por("Home");
-    db.catalogo.banners["productos"] = por("Canjea");
     db.catalogo.banners["beneficios"] = por("Beneficios");
-  },
-  bannersVuelos: () => {
-    db.catalogo.banners["vuelos"] = db.admin.bannersVuelos.filter((b) => b.activo).map(({ id, imagen, imagenMovil, alt }) => ({ id, imagen, imagenMovil, alt }));
   },
 };
 
@@ -127,7 +96,7 @@ const col = (name: string): Lista => {
 };
 
 /* ---------------- Consultas paginadas (para colecciones grandes) ---------------- */
-const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", destinos: "slug", mensajes: "id", usuarios: "id", ciudades: "codigo", marcas: "id", comprasPuntos: "codigo", plantillasCorreo: "id", correosEnviados: "id", campanas: "id", importaciones: "id" };
+const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", mensajes: "id", usuarios: "id", marcas: "id", premios: "id", codigosPromo: "codigo", giros: "id", eventos: "id", preinscripciones: "id", plantillasCorreo: "id", correosEnviados: "id", campanas: "id", importaciones: "id" };
 const BUSCABLES: Record<string, string[]> = {
   participantes: ["nombre", "cedula", "email"],
   pedidos: ["codigo", "cliente"],
@@ -135,36 +104,23 @@ const BUSCABLES: Record<string, string[]> = {
   beneficios: ["nombre", "marca", "categoria"],
   movimientos: ["detalle", "cliente"],
   mensajes: ["asunto", "nombre", "email"],
-  destinos: ["titulo", "ciudad", "pais", "codigo"],
-  ciudades: ["ciudad", "codigo", "pais"],
-  cotizaciones: ["codigo", "cliente", "origen", "destino"],
   marcas: ["nombre", "web"],
+  premios: ["label", "tipo"],
+  codigosPromo: ["codigo", "premio", "usadoPor"],
+  giros: ["participante", "premio"],
+  eventos: ["nombre", "marca", "lugar", "distrito"],
+  preinscripciones: ["codigo", "participante", "evento", "email"],
   auditoria: ["accion", "usuario"],
   comprasPuntos: ["codigo", "cliente", "email"],
   correosEnviados: ["para", "destinatario", "asunto", "plantilla", "referencia"],
   importaciones: ["archivo", "usuario", "tipo"],
 };
 
-/** Cotizaciones del admin = las del participante demo + las generadas en pruebas de carga. */
-const cotizacionesTodas = (): any[] => {
-  const extra: any[] = (db as any).cotizacionesExtra ?? [];
-  const base = db.cotizaciones as any[];
-  // El nombre del participante se asigna una sola vez (queda guardado en la cotización, así se puede buscar).
-  const ps = db.admin.participantes;
-  base.forEach((c) => {
-    if (!c.cliente && ps.length) {
-      const p = ps.find((x: any) => x.id === "p1") ?? ps[0]!; // las cotizaciones del sitio son de la participante que ingresó
-      c.cliente = p.nombre;
-      c.email = p.email;
-    }
-  });
-  return extra.length ? [...base, ...extra] : base;
-};
 const hoyIso = () => new Date().toISOString().slice(0, 10);
 /** Los beneficios se listan con su `vigencia` calculada hoy (programado, vigente o vencido): no se guarda, cambia con el día. */
 const conVigencia = (b: any) => ({ ...b, vigencia: estadoVigencia(b, hoyIso()) });
 const fuenteDe = (nombre: string): any[] =>
-  nombre === "movimientos" ? db.admin.movimientos : nombre === "cotizaciones" ? cotizacionesTodas() : nombre === "beneficios" ? (db.admin.beneficios as any[]).map(conVigencia) : ((db.admin as any)[col(nombre)] as any[]);
+  nombre === "beneficios" ? (db.admin.beneficios as any[]).map(conVigencia) : ((db.admin as any)[col(nombre)] as any[]);
 
 /** Un pop-up se valida igual que en el formulario del panel. */
 function exigirPopupValido(p: any) {
@@ -269,6 +225,24 @@ export const adminRoutes: Route[] = [
     sincronizar[c]?.([]);
     return { ok: true };
   }],
+  /** Carga de códigos de Lucky Code: los que ya existen se omiten. */
+  ["POST", "admin/codigos-promo/cargar", ({ body }) => {
+    const premio = (db.admin.premios as any[]).find((p) => p.id === body?.premioId);
+    if (!premio) throw new ApiError(404, "Premio no encontrado");
+    const lista = db.admin.codigosPromo as any[];
+    const ya = new Set(lista.map((c) => c.codigo));
+    const omitidos: string[] = [];
+    const nuevos: any[] = [];
+    for (const c of Array.isArray(body?.codigos) ? (body.codigos as string[]) : []) {
+      const cod = String(c).toUpperCase();
+      if (ya.has(cod)) { omitidos.push(cod); continue; }
+      ya.add(cod);
+      nuevos.push({ codigo: cod, premioId: premio.id, premio: premio.label, usado: false });
+    }
+    if (!nuevos.length) throw new ApiError(422, "Todos esos códigos ya estaban cargados.");
+    db.admin.codigosPromo = [...nuevos, ...lista];
+    return { creados: nuevos.length, omitidos };
+  }],
   /** Alta masiva (carga de archivos). */
   ["POST", "admin/c/:col/bulk", ({ params, body }) => {
     const c = col(params["col"]!);
@@ -313,12 +287,12 @@ export const adminRoutes: Route[] = [
     return { cargados: nuevos.length, repetidos: codigos.length - nuevos.length };
   }],
   /**
-   * Carga masiva con creación o actualización (productos, beneficios, marcas): cada registro se crea si su clave no existe y, si existe,
+   * Carga masiva con creación o actualización (beneficios, marcas): cada registro se crea si su clave no existe y, si existe,
    * se reemplaza. Es todo o nada: si una fila no cumple las reglas del servidor no se guarda ninguna.
    */
   ["POST", "admin/c/:col/upsert", ({ params, body }) => {
     const c = col(params["col"]!);
-    if (!["productos", "beneficios", "marcas"].includes(c)) throw new ApiError(400, "Esta colección no admite carga masiva.");
+    if (!["beneficios", "marcas"].includes(c)) throw new ApiError(400, "Esta colección no admite carga masiva.");
     const items = body?.items as any[];
     if (!Array.isArray(items) || !items.length) throw new ApiError(422, "No hay filas para cargar.");
     if (items.length > 2000) throw new ApiError(422, "Una carga puede tener como máximo 2.000 filas: divide el archivo.");
@@ -335,49 +309,6 @@ export const adminRoutes: Route[] = [
     }
     sincronizar[c]?.([]);
     return { creados, actualizados };
-  }],
-  /**
-   * Ajuste masivo de puntos por documento. Con `aplicar: false` solo simula (qué pasaría con cada fila y el total); con `aplicar: true`
-   * aplica las filas válidas (las demás se devuelven con su motivo). Cada ajuste queda en la ficha y en el historial del participante.
-   */
-  ["POST", "admin/participantes/ajustes-masivos", ({ body }) => {
-    const items = body?.items as { fila: number | string; documento: string; puntos: number; motivo: string }[];
-    if (!Array.isArray(items) || !items.length) throw new ApiError(422, "No hay ajustes para aplicar.");
-    if (items.length > 2000) throw new ApiError(422, "Una carga puede tener como máximo 2.000 filas: divide el archivo.");
-    const aplicar = !!body.aplicar;
-    const usuario = (db.admin.usuarios as any[]).find((u) => u.id === contexto.usuarioPanelId)?.nombre ?? "Sistema";
-    const saldos = new Map<string, number>();
-    const evaluadas = items.map((it) => {
-      const p = (db.admin.participantes as any[]).find((x) => String(x.cedula) === String(it.documento));
-      const falla = (motivo: string) => ({ fila: it.fila, ok: false as const, documento: it.documento, motivo });
-      if (!p) return falla(`No hay un participante con el documento ${it.documento}.`);
-      if (!Number.isInteger(it.puntos) || it.puntos === 0 || Math.abs(it.puntos) > 1_000_000) return falla("Los puntos deben ser un entero distinto de 0 (máximo 1.000.000).");
-      if (!String(it.motivo ?? "").trim()) return falla("Falta el motivo.");
-      const largo = errorLargosFila({ motivo: it.motivo }, "el ajuste");
-      if (largo) return falla(largo);
-      const antes = saldos.get(p.id) ?? p.puntos;
-      const despues = antes + it.puntos;
-      if (despues < 0) return falla(`Dejaría el saldo en negativo (tiene ${antes.toLocaleString("es")} y el ajuste es ${it.puntos.toLocaleString("es")}).`);
-      saldos.set(p.id, despues);
-      return { fila: it.fila, ok: true as const, id: p.id, documento: it.documento, participante: p.nombre as string, puntos: it.puntos, motivo: String(it.motivo).trim(), saldoAntes: antes, saldoDespues: despues };
-    });
-    if (aplicar) {
-      const fecha = new Date().toLocaleDateString("es-EC");
-      for (const r of evaluadas) {
-        if (!r.ok) continue;
-        const ficha = (db.admin.participantes as any[]).find((x) => x.id === r.id);
-        const anterior = [structuredClone(ficha)];
-        ficha.ajustes = [{ fecha, puntos: r.puntos, motivo: r.motivo, usuario }, ...(ficha.ajustes ?? [])];
-        if (ficha.id === "p1") sincronizar.participantes?.(anterior); // la participante demo comparte saldo con su sesión
-        else ficha.puntos = r.saldoDespues;
-      }
-    }
-    const buenas = evaluadas.filter((r) => r.ok) as Extract<(typeof evaluadas)[number], { ok: true }>[];
-    return {
-      aplicado: aplicar,
-      resultados: evaluadas.map((r) => (r.ok ? { fila: r.fila, ok: true, documento: r.documento, participante: r.participante, puntos: r.puntos, motivo: r.motivo, saldoAntes: r.saldoAntes, saldoDespues: r.saldoDespues } : r)),
-      resumen: { ok: buenas.length, errores: evaluadas.length - buenas.length, suma: buenas.filter((r) => r.puntos > 0).reduce((s, r) => s + r.puntos, 0), resta: buenas.filter((r) => r.puntos < 0).reduce((s, r) => s + r.puntos, 0) },
-    };
   }],
 
   ["GET", "admin/c/:col", ({ params }) => (db.admin as any)[col(params["col"]!)]],
@@ -407,7 +338,7 @@ export const adminRoutes: Route[] = [
     return db.config;
   }],
   /**
-   * Todo lo que pertenece a UN participante (ficha en página): sus movimientos, pedidos, compras de puntos, cupones, cotizaciones y los
+   * Todo lo que pertenece a UN participante (ficha en página): sus movimientos, pedidos, compras de puntos, cupones y los
    * registros de auditoría que lo mencionan. La participante demo (p1) usa sus datos reales de sesión; los demás, lo que el panel guarda a su nombre.
    */
   /* ---------- Textos legales: versiones, borrador, publicación y aceptaciones ---------- */
@@ -425,13 +356,12 @@ export const adminRoutes: Route[] = [
     const m = (db.admin.marcas as any[]).find((x) => x.id === params["id"]);
     if (!m) throw new ApiError(404, "Marca no encontrada");
     const mia = (x: any) => String(x.marca ?? "") === m.nombre;
-    const productos = (db.admin.productos as any[]).filter(mia).map((p) => ({ id: p.id, nombre: p.nombre, puntos: p.puntos, activo: p.activo !== false, categoria: p.categoria ?? p.categoriaSlug ?? "", imagen: p.imagen ?? "", digital: !!p.digital }));
     const beneficios = (db.admin.beneficios as any[]).filter(mia).map((b) => ({ id: b.id, nombre: b.nombre, descuento: b.descuento ?? "", tipo: b.tipo ?? "", activo: b.activo !== false, imagen: b.imagen ?? "" }));
     const canjes = (db.admin.pedidos as any[]).flatMap((p) =>
-      (p.items ?? []).filter(mia).map((i: any) => ({ participanteId: p.participanteId ?? ((db.admin.participantes as any[]).find((x) => x.email === p.email)?.id ?? ""), codigo: p.codigo, fecha: p.fecha, fechaISO: p.fechaISO ?? "", hora: p.hora ?? "", cliente: p.cliente, estado: p.estadoAdmin, articulo: i.nombre, cantidad: i.cantidad, puntos: i.puntos * i.cantidad })),
+      (p.items ?? []).filter(mia).map((i: any) => ({ participanteId: p.participanteId ?? ((db.admin.participantes as any[]).find((x) => x.email === p.email)?.id ?? ""), codigo: p.codigo, fecha: p.fecha, fechaISO: p.fechaISO ?? "", hora: p.hora ?? "", cliente: p.cliente, estado: p.estadoAdmin, articulo: i.nombre, cantidad: i.cantidad, monto: (i.precio ?? 0) * i.cantidad })),
     );
     return {
-      productos, beneficios, canjes,
+      beneficios, canjes,
       auditoria: (db.admin.auditoria as any[]).filter((a) => String(a.accion ?? "").includes(m.nombre) || a.entidad === m.id),
     };
   }],
@@ -439,17 +369,10 @@ export const adminRoutes: Route[] = [
     const p = db.admin.participantes.find((x: any) => x.id === params["id"]);
     if (!p) throw new ApiError(404, "Participante no encontrado");
     const demo = p.id === "p1";
-    const ajustes = (p.ajustes ?? []).map((a: any, i: number) => ({ id: `aj${p.id}-${i}`, fechaISO: "", fecha: a.fecha, detalle: `Ajuste manual: ${a.motivo}`, tipo: "ajuste", puntos: a.puntos }));
-    const movimientos = demo
-      ? db.movimientos
-      : [...db.admin.movimientos.filter((m: any) => m.cliente === p.nombre), ...ajustes];
     const mismo = (x: any) => String(x.email ?? "").toLowerCase() === String(p.email).toLowerCase() || x.cliente === p.nombre;
     return {
-      movimientos,
       pedidos: (db.admin.pedidos as any[]).filter(mismo),
-      comprasPuntos: (db.admin.comprasPuntos as any[]).filter(mismo),
       beneficios: demo ? db.misBeneficios : [],
-      cotizaciones: cotizacionesTodas().filter(mismo),
       auditoria: (db.admin.auditoria as any[]).filter((a) => String(a.accion ?? "").includes(p.nombre)),
       legales: estadoLegalesParticipante(p.id),
     };
@@ -477,8 +400,6 @@ export const adminRoutes: Route[] = [
     enviarCorreo("correo-cambiado", anterior, { correoNuevo: nuevo }, { destinatario: p.nombre, participanteId: p.id });
     return p;
   }],
-  /** Proceso de puntos por vencer (en producción corre solo, a diario). */
-  ["POST", "admin/correos/puntos-por-vencer", ({ body }) => avisarPuntosPorVencer(Number(body?.dias) || undefined)],
   /** Envío de prueba de una campaña a una dirección del equipo (con datos de ejemplo). */
   ["POST", "admin/correos/campanas/prueba", ({ body }) => {
     const para = String(body?.para ?? "").trim();
@@ -597,7 +518,6 @@ export const adminRoutes: Route[] = [
     canal: [{ name: "Web", value: 46 }, { name: "App", value: 54 }],
     topBeneficios: db.catalogo.beneficios.slice(0, 6).map((b, i) => ({ name: b.marca, usos: [820, 640, 510, 430, 380, 290][i] ?? 100 })),
   })],
-  ["GET", "admin/movimientos", () => db.admin.movimientos],
   /* ---------- Mi perfil (la persona que tiene la sesión del panel) ---------- */
   ["GET", "admin/perfil", () => {
     const u = usuarioActual();
@@ -630,12 +550,6 @@ export const adminRoutes: Route[] = [
   /** Guías de ayuda publicadas que le tocan al rol de quien pregunta. */
   ["GET", "admin/ayuda", () => guiasDeQuienPregunta()],
   ["GET", "admin/meta", () => ({ roles: listarRoles(), provincias: db.admin.provincias, estadosPedido: db.admin.estadosPedido, hoy: db.admin.hoy })],
-  ["GET", "admin/reglas", () => ({ reglas: db.admin.reglas, condiciones: db.config.condicionesCompra })],
-  ["PUT", "admin/reglas", ({ body }) => {
-    db.admin.reglas = body.reglas;
-    db.config.condicionesCompra = body.condiciones;
-    return body;
-  }],
   ["PUT", "admin/sitio", ({ body }) => {
     db.config.sitio = body;
     return db.config.sitio;
@@ -644,36 +558,13 @@ export const adminRoutes: Route[] = [
     // Niveles y textos de "Mi nivel" se guardan juntos; los espacios sobrantes se limpian.
     db.niveles = body.niveles.map((n: any) => ({ ...n, beneficios: n.beneficios.map((b: string) => b.trim()).filter(Boolean) }));
     db.nivelesTexto = {
-      meses: Math.max(1, Number(body.meses) || 12),
       subtitulo: String(body.subtitulo ?? "").trim(),
       intro: String(body.intro ?? "").trim(),
       reglas: (body.reglas as string[]).map((r) => r.trim()).filter(Boolean),
     };
     return { niveles: db.niveles, ...db.nivelesTexto };
   }],
-  /** Usuarios del panel que pueden atender cotizaciones (Atención, Operaciones y Administración). Se gestionan en Usuarios y roles. */
-  ["GET", "admin/ejecutivos", () =>
-    db.admin.usuarios
-      .filter((u: any) => ["Atención", "Operaciones", "Administrador"].includes(u.rol) && u.estado !== "Inactivo")
-      .map((u: any) => ({ id: u.id, nombre: u.nombre, rol: u.rol }))],
-  /** Cambia estado, ejecutiva, monto, PDF o nota. Cada cambio de estado queda en el historial con quién lo hizo. */
-  ["PATCH", "admin/cotizaciones/:codigo", ({ params, body }) => {
-    const c = cotizacionesTodas().find((x) => x.codigo === params["codigo"]);
-    if (!c) throw new ApiError(404, "Cotización no encontrada");
-    const { por, ...cambios } = body;
-    if (cambios.estado && cambios.estado !== c.estado) {
-      (c.historial ??= []).push({ estado: cambios.estado, fecha: new Date().toISOString().slice(0, 19), por: por ?? "Panel" });
-      enviarCorreo("cotizacion-estado", c.email, { codigo: c.codigo, origen: c.origen, destino: c.destino, estado: cambios.estado }, { destinatario: c.cliente, referencia: c.codigo });
-    }
-    return Object.assign(c, cambios);
-  }],
-  /** Deja constancia de que la ejecutiva contactó al participante por WhatsApp o correo (solo lo ve el panel). */
-  ["POST", "admin/cotizaciones/:codigo/contacto", ({ params, body }) => {
-    const c = cotizacionesTodas().find((x) => x.codigo === params["codigo"]);
-    if (!c) throw new ApiError(404, "Cotización no encontrada");
-    (c.contactos ??= []).push({ canal: String(body?.canal ?? "Correo"), por: body?.por ?? "Panel", fecha: new Date().toISOString().slice(0, 19) });
-    return c;
-  }],];
+];
 
 /* Las tablas de los reportes usan la misma consulta paginada, pero bajo el permiso de Reportes (quien ve reportes no necesita acceso a cada módulo). */
 adminRoutes.push(["GET", "admin/reportes/q/:col", adminRoutes.find((r) => r[1] === "admin/q/:col")![2]]);

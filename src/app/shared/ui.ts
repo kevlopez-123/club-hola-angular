@@ -3,9 +3,9 @@ import { RouterLink } from "@angular/router";
 import { IconComponent } from "./icon.component";
 import { StoreService } from "../core/store.service";
 import { BrandService } from "../core/brand.service";
-import { formatPuntos, formatUSD } from "../core/format";
+import { formatUSD } from "../core/format";
 import { claseEtiqueta } from "../core/promo";
-import type { Beneficio, Producto, Slide } from "../core/models";
+import type { Beneficio, Slide } from "../core/models";
 
 /* ------------------------------------------------------------------ */
 /* Logo                                                                */
@@ -84,7 +84,7 @@ export class ModalComponent {
   template: `
     <h2 class="flex flex-wrap items-center justify-center gap-3 text-center font-sans text-2xl font-semibold text-ink sm:text-3xl">
       {{ text() }}
-      <span class="badge-pill bg-lima px-6 py-1.5 text-white">{{ highlight() }}</span>
+      <span class="badge-pill bg-lima px-6 py-1.5 text-ink">{{ highlight() }}</span>
     </h2>
   `,
 })
@@ -103,7 +103,7 @@ export class SectionTitleComponent {
   template: `
     @if (items().length) {
       <section aria-label="Promociones destacadas" class="relative w-full overflow-hidden bg-surface" (mouseenter)="encima.set(true)" (mouseleave)="encima.set(false)" (focusin)="encima.set(true)" (focusout)="encima.set(false)">
-        <div [class]="'relative w-full sm:aspect-[21/8] lg:aspect-[3/1] ' + (hayMovil() ? 'aspect-square' : 'aspect-[16/9]')">
+        <div [class]="conTexto() ? 'relative h-[480px] w-full lg:h-[460px]' : 'relative w-full sm:aspect-[21/8] lg:aspect-[3/1] ' + (hayMovil() ? 'aspect-square' : 'aspect-[16/9]')">
           @for (slide of items(); track slide.id; let i = $index) {
             <div
               class="absolute inset-0 transition-opacity duration-700"
@@ -112,7 +112,24 @@ export class SectionTitleComponent {
               [class.pointer-events-none]="i !== index()"
               [class.opacity-0]="i !== index()"
             >
-              @if (slide.to) {
+              @if (slide.titulo) {
+                <div class="grid h-full grid-rows-[55%_45%] lg:grid-cols-[58%_42%] lg:grid-rows-1">
+                  <div class="relative overflow-hidden">
+                    <img [src]="slide.imagen" [alt]="slide.marca ?? slide.alt" width="1200" height="800" [attr.loading]="i === 0 ? 'eager' : 'lazy'" class="h-full w-full object-cover" />
+                    <div class="absolute inset-y-0 right-0 hidden w-24 bg-surface [clip-path:polygon(100%_0,100%_100%,0_100%)] lg:block"></div>
+                    @if (slide.descuento) {
+                      <div class="absolute bottom-4 right-4 grid h-24 w-24 place-items-center rounded-full bg-celeste text-center text-white shadow-lg lg:bottom-auto lg:right-10 lg:top-1/2 lg:h-28 lg:w-28 lg:-translate-y-1/2">
+                        <div><p class="text-2xl font-extrabold leading-none lg:text-3xl">{{ slide.descuento }}</p><p class="text-xs lg:text-sm">Dscto.</p></div>
+                      </div>
+                    }
+                  </div>
+                  <div class="flex flex-col items-center justify-center gap-3 px-6 py-8 pb-12 text-center">
+                    @if (slide.marca) { <p class="border-b border-ink/20 pb-1 text-xs font-semibold tracking-[0.2em] text-ink/70">{{ slide.marca }}</p> }
+                    <h2 class="text-2xl font-extrabold text-ink lg:text-4xl">{{ slide.titulo }}</h2>
+                    <a [routerLink]="slide.to || '/beneficios'" class="mt-2 inline-flex min-h-11 items-center rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.03]">{{ slide.cta || 'Conoce más' }}</a>
+                  </div>
+                </div>
+              } @else if (slide.to) {
                 <a [routerLink]="slide.to" class="block h-full w-full">
                   <picture>
                     @if (slide.imagenMovil) { <source media="(max-width: 639px)" [srcset]="slide.imagenMovil" /> }
@@ -153,6 +170,8 @@ export class SectionTitleComponent {
 export class HeroSliderComponent {
   readonly items = input<Slide[]>([]);
   /** Si algún banner trae versión para móvil, en celular la caja pasa de 16:9 a cuadrada para aprovecharla. */
+  /** Banners con marca, título y botón (estilo Club Hola) en lugar de solo imagen. */
+  protected readonly conTexto = computed(() => this.items().some((s) => !!s.titulo));
   protected readonly hayMovil = computed(() => this.items().some((s) => !!s.imagenMovil));
   protected readonly index = signal(0);
   /** El carrusel no avanza solo si la persona pidió menos movimiento. */
@@ -197,50 +216,6 @@ export class FavButtonComponent {
 const cardBase = "card-elevate group flex h-full flex-col overflow-hidden rounded-2xl bg-card";
 
 @Component({
-  selector: "app-product-card",
-  imports: [RouterLink, FavButtonComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: "block h-full" },
-  template: `
-    <article [class]="base">
-      <a [routerLink]="['/canjea', producto().id]" tabindex="-1" aria-hidden="true" class="relative block overflow-hidden bg-muted">
-        <img [src]="producto().imagen" [alt]="producto().nombre" width="800" height="800" loading="lazy"
-          class="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-        <div class="absolute left-3 top-3 flex flex-col items-start gap-1">
-          @if (producto().etiqueta) { <span [class]="'rounded-full px-3 py-1 text-xs font-bold ' + claseEtiqueta(producto().etiquetaColor)">{{ producto().etiqueta }}</span> }
-        </div>
-        @if (producto().promoEtiqueta) { <span class="absolute right-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground">{{ producto().promoEtiqueta }}</span> }
-      </a>
-      <div class="flex flex-1 flex-col p-4">
-        <p class="text-sm uppercase tracking-wide text-muted-foreground">{{ producto().marca }}</p>
-        <a [routerLink]="['/canjea', producto().id]">
-          <h3 [attr.aria-level]="nivel()" class="mt-1 line-clamp-2 min-h-12 text-base font-semibold text-ink hover:text-primary">{{ producto().nombre }}</h3>
-        </a>
-        <p class="mt-2 text-base font-extrabold text-ink">{{ puntos(producto().puntos) }} puntos@if (producto().puntosOriginal) { <s class="ml-2 text-sm font-medium text-muted-foreground">{{ puntos(producto().puntosOriginal!) }}</s> }</p>
-        <p class="text-sm text-muted-foreground">o {{ usd(producto().precio) }} con tu tarjeta@if (producto().precioOriginal) { <s class="ml-2">{{ usd(producto().precioOriginal!) }}</s> }</p>
-        <div class="mt-auto flex items-center gap-2 pt-5">
-          <button type="button" (click)="add.emit(producto())"
-            class="flex min-h-11 flex-1 items-center justify-center rounded-full bg-primary px-4 text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:scale-[1.03] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:hover:scale-100 lg:min-h-14">
-            Agregar al carrito
-          </button>
-          <app-fav-button [id]="producto().id" />
-        </div>
-      </div>
-    </article>
-  `,
-})
-export class ProductCardComponent {
-  readonly producto = input.required<Producto>();
-  /** Nivel del título en el esquema de la página (2 cuando el listado cuelga directamente del h1). */
-  readonly nivel = input(3);
-  readonly add = output<Producto>();
-  protected readonly base = cardBase;
-  protected readonly claseEtiqueta = claseEtiqueta;
-  protected readonly puntos = formatPuntos;
-  protected readonly usd = formatUSD;
-}
-
-@Component({
   selector: "app-benefit-card",
   imports: [RouterLink, FavButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -265,6 +240,7 @@ export class ProductCardComponent {
         </a>
         <p class="mt-2 text-base font-extrabold text-ink">{{ titulo() }}@if (original()) { <s class="ml-2 text-sm font-medium text-muted-foreground">{{ original() }}</s> }</p>
         <p class="text-sm text-muted-foreground">{{ subtitulo() }}</p>
+        @if (beneficio().nivelMinimo; as nv) { <p class="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-secondary px-3 py-0.5 text-xs font-semibold text-secondary-foreground">Nivel {{ nv }}</p> }
         <div class="mt-auto flex items-center gap-2 pt-5">
           <a [routerLink]="['/beneficios', beneficio().id]"
             class="flex min-h-11 flex-1 items-center justify-center rounded-full bg-primary px-4 text-center text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:scale-[1.03] lg:min-h-14">
@@ -284,22 +260,16 @@ export class BenefitCardComponent {
   /** Valor sin promoción, para tacharlo junto al vigente. */
   protected readonly original = computed(() => {
     const b = this.beneficio();
-    if (b.soloDinero && b.precioOriginal) return formatUSD(b.precioOriginal);
-    if (b.tipo === "compra" && b.puntosOriginal) return formatPuntos(b.puntosOriginal);
-    return "";
+    return b.tipo === "compra" && b.precioOriginal ? formatUSD(b.precioOriginal) : "";
   });
 
   protected readonly titulo = computed(() => {
     const b = this.beneficio();
-    if (b.soloDinero && b.precio) return formatUSD(b.precio);
-    if (b.tipo === "compra" && b.puntos) return `${formatPuntos(b.puntos)} puntos`;
-    return "Cupón sin costo";
+    return b.tipo === "compra" && b.precio ? formatUSD(b.precio) : "Cupón sin costo";
   });
   protected readonly subtitulo = computed(() => {
     const b = this.beneficio();
-    if (b.soloDinero) return "Solo con tu tarjeta";
-    if (b.tipo === "compra" && b.precio) return `o ${formatUSD(b.precio)} con tu tarjeta`;
-    return `Categoría ${b.categoria}`;
+    return b.tipo === "compra" ? "Pago con tu tarjeta del banco" : b.tipo === "informativo" ? "Código de descuento" : `Categoría ${b.categoria}`;
   });
 }
 
@@ -323,21 +293,21 @@ export class BenefitCardComponent {
           <div class="min-w-0">
             <p class="text-sm text-muted-foreground">{{ p.marca }}</p>
             <p class="truncate text-base font-extrabold text-ink">{{ p.nombre }}</p>
-            <p class="text-sm text-muted-foreground">{{ puntos(p.puntos) }} puntos</p>
+            <p class="text-sm text-muted-foreground">{{ usd(p.precio ?? 0) }}</p>
           </div>
         </div>
 
         <div class="my-5 border-t border-border"></div>
 
         <div class="flex items-center justify-between gap-4">
-          <p class="text-base font-extrabold text-ink">Sub total ({{ store.totalItems() }} productos)</p>
-          <p class="text-base font-extrabold text-ink">{{ puntos(store.totalPuntos()) }} puntos</p>
+          <p class="text-base font-extrabold text-ink">Sub total ({{ store.totalItems() }} beneficios)</p>
+          <p class="text-base font-extrabold text-ink">{{ usd(store.totalMonto()) }}</p>
         </div>
 
         <div class="mt-6 grid gap-3 sm:grid-cols-2">
           <button type="button" (click)="closed.emit()"
             class="flex min-h-12 items-center justify-center rounded-full bg-muted px-6 py-3 text-center text-sm font-bold uppercase leading-tight tracking-wide text-ink transition-colors hover:bg-secondary">
-            Seguir canjeando
+            Seguir explorando
           </button>
           <a routerLink="/carrito" (click)="closed.emit()"
             class="flex min-h-12 items-center justify-center rounded-full bg-primary px-6 py-3 text-center text-sm font-bold uppercase leading-tight tracking-wide text-primary-foreground transition-transform hover:scale-[1.02]">
@@ -350,28 +320,19 @@ export class BenefitCardComponent {
 })
 export class AddedToCartModalComponent {
   protected readonly store = inject(StoreService);
-  readonly producto = input<Pick<Producto, "id" | "nombre" | "marca" | "imagen" | "puntos"> | null>(null);
+  readonly producto = input<Pick<Beneficio, "id" | "nombre" | "marca" | "imagen" | "precio"> | null>(null);
   readonly closed = output<void>();
-  protected readonly puntos = formatPuntos;
+  protected readonly usd = formatUSD;
   protected readonly cantidad = computed(() => {
     const p = this.producto();
     return (p && this.store.items().find((i) => i.id === p.id)?.cantidad) ?? 1;
   });
 }
 
-/** Helper compartido: agrega un producto del catálogo al carrito. */
-export function agregarProducto(store: StoreService, p: Producto, cantidad = 1) {
+/** Helper compartido: agrega un beneficio de pago al carrito. */
+export function agregarBeneficio(store: StoreService, b: Beneficio, cantidad = 1) {
   store.add(
-    {
-      id: p.id,
-      tipo: "producto",
-      nombre: p.nombre,
-      marca: p.marca,
-      imagen: p.imagen,
-      puntos: p.puntos,
-      precio: p.precio,
-      digital: p.digital,
-    },
+    { id: b.id, tipo: "beneficio", nombre: b.nombre, marca: b.marca, imagen: b.imagen, precio: b.precio ?? 0, digital: true },
     cantidad,
   );
 }

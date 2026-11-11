@@ -3,30 +3,28 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { map } from "rxjs/operators";
 import { ApiService } from "../core/api.service";
-import { formatPuntos } from "../core/format";
+import { formatUSD } from "../core/format";
 import { IconComponent } from "../shared/icon.component";
 import { MarcaEditorComponent } from "./marca-editor";
 import { BarraListaComponent, ListaLocal } from "./lista-local";
 import { OrdenColumnaComponent, PagerComponent, PillComponent, ToastService, ToggleComponent, descargarTabla } from "./kit";
 
 type Marca = { id: string; nombre: string; logo: string; web: string; descripcion: string; activo: boolean };
-type ProductoMarca = { id: string; nombre: string; puntos: number; activo: boolean; categoria: string; imagen: string; digital: boolean };
 type BeneficioMarca = { id: string; nombre: string; descuento: string; tipo: string; activo: boolean; imagen: string };
-type CanjeMarca = { participanteId?: string; codigo: string; fecha: string; fechaISO: string; hora: string; cliente: string; estado: string; articulo: string; cantidad: number; puntos: number };
+type CanjeMarca = { participanteId?: string; codigo: string; fecha: string; fechaISO: string; hora: string; cliente: string; estado: string; articulo: string; cantidad: number; monto: number };
 type AuditoriaMarca = { fecha: string; usuario: string; accion: string; seccion: string };
-type Actividad = { productos: ProductoMarca[]; beneficios: BeneficioMarca[]; canjes: CanjeMarca[]; auditoria: AuditoriaMarca[] };
+type Actividad = { beneficios: BeneficioMarca[]; canjes: CanjeMarca[]; auditoria: AuditoriaMarca[] };
 
 const TABS = [
   { k: "resumen", l: "Resumen" },
-  { k: "productos", l: "Productos" },
   { k: "beneficios", l: "Beneficios" },
-  { k: "canjes", l: "Canjes" },
+  { k: "canjes", l: "Compras" },
   { k: "historial", l: "Historial" },
 ] as const;
 type TabK = (typeof TABS)[number]["k"];
 
 /**
- * Ficha de una marca aliada (/admin/marcas/:id): sus productos, beneficios, los canjes que incluyen artículos suyos y el historial
+ * Ficha de una marca aliada (/admin/marcas/:id): sus beneficios, las compras que incluyen artículos suyos y el historial
  * de cambios que la mencionan. Las marcas se enlazan con productos y beneficios por su nombre.
  */
 @Component({
@@ -58,10 +56,9 @@ type TabK = (typeof TABS)[number]["k"];
       </header>
 
       <dl class="mt-5 grid grid-cols-2 gap-3 text-sm md:grid-cols-4" aria-label="Resumen de la marca">
-        <div class="rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Productos activos</dt><dd class="text-lg font-bold">{{ activos(act().productos) }} <span class="text-sm font-medium text-muted-foreground">de {{ act().productos.length }}</span></dd></div>
         <div class="rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Beneficios activos</dt><dd class="text-lg font-bold">{{ activos(act().beneficios) }} <span class="text-sm font-medium text-muted-foreground">de {{ act().beneficios.length }}</span></dd></div>
-        <div class="rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Canjes</dt><dd class="text-lg font-bold">{{ act().canjes.length }}</dd></div>
-        <div class="rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Puntos canjeados</dt><dd class="text-lg font-bold">{{ puntos(puntosCanjeados()) }}</dd></div>
+        <div class="rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Compras</dt><dd class="text-lg font-bold">{{ act().canjes.length }}</dd></div>
+        <div class="rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-card)]"><dt class="text-xs text-muted-foreground">Monto pagado</dt><dd class="text-lg font-bold">{{ usd(montoPagado()) }}</dd></div>
       </dl>
 
       <div class="mt-5 flex gap-1 overflow-x-auto border-b border-border" role="tablist" aria-label="Secciones de la ficha">
@@ -83,35 +80,15 @@ type TabK = (typeof TABS)[number]["k"];
                 <button type="button" class="mt-3 inline-flex min-h-9 items-center gap-1.5 text-sm font-semibold text-primary hover:underline" (click)="editando.set(m)"><app-icon name="Pencil" class="h-4 w-4" /> Editar logo, sitio web y descripción</button>
               </section>
               <section class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-                <h2 class="font-semibold">Últimos canjes</h2>
+                <h2 class="font-semibold">Últimas compras</h2>
                 <ul class="mt-2 divide-y divide-border text-sm">
                   @for (c of ultimosCanjes(); track $index) {
-                    <li class="flex items-center justify-between gap-3 py-2"><span><a routerLink="/admin/pedidos" [queryParams]="{ ver: c.codigo }" class="font-bold text-primary hover:underline">{{ c.codigo }}</a> · {{ c.articulo }}<span class="block text-xs text-muted-foreground">{{ c.fecha }} · {{ c.cliente }}</span></span><b>{{ puntos(c.puntos) }}</b></li>
-                  } @empty { <li class="py-2 text-muted-foreground">Todavía no hay canjes de esta marca.</li> }
+                    <li class="flex items-center justify-between gap-3 py-2"><span><a routerLink="/admin/pedidos" [queryParams]="{ ver: c.codigo }" class="font-bold text-primary hover:underline">{{ c.codigo }}</a> · {{ c.articulo }}<span class="block text-xs text-muted-foreground">{{ c.fecha }} · {{ c.cliente }}</span></span><b>{{ usd(c.monto) }}</b></li>
+                  } @empty { <li class="py-2 text-muted-foreground">Todavía no hay compras de esta marca.</li> }
                 </ul>
                 <button type="button" class="mt-2 text-sm font-semibold text-primary hover:underline" (click)="irA('canjes')">Ver todos</button>
               </section>
             </div>
-          }
-          @case ("productos") {
-            <a-barra-lista [lista]="prods" etiqueta="productos" placeholder="Buscar producto" [filtros]="[{ k: 'estado', l: 'Estado' }]" (exportar)="exportarProductos()" />
-            <div class="adm-wrap">
-              <table class="adm-table" aria-label="Productos de la marca">
-                <thead><tr><th aOrden="nombre" [pag]="prods" etiquetaOrden="Producto">Producto</th><th aOrden="puntos" [pag]="prods" etiquetaOrden="Puntos">Puntos</th><th>Tipo</th><th aOrden="estado" [pag]="prods" etiquetaOrden="Estado">Estado</th></tr></thead>
-                <tbody>
-                  @for (p of prods.items(); track p.id) {
-                    <tr>
-                      <td><span class="flex items-center gap-3">@if (p.imagen) { <img [src]="p.imagen" alt="" class="h-10 w-10 rounded-lg object-cover" /> }<a routerLink="/admin/productos" [queryParams]="{ ver: p.id }" class="font-bold text-primary hover:underline" [attr.aria-label]="'Ver el producto ' + p.nombre">{{ p.nombre }}</a></span></td>
-                      <td>{{ puntos(p.puntos) }}</td>
-                      <td>{{ p.digital ? 'Digital' : 'Físico' }}</td>
-                      <td class="det-completo det-chip"><a-pill [tone]="p.activo ? 'ok' : 'muted'">{{ p.activo ? 'Activo' : 'Inactivo' }}</a-pill></td>
-                    </tr>
-                  } @empty { <tr><td colspan="4" class="adm-empty">{{ act().productos.length ? 'Ningún producto coincide con la búsqueda.' : 'Esta marca no tiene productos.' }}</td></tr> }
-                </tbody>
-              </table>
-            </div>
-            <a-pager [p]="prods" />
-            <a routerLink="/admin/productos" class="mt-3 inline-block text-sm font-semibold text-primary hover:underline">Gestionar productos</a>
           }
           @case ("beneficios") {
             <a-barra-lista [lista]="bens" etiqueta="beneficios" placeholder="Buscar beneficio" [filtros]="[{ k: 'estado', l: 'Estado' }]" (exportar)="exportarBeneficios()" />
@@ -134,10 +111,10 @@ type TabK = (typeof TABS)[number]["k"];
             <a routerLink="/admin/beneficios" class="mt-3 inline-block text-sm font-semibold text-primary hover:underline">Gestionar beneficios</a>
           }
           @case ("canjes") {
-            <a-barra-lista [lista]="canj" etiqueta="canjes" placeholder="Código, cliente o artículo" [filtros]="[{ k: 'estado', l: 'Estado' }]" (exportar)="exportarCanjes()" />
+            <a-barra-lista [lista]="canj" etiqueta="compras" placeholder="Código, cliente o beneficio" [filtros]="[{ k: 'estado', l: 'Estado' }]" (exportar)="exportarCanjes()" />
             <div class="adm-wrap">
-              <table class="adm-table" aria-label="Canjes de la marca">
-                <thead><tr><th aOrden="codigo" [pag]="canj" etiquetaOrden="Pedido">Pedido</th><th aOrden="estado" [pag]="canj" etiquetaOrden="Estado">Estado</th><th aOrden="fecha" [pag]="canj" etiquetaOrden="Fecha">Fecha</th><th aOrden="cliente" [pag]="canj" etiquetaOrden="Cliente">Cliente</th><th>Artículo</th><th aOrden="puntos" [pag]="canj" etiquetaOrden="Puntos">Puntos</th></tr></thead>
+              <table class="adm-table" aria-label="Compras de la marca">
+                <thead><tr><th aOrden="codigo" [pag]="canj" etiquetaOrden="Compra">Compra</th><th aOrden="estado" [pag]="canj" etiquetaOrden="Estado">Estado</th><th aOrden="fecha" [pag]="canj" etiquetaOrden="Fecha">Fecha</th><th aOrden="cliente" [pag]="canj" etiquetaOrden="Cliente">Cliente</th><th>Artículo</th><th aOrden="puntos" [pag]="canj" etiquetaOrden="Puntos">Puntos</th></tr></thead>
                 <tbody>
                   @for (c of canj.items(); track $index) {
                     <tr>
@@ -146,9 +123,9 @@ type TabK = (typeof TABS)[number]["k"];
                       <td>{{ c.fecha }}@if (c.hora) { · {{ c.hora }} }</td>
                       <td>@if (c.participanteId) { <a [routerLink]="['/admin/participantes', c.participanteId]" class="text-primary hover:underline" [attr.aria-label]="'Ver la ficha de ' + c.cliente">{{ c.cliente }}</a> } @else { {{ c.cliente }} }</td>
                       <td class="adm-ancha">{{ c.cantidad > 1 ? c.cantidad + ' × ' : '' }}{{ c.articulo }}</td>
-                      <td>{{ puntos(c.puntos) }}</td>
+                      <td>{{ usd(c.monto) }}</td>
                     </tr>
-                  } @empty { <tr><td colspan="6" class="adm-empty">{{ act().canjes.length ? 'Ningún canje coincide con la búsqueda.' : 'Todavía no hay canjes de esta marca.' }}</td></tr> }
+                  } @empty { <tr><td colspan="6" class="adm-empty">{{ act().canjes.length ? 'Ninguna compra coincide con la búsqueda.' : 'Todavía no hay compras de esta marca.' }}</td></tr> }
                 </tbody>
               </table>
             </div>
@@ -185,25 +162,19 @@ export class MarcaFichaPage {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   protected readonly tabs = TABS;
-  protected readonly puntos = formatPuntos;
+  protected readonly usd = formatUSD;
 
   protected readonly marca = signal<Marca | null>(null);
   protected readonly cargado = signal(false);
-  protected readonly act = signal<Actividad>({ productos: [], beneficios: [], canjes: [], auditoria: [] });
+  protected readonly act = signal<Actividad>({ beneficios: [], canjes: [], auditoria: [] });
 
   /** La pestaña activa vive en la URL (?tab=canjes): se puede compartir el enlace y el botón atrás funciona. */
   private readonly tabParam = toSignal(this.route.queryParamMap.pipe(map((p) => p.get("tab"))), { initialValue: null });
   protected readonly tab = computed<TabK>(() => (TABS.find((t) => t.k === this.tabParam())?.k ?? "resumen") as TabK);
 
-  protected readonly puntosCanjeados = computed(() => this.act().canjes.reduce((a, c) => a + c.puntos, 0));
+  protected readonly montoPagado = computed(() => this.act().canjes.filter((c) => c.estado !== "Anulado").reduce((a, c) => a + c.monto, 0));
   protected readonly ultimosCanjes = computed(() => [...this.act().canjes].sort((a, b) => b.fechaISO.localeCompare(a.fechaISO)).slice(0, 5));
 
-  protected readonly prods = new ListaLocal<ProductoMarca>(() => this.act().productos, {
-    texto: (p) => `${p.nombre} ${p.categoria}`,
-    filtros: { estado: (p) => (p.activo ? "Activo" : "Inactivo") },
-    campos: { nombre: (p) => p.nombre, puntos: (p) => p.puntos, estado: (p) => (p.activo ? "Activo" : "Inactivo") },
-    orden: { k: "nombre", dir: "asc" },
-  });
   protected readonly bens = new ListaLocal<BeneficioMarca>(() => this.act().beneficios, {
     texto: (b) => `${b.nombre} ${b.descuento} ${b.tipo}`,
     filtros: { estado: (b) => (b.activo ? "Activo" : "Inactivo") },
@@ -213,7 +184,7 @@ export class MarcaFichaPage {
   protected readonly canj = new ListaLocal<CanjeMarca>(() => this.act().canjes, {
     texto: (c) => `${c.codigo} ${c.cliente} ${c.articulo}`,
     filtros: { estado: (c) => c.estado },
-    campos: { codigo: (c) => c.codigo, fecha: (c) => c.fechaISO, cliente: (c) => c.cliente, puntos: (c) => c.puntos, estado: (c) => c.estado },
+    campos: { codigo: (c) => c.codigo, fecha: (c) => c.fechaISO, cliente: (c) => c.cliente, monto: (c) => c.monto, estado: (c) => c.estado },
     fecha: (c) => c.fechaISO,
     orden: { k: "fecha", dir: "desc" },
   });
@@ -245,7 +216,6 @@ export class MarcaFichaPage {
   protected cuenta(k: TabK): number | null {
     const a = this.act();
     switch (k) {
-      case "productos": return a.productos.length;
       case "beneficios": return a.beneficios.length;
       case "canjes": return a.canjes.length;
       case "historial": return a.auditoria.length;
@@ -265,13 +235,10 @@ export class MarcaFichaPage {
   private csv(nombre: string, cabecera: string[], filas: (string | number)[][]) {
     descargarTabla(`${this.marca()?.id ?? "marca"}-${nombre}`, [cabecera, ...filas], `${nombre[0]!.toUpperCase()}${nombre.slice(1)} de ${this.marca()?.nombre ?? "la marca"}`);
   }
-  protected exportarProductos() {
-    this.csv("productos", ["Producto", "Puntos", "Tipo", "Estado"], this.prods.filtrados().map((p) => [p.nombre, p.puntos, p.digital ? "Digital" : "Físico", p.activo ? "Activo" : "Inactivo"]));
-  }
   protected exportarBeneficios() {
     this.csv("beneficios", ["Beneficio", "Descuento", "Tipo", "Estado"], this.bens.filtrados().map((b) => [b.nombre, b.descuento, b.tipo, b.activo ? "Activo" : "Inactivo"]));
   }
   protected exportarCanjes() {
-    this.csv("canjes", ["Pedido", "Fecha", "Cliente", "Artículo", "Cantidad", "Puntos", "Estado"], this.canj.filtrados().map((c) => [c.codigo, c.fecha, c.cliente, c.articulo, c.cantidad, c.puntos, c.estado]));
+    this.csv("canjes", ["Compra", "Fecha", "Cliente", "Beneficio", "Cantidad", "Monto", "Estado"], this.canj.filtrados().map((c) => [c.codigo, c.fecha, c.cliente, c.articulo, c.cantidad, c.monto, c.estado]));
   }
 }
