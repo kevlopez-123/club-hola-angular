@@ -142,7 +142,7 @@ export class PremiosListaComponent {
 
     @switch (tab()) {
       @case ('premios') {
-        <a-premios-lista [ruleta]="true" titulo="Premios de la ruleta" ayuda="Cada premio activo es un sector de la ruleta. Necesita al menos 2 sectores activos para funcionar; «Sin premio» (Sigue intentando) también cuenta como sector." />
+        <a-premios-lista [ruleta]="true" titulo="Premios de la ruleta" ayuda="Cada premio activo es un sector de la ruleta. Para que gire, deja activos al menos 2." />
       }
       @case ('config') {
         <a-panel title="Giros por semana">
