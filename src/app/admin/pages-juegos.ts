@@ -34,11 +34,9 @@ const ROTULO_TIPO = Object.fromEntries(TIPOS_PREMIO.map((t) => [t.v, t.l])) as R
               <td class="det-completo det-chip"><a-pill [tone]="p.tipo === 'nada' ? 'muted' : 'ok'">{{ rotulo[p.tipo] }}</a-pill></td>
               <td class="adm-ancha text-sm text-muted-foreground">{{ p.detalle }}</td>
               <td><a-toggle label="Activo" [on]="p.activo" (onChange)="cambiar(p, $event)" /></td>
-              <td>
-                <div class="flex gap-1">
-                  <button type="button" data-compact class="adm-accion adm-accion-icono" [attr.aria-label]="'Editar ' + p.label" title="Editar" (click)="edit.set({ ...p })"><app-icon name="Pencil" class="h-4 w-4" /></button>
-                  <button type="button" data-compact class="adm-accion adm-accion-icono peligro" [attr.aria-label]="'Eliminar ' + p.label" title="Eliminar" (click)="borrar.set(p)"><app-icon name="Trash2" class="h-4 w-4" /></button>
-                </div>
+              <td class="whitespace-nowrap">
+                <button aBtn variant="ghost" [attr.aria-label]="'Editar ' + p.label" (click)="edit.set({ ...p })"><app-icon name="Pencil" class="h-4 w-4" /> Editar</button>
+                <button aBtn variant="peligro-ghost" [attr.aria-label]="'Eliminar ' + p.label" (click)="borrar.set(p)"><app-icon name="Trash2" class="h-4 w-4" /> Eliminar</button>
               </td>
             </tr>
           } @empty { <tr><td colspan="5" class="adm-empty">No hay premios todavía</td></tr> }
@@ -248,10 +246,8 @@ export class RuletaAdminPage {
               <td class="det-completo det-chip"><a-pill [tone]="c.usado ? 'muted' : 'ok'">{{ c.usado ? 'Usado' : 'Disponible' }}</a-pill></td>
               <td>{{ c.premio }}</td>
               <td>@if (c.usado) { {{ c.usadoPor }} · {{ c.fechaUso }} } @else { — }</td>
-              <td>
-                @if (!c.usado) {
-                  <button type="button" data-compact class="adm-accion adm-accion-icono peligro" [attr.aria-label]="'Eliminar ' + c.codigo" (click)="borrar.set(c)"><app-icon name="Trash2" class="h-4 w-4" /></button>
-                }
+              <td class="whitespace-nowrap">
+                @if (!c.usado) { <button aBtn variant="peligro-ghost" [attr.aria-label]="'Eliminar ' + c.codigo" (click)="borrar.set(c)"><app-icon name="Trash2" class="h-4 w-4" /> Eliminar</button> }
               </td>
             </tr>
           } @empty {

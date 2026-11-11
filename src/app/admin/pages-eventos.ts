@@ -56,11 +56,9 @@ const lineas = (t: string) => t.split(/\r?\n/).map((x) => x.trim()).filter(Boole
               <td>{{ fecha(e.fechaISO) }} · {{ e.hora }}</td>
               <td>{{ e.cuposRestantes }} / {{ e.cupos }}</td>
               <td><a-toggle label="Publicado" [on]="e.activo" (onChange)="alternar(e, $event)" /></td>
-              <td>
-                <div class="flex gap-1">
-                  <button type="button" data-compact class="adm-accion adm-accion-icono" [attr.aria-label]="'Editar ' + e.nombre" (click)="editar(e)"><app-icon name="Pencil" class="h-4 w-4" /></button>
-                  <button type="button" data-compact class="adm-accion adm-accion-icono peligro" [attr.aria-label]="'Eliminar ' + e.nombre" (click)="borrar.set(e)"><app-icon name="Trash2" class="h-4 w-4" /></button>
-                </div>
+              <td class="whitespace-nowrap">
+                <button aBtn variant="ghost" [attr.aria-label]="'Editar ' + e.nombre" (click)="editar(e)"><app-icon name="Pencil" class="h-4 w-4" /> Editar</button>
+                <button aBtn variant="peligro-ghost" [attr.aria-label]="'Eliminar ' + e.nombre" (click)="borrar.set(e)"><app-icon name="Trash2" class="h-4 w-4" /> Eliminar</button>
               </td>
             </tr>
           } @empty {
