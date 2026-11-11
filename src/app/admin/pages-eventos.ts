@@ -38,19 +38,23 @@ const lineas = (t: string) => t.split(/\r?\n/).map((x) => x.trim()).filter(Boole
     </div>
 
     <div class="adm-wrap">
-      <table class="adm-table adm-compacta">
+      <table class="adm-table">
         <thead><tr>
-          <th aria-label="Imagen"></th><th aOrden="nombre" [pag]="pag" etiquetaOrden="Evento">Evento</th><th aOrden="fechaISO" [pag]="pag" etiquetaOrden="Fecha">Fecha</th>
-          <th>Cupos</th><th>Nivel</th><th aOrden="activo" [pag]="pag" etiquetaOrden="Publicado">Publicado</th><th aria-label="Acciones"></th>
+          <th aOrden="nombre" [pag]="pag" etiquetaOrden="Evento">Evento</th><th>Nivel</th><th aOrden="fechaISO" [pag]="pag" etiquetaOrden="Fecha">Fecha</th>
+          <th>Cupos</th><th aOrden="activo" [pag]="pag" etiquetaOrden="Publicado">Publicado</th><th aria-label="Acciones"></th>
         </tr></thead>
         <tbody>
           @for (e of pag.items(); track e.id) {
             <tr>
-              <td><img [src]="e.imagen" alt="" class="h-11 w-16 rounded-lg object-cover" /></td>
-              <td><b>{{ e.nombre }}</b><p class="text-xs text-muted-foreground">{{ e.marca }} · {{ etiqueta(e.tipo) }}</p></td>
-              <td>{{ fecha(e.fechaISO) }}<p class="text-xs text-muted-foreground">{{ e.hora }}</p>@if (pasado(e)) { <a-pill tone="muted">Realizado</a-pill> }</td>
+              <td>
+                <div class="flex items-center gap-3">
+                  <img [src]="e.imagen" alt="" class="h-11 w-16 shrink-0 rounded-lg object-cover" />
+                  <div class="min-w-0"><b>{{ e.nombre }}</b><p class="text-xs text-muted-foreground">{{ e.marca }} · {{ etiqueta(e.tipo) }}</p></div>
+                </div>
+              </td>
+              <td class="det-completo det-chip"><a-pill tone="info">{{ e.nivelMinimo }}</a-pill>@if (pasado(e)) { <a-pill tone="muted" class="ml-1">Realizado</a-pill> }</td>
+              <td>{{ fecha(e.fechaISO) }} · {{ e.hora }}</td>
               <td>{{ e.cuposRestantes }} / {{ e.cupos }}</td>
-              <td class="det-chip"><a-pill tone="info">{{ e.nivelMinimo }}</a-pill></td>
               <td><a-toggle label="Publicado" [on]="e.activo" (onChange)="alternar(e, $event)" /></td>
               <td>
                 <div class="flex gap-1">
@@ -60,7 +64,7 @@ const lineas = (t: string) => t.split(/\r?\n/).map((x) => x.trim()).filter(Boole
               </td>
             </tr>
           } @empty {
-            @if (pag.cargando()) { @for (n of [1, 2, 3, 4, 5]; track n) { <tr aEsqueleto [cols]="7"></tr> } } @else { <tr><td colspan="7" class="adm-empty">No hay eventos con estos filtros</td></tr> }
+            @if (pag.cargando()) { @for (n of [1, 2, 3, 4, 5]; track n) { <tr aEsqueleto [cols]="6"></tr> } } @else { <tr><td colspan="6" class="adm-empty">No hay eventos con estos filtros</td></tr> }
           }
         </tbody>
       </table>
@@ -219,18 +223,18 @@ export class EventosAdminPage {
         <thead><tr>
           <th aOrden="codigo" [pag]="pag" etiquetaOrden="Código">Código</th><th aOrden="evento" [pag]="pag" etiquetaOrden="Evento">Evento</th>
           <th aOrden="participante" [pag]="pag" etiquetaOrden="Participante">Participante</th><th aOrden="fechaISO" [pag]="pag" etiquetaOrden="Fecha">Fecha</th>
-          <th>Acomp.</th><th>Estado</th>
+          <th>Acompañantes</th><th>Estado</th>
         </tr></thead>
         <tbody>
           @for (p of pag.items(); track p.id) {
             <tr>
               <td><b>{{ p.codigo }}</b></td>
-              <td>{{ p.evento }}</td>
-              <td>{{ p.participante }}<p class="text-xs text-muted-foreground">{{ p.email }} · {{ p.telefono }}</p>@if (p.restricciones) { <p class="text-xs text-muted-foreground">Restricciones: {{ p.restricciones }}</p> }</td>
+              <td class="adm-ancha">{{ p.evento }}</td>
+              <td class="adm-ancha">{{ p.participante }}<p class="text-xs text-muted-foreground">{{ p.email }} · {{ p.telefono }}</p>@if (p.restricciones) { <p class="text-xs text-muted-foreground">Restricciones: {{ p.restricciones }}</p> }</td>
               <td>{{ p.fecha }}</td>
               <td>{{ p.acompanantes }}</td>
               <td>
-                <select [class]="input + ' w-auto'" [attr.aria-label]="'Estado de ' + p.codigo" (change)="cambiar(p, $any($event.target).value)">
+                <select [class]="input + ' w-full sm:w-auto'" [attr.aria-label]="'Estado de ' + p.codigo" (change)="cambiar(p, $any($event.target).value)">
                   @for (e of estados; track e) { <option [value]="e" [selected]="e === p.estado">{{ etiquetas[e] }}</option> }
                 </select>
               </td>

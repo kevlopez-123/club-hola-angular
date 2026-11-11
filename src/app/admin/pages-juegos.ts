@@ -18,30 +18,30 @@ const ROTULO_TIPO = Object.fromEntries(TIPOS_PREMIO.map((t) => [t.v, t.l])) as R
   imports: [AdminModalComponent, BtnDirective, ConfirmComponent, FieldComponent, IconComponent, PillComponent, ToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0 flex-1">
-        <h2 class="text-lg font-bold">{{ titulo() }}</h2>
         <p class="text-sm text-muted-foreground">{{ ayuda() }}</p>
       </div>
-      <button aBtn (click)="edit.set(nuevo())"><app-icon name="Plus" class="h-4 w-4" /> Nuevo premio</button>
+      <button aBtn class="self-start sm:self-auto" (click)="edit.set(nuevo())"><app-icon name="Plus" class="h-4 w-4" /> Nuevo premio</button>
     </div>
     <div class="adm-wrap">
-      <table class="adm-table adm-compacta">
-        <thead><tr><th>Premio</th><th>Tipo</th><th>Activo</th><th aria-label="Acciones"></th></tr></thead>
+      <table class="adm-table">
+        <thead><tr><th>Premio</th><th>Tipo</th><th>Mensaje</th><th>Activo</th><th aria-label="Acciones"></th></tr></thead>
         <tbody>
           @for (p of lista(); track p.id) {
             <tr>
-              <td><b>{{ p.label }}</b><p class="text-xs text-muted-foreground">{{ p.detalle }}</p></td>
-              <td class="det-chip"><a-pill [tone]="p.tipo === 'nada' ? 'muted' : 'ok'">{{ rotulo[p.tipo] }}</a-pill></td>
+              <td><b>{{ p.label }}</b></td>
+              <td class="det-completo det-chip"><a-pill [tone]="p.tipo === 'nada' ? 'muted' : 'ok'">{{ rotulo[p.tipo] }}</a-pill></td>
+              <td class="adm-ancha text-sm text-muted-foreground">{{ p.detalle }}</td>
               <td><a-toggle label="Activo" [on]="p.activo" (onChange)="cambiar(p, $event)" /></td>
               <td>
                 <div class="flex gap-1">
-                  <button type="button" data-compact class="adm-accion adm-accion-icono" [attr.aria-label]="'Editar ' + p.label" (click)="edit.set({ ...p })"><app-icon name="Pencil" class="h-4 w-4" /></button>
-                  <button type="button" data-compact class="adm-accion adm-accion-icono peligro" [attr.aria-label]="'Eliminar ' + p.label" (click)="borrar.set(p)"><app-icon name="Trash2" class="h-4 w-4" /></button>
+                  <button type="button" data-compact class="adm-accion adm-accion-icono" [attr.aria-label]="'Editar ' + p.label" title="Editar" (click)="edit.set({ ...p })"><app-icon name="Pencil" class="h-4 w-4" /></button>
+                  <button type="button" data-compact class="adm-accion adm-accion-icono peligro" [attr.aria-label]="'Eliminar ' + p.label" title="Eliminar" (click)="borrar.set(p)"><app-icon name="Trash2" class="h-4 w-4" /></button>
                 </div>
               </td>
             </tr>
-          } @empty { <tr><td colspan="4" class="adm-empty">No hay premios todavía</td></tr> }
+          } @empty { <tr><td colspan="5" class="adm-empty">No hay premios todavía</td></tr> }
         </tbody>
       </table>
     </div>
@@ -135,38 +135,50 @@ export class PremiosListaComponent {
   template: `
     <a-header title="Ruleta (Spin & Win)" desc="Los premios que salen en la ruleta, los giros por semana de cada participante y lo que ya se jugó." />
 
-    <a-panel title="Giros por semana" class="mb-6">
-      <div class="flex flex-wrap items-end gap-3">
-        <a-field label="Giros por participante cada semana (se renuevan los lunes)">
-          <input [class]="input + ' w-32'" type="number" min="1" max="20" [value]="girosMax()" (input)="girosMax.set(+$any($event.target).value)" />
-        </a-field>
-        <button aBtn (click)="guardarGiros()" [disabled]="girosMax() < 1 || girosMax() > 20">Guardar</button>
+      <div class="mb-6 flex gap-1 overflow-x-auto border-b border-border" role="tablist" aria-label="Secciones">
+        @for (t of tabs; track t.k) {
+          <button type="button" role="tab" [attr.aria-selected]="tab() === t.k" (click)="tab.set(t.k)"
+            [class]="'h-11 shrink-0 border-b-2 px-4 text-sm font-semibold ' + (tab() === t.k ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')">{{ t.l }}</button>
+        }
       </div>
-    </a-panel>
 
-    <a-premios-lista [ruleta]="true" titulo="Premios de la ruleta" ayuda="Cada premio activo es un sector de la ruleta. Necesita al menos 2 sectores activos para funcionar; los premios «Sin premio» (Sigue intentando) también cuentan como sector." />
-
-    <h2 class="mb-2 mt-8 text-lg font-bold">Historial de juegos</h2>
-    <div class="adm-wrap">
-      <table class="adm-table">
-        <thead><tr>
-          <th aOrden="fechaISO" [pag]="hist" etiquetaOrden="Fecha">Fecha</th><th aOrden="participante" [pag]="hist" etiquetaOrden="Participante">Participante</th>
-          <th>Premio</th><th>Origen</th>
-        </tr></thead>
-        <tbody>
-          @for (g of hist.items(); track g.id) {
-            <tr>
-              <td>{{ g.fecha }} · {{ g.hora }}</td><td>{{ g.participante }}</td>
-              <td>{{ g.premio }}</td>
-              <td class="det-chip"><a-pill tone="info">{{ g.origen === 'ruleta' ? 'Ruleta' : 'Lucky Code' }}</a-pill></td>
-            </tr>
-          } @empty {
-            @if (hist.cargando()) { @for (n of [1, 2, 3]; track n) { <tr aEsqueleto [cols]="4"></tr> } } @else { <tr><td colspan="4" class="adm-empty">Todavía nadie ha jugado</td></tr> }
-          }
-        </tbody>
-      </table>
-    </div>
-    <a-pager [p]="hist" />
+    @switch (tab()) {
+      @case ('premios') {
+        <a-premios-lista [ruleta]="true" titulo="Premios de la ruleta" ayuda="Cada premio activo es un sector de la ruleta. Necesita al menos 2 sectores activos para funcionar; «Sin premio» (Sigue intentando) también cuenta como sector." />
+      }
+      @case ('config') {
+        <a-panel title="Giros por semana">
+          <div class="flex flex-wrap items-end gap-3">
+            <a-field label="Giros por participante cada semana (se renuevan los lunes)">
+              <input [class]="input + ' w-32'" type="number" min="1" max="20" [value]="girosMax()" (input)="girosMax.set(+$any($event.target).value)" />
+            </a-field>
+            <button aBtn (click)="guardarGiros()" [disabled]="girosMax() < 1 || girosMax() > 20">Guardar</button>
+          </div>
+        </a-panel>
+      }
+      @case ('historial') {
+        <div class="adm-wrap">
+          <table class="adm-table">
+            <thead><tr>
+              <th>Premio</th><th>Origen</th>
+              <th aOrden="fechaISO" [pag]="hist" etiquetaOrden="Fecha">Fecha</th><th aOrden="participante" [pag]="hist" etiquetaOrden="Participante">Participante</th>
+            </tr></thead>
+            <tbody>
+              @for (g of hist.items(); track g.id) {
+                <tr>
+                  <td><b>{{ g.premio }}</b></td>
+                  <td class="det-completo det-chip"><a-pill tone="info">{{ g.origen === 'ruleta' ? 'Ruleta' : 'Lucky Code' }}</a-pill></td>
+                  <td>{{ g.fecha }} · {{ g.hora }}</td><td>{{ g.participante }}</td>
+                </tr>
+              } @empty {
+                @if (hist.cargando()) { @for (n of [1, 2, 3]; track n) { <tr aEsqueleto [cols]="4"></tr> } } @else { <tr><td colspan="4" class="adm-empty">Todavía nadie ha jugado</td></tr> }
+              }
+            </tbody>
+          </table>
+        </div>
+        <a-pager [p]="hist" />
+      }
+    }
 
   `,
 })
@@ -176,6 +188,8 @@ export class RuletaAdminPage {
   protected readonly input = INPUT_CLS;
   protected readonly hist = new Paginado<Giro>(inject(ApiService), "giros");
   protected readonly girosMax = signal(3);
+  protected readonly tabs = [{ k: "premios", l: "Premios" }, { k: "config", l: "Configuración" }, { k: "historial", l: "Historial" }] as const;
+  protected readonly tab = signal<"premios" | "config" | "historial">("premios");
 
   constructor() {
     this.hist.recargar();
@@ -200,9 +214,16 @@ export class RuletaAdminPage {
       <button aBtn (click)="abrirAlta()"><app-icon name="Plus" class="h-4 w-4" /> Cargar códigos</button>
     </a-header>
 
-    <a-premios-lista [ruleta]="false" titulo="Premios de Lucky Code" ayuda="Son distintos a los de la ruleta: cada código entrega uno de estos premios." class="mb-8 block" />
+      <div class="mb-6 flex gap-1 overflow-x-auto border-b border-border" role="tablist" aria-label="Secciones">
+        @for (t of tabs; track t.k) {
+          <button type="button" role="tab" [attr.aria-selected]="tab() === t.k" (click)="tab.set(t.k)"
+            [class]="'h-11 shrink-0 border-b-2 px-4 text-sm font-semibold ' + (tab() === t.k ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')">{{ t.l }}</button>
+        }
+      </div>
 
-    <h2 class="mb-2 text-lg font-bold">Códigos</h2>
+    @if (tab() === 'premios') {
+      <a-premios-lista [ruleta]="false" titulo="Premios de Lucky Code" ayuda="Son distintos a los de la ruleta: cada código entrega uno de estos premios." />
+    } @else {
     <div class="adm-filtros">
       <div class="adm-busca">
         <app-icon name="Search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -217,15 +238,15 @@ export class RuletaAdminPage {
     <div class="adm-wrap">
       <table class="adm-table">
         <thead><tr>
-          <th aOrden="codigo" [pag]="pag" etiquetaOrden="Código">Código</th><th aOrden="premio" [pag]="pag" etiquetaOrden="Premio">Premio</th>
-          <th aOrden="usado" [pag]="pag" etiquetaOrden="Estado">Estado</th><th>Usado por</th><th aria-label="Acciones"></th>
+          <th aOrden="codigo" [pag]="pag" etiquetaOrden="Código">Código</th><th aOrden="usado" [pag]="pag" etiquetaOrden="Estado">Estado</th>
+          <th aOrden="premio" [pag]="pag" etiquetaOrden="Premio">Premio</th><th>Usado por</th><th aria-label="Acciones"></th>
         </tr></thead>
         <tbody>
           @for (c of pag.items(); track c.codigo) {
             <tr>
               <td><b>{{ c.codigo }}</b></td>
+              <td class="det-completo det-chip"><a-pill [tone]="c.usado ? 'muted' : 'ok'">{{ c.usado ? 'Usado' : 'Disponible' }}</a-pill></td>
               <td>{{ c.premio }}</td>
-              <td class="det-chip"><a-pill [tone]="c.usado ? 'muted' : 'ok'">{{ c.usado ? 'Usado' : 'Disponible' }}</a-pill></td>
               <td>@if (c.usado) { {{ c.usadoPor }} · {{ c.fechaUso }} } @else { — }</td>
               <td>
                 @if (!c.usado) {
@@ -240,6 +261,7 @@ export class RuletaAdminPage {
       </table>
     </div>
     <a-pager [p]="pag" />
+    }
 
     <a-modal [open]="alta()" title="Cargar códigos" (closed)="alta.set(false)">
       <div class="space-y-4">
@@ -267,6 +289,8 @@ export class CodigosAdminPage {
   private readonly toast = inject(ToastService);
   protected readonly input = INPUT_CLS;
   protected readonly pag = new Paginado<CodigoPromo>(inject(ApiService), "codigosPromo");
+  protected readonly tabs = [{ k: "codigos", l: "Códigos" }, { k: "premios", l: "Premios" }] as const;
+  protected readonly tab = signal<"codigos" | "premios">("codigos");
   protected readonly premios = signal<Premio[]>([]);
   protected readonly alta = signal(false);
   protected readonly premioId = signal("");
