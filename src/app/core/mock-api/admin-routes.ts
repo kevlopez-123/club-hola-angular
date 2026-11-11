@@ -229,6 +229,7 @@ export const adminRoutes: Route[] = [
   ["POST", "admin/codigos-promo/cargar", ({ body }) => {
     const premio = (db.admin.premios as any[]).find((p) => p.id === body?.premioId);
     if (!premio) throw new ApiError(404, "Premio no encontrado");
+    if (premio.enRuleta) throw new ApiError(422, "Ese premio es de la ruleta: elige uno de Lucky Code.");
     const lista = db.admin.codigosPromo as any[];
     const ya = new Set(lista.map((c) => c.codigo));
     const omitidos: string[] = [];
