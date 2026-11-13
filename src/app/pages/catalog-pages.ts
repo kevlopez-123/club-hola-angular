@@ -47,6 +47,9 @@ import { Countdown } from "../shared/countdown";
 export class HomePage {
   protected readonly catalog = inject(CatalogService);
   protected readonly brand = inject(BrandService);
+  constructor() {
+    this.catalog.recargarBanners();
+  }
   /** Orden y visibilidad de la portada: se configuran en Admin → Contenido → Secciones del Home. */
   protected readonly secciones = computed(() => {
     const porDefecto = ["banners", "niveles", "beneficios", "cta-duo"].map((id) => ({ id, s: id, on: true }));
@@ -260,10 +263,17 @@ export class BeneficiosPage {
                       <p class="mt-4 text-sm text-muted-foreground">Te quedan:</p>
                       <div class="mt-2"><app-countdown [expira]="cupon.expira" /></div>
                       @if (!beneficio.cuponSinQr) {
-                        <img [src]="'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + cupon.codigo" [alt]="'Código QR ' + cupon.codigo"
-                          width="220" height="220" class="mx-auto mt-5 h-48 w-48" />
+                        @if (qr(); as src) {
+                          <img [src]="src" [alt]="'Código QR ' + cupon.codigo" width="220" height="220" class="mx-auto mt-5 h-48 w-48" />
+                        } @else {
+                          <div class="mx-auto mt-5 h-48 w-48 animate-pulse rounded-xl bg-muted" aria-hidden="true"></div>
+                        }
                       }
                       <p class="mt-2 text-lg font-extrabold text-ink">{{ cupon.codigo }}</p>
+                      @if (cupon.documento) {
+                        <p class="mt-1 text-sm font-semibold text-ink" data-testid="cupon-documento">{{ etiquetaDocumento() }} {{ cupon.documento }}</p>
+                        <p class="mt-3 rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">Cupón personal: solo lo puede usar su titular. El comercio puede pedirte tu documento para comprobarlo.</p>
+                      }
                     </div>
                   </div>
                   <div class="mt-4 flex justify-center gap-3">
@@ -297,6 +307,25 @@ export class BeneficiosPage {
               @for (e of beneficio.especificaciones; track e) { <li>• {{ e }}</li> }
             </ul>
           </section>
+
+          @if (locales().length) {
+            <section class="mt-6 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] lg:p-8" data-testid="donde-canjearlo">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-lg font-bold text-ink">Dónde canjearlo</h2>
+                <a [routerLink]="['/mapa']" [queryParams]="{ marca: beneficio.marca }" class="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"><app-icon name="MapPin" class="h-4 w-4" /> Ver en el mapa</a>
+              </div>
+              <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+                @for (l of locales(); track l.id) {
+                  <li class="rounded-2xl border border-border p-4 text-sm">
+                    <p class="font-bold text-ink">{{ l.nombre }}</p>
+                    <p class="mt-1 text-ink">{{ l.direccion }}, {{ l.distrito }}</p>
+                    @if (l.horario) { <p class="mt-1 text-muted-foreground">{{ l.horario }}</p> }
+                    @if (l.telefono) { <p class="text-muted-foreground">{{ l.telefono }}</p> }
+                  </li>
+                }
+              </ul>
+            </section>
+          }
 
           <section class="mt-6 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] lg:p-8">
             <h2 class="text-lg font-bold text-ink">Términos y condiciones</h2>
@@ -342,6 +371,7 @@ export class BeneficioDetallePage {
   readonly id = input.required<string>();
   private readonly api = inject(ApiService);
   private readonly sesion = inject(SesionService);
+  private readonly brand = inject(BrandService);
   /** Horas de validez del cupón: las de este beneficio (o las generales del programa si no tiene regla propia). */
   protected readonly horasCupon = computed(() => this.beneficio()?.reglaCupon?.horas || this.catalog.config()?.cupon?.horas || 3);
   /** Qué le toca a este participante con este beneficio: disponible o el motivo por el que no puede canjearlo ahora. */
@@ -419,6 +449,16 @@ export class BeneficioDetallePage {
   protected readonly cupon = computed(() => this.store.cupones()[this.id()]);
   /** El QR se muestra mientras el cupón no haya vencido; vencido, vuelve el botón o el motivo del bloqueo. */
   protected readonly cuponActivo = computed(() => { const c = this.cupon(); return c && c.expira > Date.now() ? c : null; });
+  /** Locales de la marca donde se puede canjear (los que están publicados). */
+  protected readonly locales = computed(() => { const b = this.beneficio(); return b ? this.catalog.localesDe(b.marca) : []; });
+  /** El QR se dibuja en el navegador: el código del cupón no sale a ningún servicio externo. */
+  protected readonly qr = signal("");
+  protected readonly etiquetaDocumento = computed(() => this.brand.pais().documentos[0]?.label ?? "Documento");
+  private readonly dibujarQr = effect(() => {
+    const codigo = this.cuponActivo()?.codigo;
+    if (!codigo) { this.qr.set(""); return; }
+    void import("qrcode").then((m) => m.toDataURL(codigo, { width: 220, margin: 1, errorCorrectionLevel: "M" })).then((u) => this.qr.set(u)).catch(() => this.qr.set(""));
+  });
 
   protected itemAgregado(b: { id: string; marca: string; nombre: string; imagen: string; precio?: number | undefined }) {
     return { id: b.id, marca: b.marca, nombre: b.nombre, imagen: b.imagen, precio: b.precio ?? 0 };

@@ -1,6 +1,17 @@
 import { db, persistDb } from "./db";
 import { tokenBaja } from "./novedades";
-import { ccoPara, bloquesDe, DISENO_BASE, MAX_INTENTOS_CORREO, PLANTILLAS_BASE, renderCorreoHtml, renderPlantilla, textoPlano, type CorreoEnviado, type EntornoCorreo } from "../correos";
+import { ccoPara, bloquesDe, DISENO_BASE, formatoRemitente, MAX_INTENTOS_CORREO, PLANTILLAS_BASE, REMITENTE_BASE, renderCorreoHtml, renderPlantilla, textoPlano, type CorreoEnviado, type EntornoCorreo, type PromoCorreo, type Remitente } from "../correos";
+import { promocionesDestacadas } from "../correos-promos";
+
+/** Remitente vigente (Correos → Ajustes). Todo correo del programa sale con él, nunca con un dominio del banco. */
+export function remitenteActual(): Remitente {
+  return { ...REMITENTE_BASE, ...(((db.admin as any).ajustesCorreo?.remitente) ?? {}) };
+}
+const marcaDelSitio = () => (typeof document !== "undefined" ? document.baseURI : typeof location !== "undefined" ? `${location.origin}/` : "https://clubhola.com.pe/");
+/** Las promociones destacadas que lleva una campaña de novedades (una por comercio). */
+export function promosDeCampana(cantidad: number | undefined): PromoCorreo[] {
+  return promocionesDestacadas(db.catalogo.beneficios as any[], cantidad ?? 0, marcaDelSitio());
+}
 
 /**
  * Registra (y "envía") un correo transaccional a partir de una plantilla del panel.
@@ -37,6 +48,8 @@ export function enviarCorreo(
     asunto: renderPlantilla(pl.asunto, base),
     cuerpo: textoPlano(bloques, base),
     html,
+    de: formatoRemitente(remitenteActual()),
+    ...(remitenteActual().responderA ? { responderA: remitenteActual().responderA } : {}),
     estado: "En cola",
     intentos: 0,
     proximoIntento: d.toISOString(),
@@ -57,20 +70,22 @@ export function enviarCorreo(
  * Correo con contenido propio (campañas): no sale de una plantilla del sistema sino de un asunto y un mensaje escritos en el panel.
  * Lleva el mismo diseño de marca y pasa por la misma cola de envío.
  */
-export function enviarCorreoLibre(d: { plantilla: string; plantillaId: string; para: string; destinatario: string; participanteId?: string; asunto: string; mensaje: string; botonTexto?: string | undefined; botonUrl?: string | undefined; campanaId?: string; referencia?: string }): CorreoEnviado {
+export function enviarCorreoLibre(d: { plantilla: string; plantillaId: string; para: string; destinatario: string; participanteId?: string; asunto: string; mensaje: string; botonTexto?: string | undefined; botonUrl?: string | undefined; campanaId?: string; referencia?: string; promociones?: PromoCorreo[] }): CorreoEnviado {
   const marca: any = (db.config as any).tenant?.marca;
   const sitio = typeof location !== "undefined" ? location.origin : "";
   // Todo correo de campaña lleva el enlace para darse de baja de las novedades.
   const bajaUrl = d.participanteId ? `${sitio}/baja?t=${tokenBaja(d.participanteId)}` : "";
-  const base = { programa: marca?.programa ?? "", banco: marca?.nombre ?? "", nombre: d.destinatario, sitio, ...(bajaUrl ? { bajaUrl } : {}) };
+  const base = { programa: marca?.programa ?? "", banco: marca?.nombre ?? "", nombre: d.destinatario, sitio, ...(bajaUrl ? { bajaUrl } : {}), ...(d.promociones?.length ? { promociones: d.promociones } : {}) };
   const bloques = bloquesDe({ asunto: d.asunto, cuerpo: d.mensaje, ...(d.botonTexto && d.botonUrl ? { boton: { texto: d.botonTexto, url: d.botonUrl } } : {}) });
   const ahora = new Date();
   const mail: CorreoEnviado = {
     id: `ce${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
     plantillaId: d.plantillaId, plantilla: d.plantilla, para: d.para, destinatario: d.destinatario,
     asunto: renderPlantilla(d.asunto, base),
-    cuerpo: textoPlano(bloques, base) + (bajaUrl ? `\n\nPara dejar de recibir novedades: ${bajaUrl}` : ""),
+    cuerpo: textoPlano(bloques, base) + (d.promociones?.length ? "\n\nPromociones para ti:\n" + d.promociones.map((p) => `- ${p.comercio}: ${p.nombre} (${p.descuento}) ${p.url}`).join("\n") : "") + (bajaUrl ? `\n\nPara dejar de recibir novedades: ${bajaUrl}` : ""),
     html: renderCorreoHtml(bloques, { ...DISENO_BASE, ...(db.admin.disenoCorreo as any) }, entornoCorreo(), base),
+    de: formatoRemitente(remitenteActual()),
+    ...(remitenteActual().responderA ? { responderA: remitenteActual().responderA } : {}),
     estado: "En cola", intentos: 0, proximoIntento: ahora.toISOString(),
     fechaISO: ahora.toISOString().slice(0, 10), fecha: ahora.toISOString().slice(0, 19).replace("T", " "),
     ...(d.participanteId ? { participanteId: d.participanteId } : {}), ...(d.referencia ? { referencia: d.referencia } : {}), ...(d.campanaId ? { campanaId: d.campanaId } : {}),

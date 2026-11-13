@@ -62,6 +62,7 @@ export const routes: Routes = [
       { path: "ruleta", title: adminTitle("Ruleta"), loadComponent: () => import("./admin/pages-juegos").then((m) => m.RuletaAdminPage) },
       { path: "codigos", title: adminTitle("Lucky Code"), loadComponent: () => import("./admin/pages-juegos").then((m) => m.CodigosAdminPage) },
       { path: "marcas", title: adminTitle("Marcas aliadas"), loadComponent: () => import("./admin/pages-aliadas").then((m) => m.MarcasAdminPage) },
+      { path: "marcas/locales", title: adminTitle("Locales"), loadComponent: () => import("./admin/pages-locales").then((m) => m.LocalesAdminPage) },
       { path: "marcas/:id", title: adminTitle("Ficha de la marca"), loadComponent: () => import("./admin/pages-marca-ficha").then((m) => m.MarcaFichaPage) },
       { path: "contenido", title: adminTitle("Contenido"), loadComponent: () => contenido().then((m) => m.ContenidoPage) },
       { path: "formulario", title: adminTitle("Formulario de datos"), loadComponent: () => contenido().then((m) => m.FormularioPage) },
@@ -77,6 +78,7 @@ export const routes: Routes = [
 
       { path: "beneficios", title: "Beneficios Banco Solidario | Descuentos exclusivos para tarjetahabientes", loadComponent: () => catalog().then((m) => m.BeneficiosPage) },
       { path: "beneficios/:id", title: "Beneficio | Banco Solidario Puntos", loadComponent: () => catalog().then((m) => m.BeneficioDetallePage) },
+      { path: "mapa", title: "Mapa de establecimientos | Club Hola", loadComponent: () => import("./pages/map-page").then((m) => m.MapaPage) },
       { path: "buscar", title: "Resultados de búsqueda | Banco Solidario Puntos", loadComponent: () => catalog().then((m) => m.BuscarPage) },
       { path: "favoritos", canActivate: [participanteGuard], title: "Mis favoritos | Banco Solidario Puntos", loadComponent: () => catalog().then((m) => m.FavoritosPage) },
 

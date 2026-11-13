@@ -13,6 +13,9 @@ import { ApiService } from '../core/api.service';
 import { formatUSD } from '../core/format';
 import { errorReglasBeneficio, fechaLarga, reglaDe, type ReglaCupon, type Vigencia } from '../core/cupones';
 import { BrandService } from '../core/brand.service';
+import { guardarArchivo } from '../core/descargas';
+import { descargarXlsx } from './kit';
+import { hojasPromociones, type PromocionCompleta } from '../core/promociones';
 import { CargaMasivaComponent } from './carga-masiva';
 import type { Beneficio, Slide } from '../core/models';
 import { CatIconComponent, IconComponent } from '../shared/icon.component';
@@ -302,6 +305,8 @@ type Lote = {
       [desc]="pag.total().toLocaleString('es') + ' beneficios'"
     >
       @if (tab() === 'lista') {
+      <button aBtn variant="outline" [disabled]="exportando()" (click)="descargarData('xlsx')" title="Todas las promociones con sus condiciones y locales, en Excel"><app-icon name="Download" class="h-4 w-4" /> Data completa</button>
+      <button aBtn variant="outline" [disabled]="exportando()" (click)="descargarData('json')" title="La misma información en JSON, lista para que BanBif la procese con una IA"><app-icon name="Download" class="h-4 w-4" /> Datos para IA</button>
       <button aBtn variant="outline" (click)="cargaMasiva.set(true)"><app-icon name="Upload" class="h-4 w-4" /> Carga masiva</button>
       <button aBtn [disabled]="!pag.items().length" (click)="edit.set(nuevo())">
         <app-icon name="Plus" class="h-4 w-4" /> Nuevo beneficio
@@ -725,6 +730,23 @@ export class BeneficiosAdminPage {
   protected readonly tab = signal<'lista' | 'categorias' | 'cupones' | 'banners'>('lista');
   protected readonly edit = signal<BeneficioRow | null>(null);
   protected readonly cargaMasiva = signal(false);
+  protected readonly exportando = signal(false);
+  private readonly apiExport = inject(ApiService);
+  private readonly avisarExport = inject(ToastService);
+  /** Todas las promociones con sus condiciones y locales: Excel para revisar, JSON para que BanBif lo procese con una IA. */
+  protected descargarData(formato: 'xlsx' | 'json') {
+    this.exportando.set(true);
+    this.apiExport.get<{ generado: string; total: number; promociones: PromocionCompleta[] }>('admin/promociones/export').subscribe({
+      next: (r) => {
+        const dia = r.generado.slice(0, 10);
+        if (formato === 'xlsx') descargarXlsx(`promociones_${dia}.xlsx`, hojasPromociones(r.promociones));
+        else guardarArchivo(new Blob([JSON.stringify(r, null, 2)], { type: 'application/json' }), `promociones_${dia}.json`);
+        this.exportando.set(false);
+        this.avisarExport.show(`${r.total} promociones descargadas`);
+      },
+      error: () => { this.exportando.set(false); this.avisarExport.error('No pudimos preparar la descarga. Inténtalo otra vez.'); },
+    });
+  }
   /** Avisa antes de descartar si hay cambios sin guardar. */
   protected readonly sucio = usarSucio(() => this.edit());
   protected readonly editCat = signal<CategoriaEdit | null>(null);
@@ -764,7 +786,8 @@ export class BeneficiosAdminPage {
   protected textoCupon(b: BeneficioRow): string {
     if (b.tipo === 'compra') return '—';
     const r = reglaDe(b.cupon, undefined);
-    return r.limite <= 0 ? ` h · sin límite` : ` h ·  , espera  `;
+    if (r.limite <= 0) return `${r.horas} h · sin límite`;
+    return `${r.horas} h · ${r.limite} ${r.limite === 1 ? 'vez' : 'veces'}, espera ${r.meses} ${r.meses === 1 ? 'mes' : 'meses'}`;
   }
 
   /** "El cupón dura 24 horas. Se puede canjear 1 vez; para volver a hacerlo hay que esperar 3 meses desde el último canje." */

@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { IconComponent } from '../shared/icon.component';
+import { CatalogService } from '../core/catalog.service';
+import { textoAudiencia } from '../core/banners-audiencia';
 import {
   AdminApi,
   AdminModalComponent,
@@ -34,6 +36,10 @@ type Banner = {
   activo: boolean;
   inicio: string;
   fin: string;
+  /** Niveles (segmentos) a los que se muestra; vacío = a todos. */
+  segmentos?: string[] | undefined;
+  /** Categorías de interés (favoritos y canjes); vacío = sin filtro por interés. */
+  intereses?: string[] | undefined;
 };
 type BannerEdit = Banner & { img: string[]; imgMovil: string[] };
 
@@ -102,6 +108,7 @@ const estadoB = (b: Banner) =>
                     <a-pill>{{ b.ubicacion }}</a-pill
                     ><a-pill [tone]="estado(b).t">{{ estado(b).l }}</a-pill>
                   </div>
+                  <p class="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><app-icon name="Users" class="h-3.5 w-3.5" /> Se muestra a: <b class="text-foreground">{{ audiencia(b) }}</b></p>
                 </div>
                 <a-toggle
                   label="Activo"
@@ -215,6 +222,24 @@ const estadoB = (b: Banner) =>
                 (input)="setB({ fin: $any($event.target).value })"
             /></a-field>
           </div>
+          <fieldset class="rounded-2xl border border-border p-4">
+            <legend class="px-1 text-sm font-semibold">¿A quién se le muestra?</legend>
+            <p class="text-xs text-muted-foreground">Sin marcar nada, lo ve todo el mundo. Los banners dirigidos aparecen primero para quienes cumplen la condición.</p>
+            <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nivel (segmento)</p>
+            <div class="mt-1 flex flex-wrap gap-2">
+              @for (n of niveles(); track n) {
+                <button type="button" [attr.aria-pressed]="(e.segmentos ?? []).includes(n)" (click)="alternarAudiencia('segmentos', n)"
+                  [class]="'min-h-9 rounded-full border px-3 text-sm font-semibold ' + ((e.segmentos ?? []).includes(n) ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-muted')">{{ n }}</button>
+              }
+            </div>
+            <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Interés (categorías que marcó como favoritas o canjeó)</p>
+            <div class="mt-1 flex flex-wrap gap-2">
+              @for (c of categorias(); track c) {
+                <button type="button" [attr.aria-pressed]="(e.intereses ?? []).includes(c)" (click)="alternarAudiencia('intereses', c)"
+                  [class]="'min-h-9 rounded-full border px-3 text-sm font-semibold ' + ((e.intereses ?? []).includes(c) ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-muted')">{{ c }}</button>
+              }
+            </div>
+          </fieldset>
           <a-field label="Enlace al hacer clic (opcional)"
             ><input
               [class]="input"
@@ -293,6 +318,10 @@ export class BannersEditorComponent {
   protected readonly toast = inject(ToastService);
   private readonly admin = inject(AdminApi);
   protected readonly input = INPUT_CLS;
+  private readonly catalog = inject(CatalogService);
+  protected readonly niveles = computed(() => this.catalog.niveles().map((n) => n.nombre));
+  protected readonly categorias = computed(() => this.catalog.categoriasBeneficio().map((c) => c.label));
+  protected readonly audiencia = textoAudiencia;
   protected readonly canales: Canal[] = ['Web', 'App'];
   protected readonly canal = signal<Canal>('Web');
   protected readonly ubic = signal('Todas');
@@ -360,6 +389,12 @@ export class BannersEditorComponent {
     this.banners.update((x) => x.filter((y) => y.key !== b.key));
     this.persistBanners();
     this.toast.show('Banner eliminado');
+  }
+  protected alternarAudiencia(campo: 'segmentos' | 'intereses', valor: string) {
+    const e = this.editB();
+    if (!e) return;
+    const actual = e[campo] ?? [];
+    this.setB({ [campo]: actual.includes(valor) ? actual.filter((x) => x !== valor) : [...actual, valor] });
   }
   protected setB(p: Partial<BannerEdit>) {
     this.editB.update((e) => (e ? { ...e, ...p } : e));

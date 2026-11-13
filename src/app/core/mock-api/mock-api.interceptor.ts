@@ -11,6 +11,8 @@ import { erroresDireccion } from "../validar-direccion";
 import { legalAMarkdown } from "../markdown";
 import { aplicarPromo } from "../promo";
 import { popupsPublicos, registrarEventoPopup } from "./popups";
+import { ofuscarDocumento } from "../documento";
+import { bannersPara } from "./banners";
 import { disponibleEn, estadoVigencia, evaluarCanje, fechaLarga, listaTexto, reglaDe, type ReglaCupon } from "../cupones";
 import { alertaLote, avisarNivel, enviarCorreo } from "./correos";
 import { nombreAccion, puedeApi, requisitoApi, rolExiste } from "../permisos";
@@ -192,8 +194,9 @@ const customerRoutes: Route[] = [
   ["POST", "popups/:id/evento", ({ params, body }) => registrarEventoPopup(params["id"]!, String(body?.canal ?? ""), String(body?.tipo ?? ""))],
   ["GET", "catalogo/categorias-beneficio", () => db.catalogo.categoriasBeneficio],
   /** Marcas aliadas publicadas (nombre, logo y sitio web). */
+  ["GET", "catalogo/locales", () => (db.admin.locales as any[]).filter((l) => l.activo)],
   ["GET", "catalogo/marcas", () => db.admin.marcas.filter((m: any) => m.activo).map(({ nombre, logo, web, descripcion }: any) => ({ nombre, logo, web, descripcion }))],
-  ["GET", "catalogo/banners/:seccion", ({ params }) => db.catalogo.banners[params["seccion"]!] ?? []],
+  ["GET", "catalogo/banners/:seccion", ({ params }) => bannersPara(params["seccion"]!)],
   ["GET", "niveles", () => ({ niveles: db.niveles, ...db.nivelesTexto })],
 
   /* ---------- Configuración ---------- */
@@ -289,7 +292,7 @@ const customerRoutes: Route[] = [
     } else if (lotes.length) {
       throw new ApiError(409, "Los códigos de este beneficio vencieron. Intenta más tarde.");
     }
-    const cupon = { codigo, expira: Date.now() + est.regla.horas * 60 * 60 * 1000 };
+    const cupon = { codigo, expira: Date.now() + est.regla.horas * 60 * 60 * 1000, documento: ofuscarDocumento(db.perfil.codigoParticipante) };
     db.cupones[body.beneficioId] = cupon;
     const h = hoy();
     const vence = new Date(cupon.expira);
@@ -517,6 +520,7 @@ const respond = (req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> =
     r.keys.forEach((k, i) => (params[k] = decodeURIComponent(m[i + 1]!)));
     try {
       contexto.usuarioPanelId = usuarioDelToken(req);
+      contexto.participante = /^Bearer mock\.participante\./.test(req.headers.get("Authorization") ?? "");
       const query = new URLSearchParams(url.search);
       for (const k of req.params.keys()) query.set(k, req.params.get(k) ?? "");
       // Registro de cambios automático: foto del estado antes y después de cada cambio hecho desde el panel.

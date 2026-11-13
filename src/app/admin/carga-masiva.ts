@@ -296,6 +296,7 @@ export class CargaMasivaComponent {
     const existentes = new Map<string, any>();
     if (t === "beneficios") for (const b of await get<any>("beneficios")) existentes.set(String(b.id), b);
     if (t === "marcas") for (const m of marcas) existentes.set(claveMarca(m.nombre), m);
+    if (t === "locales") for (const l of await get<any>("locales")) existentes.set(String(l.id), l);
     return {
       marcas,
       categoriasBeneficio: t === "beneficios" ? await get("categoriasBeneficio") : [],

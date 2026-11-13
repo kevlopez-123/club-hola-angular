@@ -6,7 +6,7 @@ import type { PlantillaDef } from "./plantillas-xlsx";
  * Definición de las cargas masivas del panel: qué columnas lleva cada plantilla, cómo se validan y cómo se convierte una fila en
  * el registro del catálogo (crear o actualizar). Las filas vacías de una actualización no cambian el dato.
  */
-export type TipoCarga = "beneficios" | "marcas" | "participantes" | "codigos";
+export type TipoCarga = "beneficios" | "marcas" | "participantes" | "codigos" | "locales";
 
 export interface CtxCarga {
   marcas: { id: string; nombre: string; web?: string }[];
@@ -42,7 +42,7 @@ export interface Definicion {
   /** Columna que identifica cada fila. */
   clave: string;
   /** Colección del servidor donde se guarda (ajustes y códigos tienen su propio punto de entrada). */
-  coleccion?: "beneficios" | "marcas" | "participantes";
+  coleccion?: "beneficios" | "marcas" | "participantes" | "locales";
   /** Solo crea (no actualiza por clave): participantes y códigos. */
   soloCrear?: boolean;
   conImagenes: boolean;
@@ -98,6 +98,19 @@ export const COLUMNAS: Record<TipoCarga, ColCarga[]> = {
     { clave: "correo", titulo: "Correo", tipo: "correo", obligatoria: true, limite: "correo", ayuda: "Correo electrónico válido; ahí recibe su código de acceso y el correo de bienvenida.", ejemplo: "ana.torres@correo.com", alias: ["email"] },
     { clave: "nivel", titulo: "Nivel", tipo: "opcion", opciones: ["Clásico", "Plata", "Oro", "Diamante"], ayuda: "Nivel que le asigna el banco. Vacío: Clásico.", ejemplo: "Clásico" },
   ],
+  locales: [
+    { clave: "codigo", titulo: "Código", tipo: "codigo", obligatoria: true, limite: "codigo", ayuda: "Identifica el local. Si ya existe, se actualiza; si no, se crea.", ejemplo: "BEMBOS-MIRAFLORES", alias: ["id"] },
+    { clave: "comercio", titulo: "Comercio", tipo: "texto", obligatoria: true, limite: "nombre", ayuda: "Marca aliada a la que pertenece el local; debe existir en Marcas aliadas.", ejemplo: "Bembos", alias: ["marca"] },
+    { clave: "nombre", titulo: "Nombre del local", tipo: "texto", limite: "nombre", ayuda: "Vacío: marca + distrito.", ejemplo: "Bembos Miraflores", alias: ["local"] },
+    { clave: "direccion", titulo: "Dirección", tipo: "texto", obligatoria: true, limite: "direccion", ayuda: "Calle y número.", ejemplo: "Av. Larco 345", alias: ["direccion"] },
+    { clave: "distrito", titulo: "Distrito", tipo: "texto", obligatoria: true, limite: "nombre", ayuda: "Distrito o ciudad.", ejemplo: "Miraflores" },
+    { clave: "provincia", titulo: "Provincia", tipo: "texto", limite: "nombre", ayuda: "Departamento o provincia. Vacío: Lima al crear.", ejemplo: "Lima" },
+    { clave: "latitud", titulo: "Latitud", tipo: "decimal", obligatoria: true, min: -90, max: 90, ayuda: "Coordenada para el mapa (en Google Maps: clic derecho sobre el local y copiar las coordenadas).", ejemplo: -12.1219, alias: ["lat"] },
+    { clave: "longitud", titulo: "Longitud", tipo: "decimal", obligatoria: true, min: -180, max: 180, ayuda: "Coordenada para el mapa.", ejemplo: -77.0297, alias: ["lng", "lon"] },
+    { clave: "horario", titulo: "Horario", tipo: "texto", limite: "texto", ayuda: "Texto libre.", ejemplo: "Lun a Dom 11:00 a 23:30" },
+    { clave: "telefono", titulo: "Teléfono", tipo: "texto", limite: "telefono", ayuda: "Teléfono de contacto del local.", ejemplo: "01 4445566", alias: ["celular"] },
+    ACTIVO,
+  ],
   codigos: [
     { clave: "codigo", titulo: "Código", tipo: "codigo", obligatoria: true, limite: "codigo", texto: true, ayuda: "Un código por fila (letras, números y guiones). Si ya está cargado en otro lote del mismo beneficio, se omite.", ejemplo: "ABC-0001" },
   ],
@@ -107,6 +120,7 @@ export const DEFINICIONES: Record<TipoCarga, Definicion> = {
   beneficios: { tipo: "beneficios", nombre: "Beneficios", titulo: "Carga masiva de beneficios", columnas: COLUMNAS.beneficios, clave: "codigo", coleccion: "beneficios", conImagenes: true },
   marcas: { tipo: "marcas", nombre: "Marcas aliadas", titulo: "Carga masiva de marcas", columnas: COLUMNAS.marcas, clave: "nombre", coleccion: "marcas", conImagenes: true },
   participantes: { tipo: "participantes", nombre: "Participantes", titulo: "Carga masiva de participantes", columnas: COLUMNAS.participantes, clave: "documento", coleccion: "participantes", soloCrear: true, conImagenes: false },
+  locales: { tipo: "locales", nombre: "Locales", titulo: "Carga masiva de locales", columnas: COLUMNAS.locales, clave: "codigo", coleccion: "locales", conImagenes: false },
   codigos: { tipo: "codigos", nombre: "Códigos de beneficio", titulo: "Cargar códigos de beneficio", columnas: COLUMNAS.codigos, clave: "codigo", soloCrear: true, conImagenes: false },
 };
 
@@ -123,6 +137,8 @@ export function filaDeEntidad(tipo: TipoCarga, e: any): (string | number)[] {
       return [e.id, e.nombre ?? "", e.marca ?? "", e.categoria ?? "", e.descuento ?? "", e.tipo === "compra" ? "Compra" : "Cupón", e.precio ?? "", e.nivelMinimo ?? "", e.descripcion ?? "", lista(e.pasos), e.terminos ?? "", e.desde ?? "", e.hasta ?? "", lista(e.provincias), e.modoCodigo === "compartido" ? (e.codigoCompartido ?? "") : "", e.modoCodigo === "compartido" ? (e.usosMaximos ?? "") : "", e.cupon?.horas ?? "", e.cupon?.limite ?? "", e.cupon?.meses ?? "", soloUrls(e.imagenes?.length ? e.imagenes : e.galeria), sn(e.activo)];
     case "marcas":
       return [e.nombre ?? "", e.web ?? "", e.descripcion ?? "", soloUrls([e.logo]), sn(e.activo)];
+    case "locales":
+      return [e.id ?? "", e.marca ?? "", e.nombre ?? "", e.direccion ?? "", e.distrito ?? "", e.provincia ?? "", e.lat ?? "", e.lng ?? "", e.horario ?? "", e.telefono ?? "", sn(e.activo)];
     default:
       return [];
   }
@@ -142,16 +158,19 @@ export function plantillaConDatos(tipo: TipoCarga, registros: any[]): PlantillaD
 
 export function plantillaDe(tipo: TipoCarga): PlantillaDef {
   const d = DEFINICIONES[tipo];
-  const base = { participantes: "Crea participantes con el nivel que les asigna el banco. Recibirán un correo de bienvenida al importarse.", codigos: "Cada código se entrega a un solo participante. El beneficio y la fecha de vencimiento se eligen en la pantalla de carga, no en el archivo.", productos: "Crea o actualiza productos del catálogo.", beneficios: "Crea o actualiza beneficios, con su vigencia, regla del cupón y provincias.", marcas: "Crea o actualiza marcas aliadas (nombre, sitio web, descripción y logo).", ajustes: "Suma o resta puntos a varios participantes a la vez. Cada ajuste queda en su historial con el motivo y quién lo hizo." }[tipo];
+  const base = { participantes: "Crea participantes con el nivel que les asigna el banco. Recibirán un correo de bienvenida al importarse.", codigos: "Cada código se entrega a un solo participante. El beneficio y la fecha de vencimiento se eligen en la pantalla de carga, no en el archivo.", productos: "Crea o actualiza productos del catálogo.", beneficios: "Crea o actualiza beneficios, con su vigencia, regla del cupón y provincias.", marcas: "Crea o actualiza marcas aliadas (nombre, sitio web, descripción y logo).", locales: "Crea o actualiza los locales de las marcas aliadas: dirección, coordenadas, horario y teléfono. Alimentan el mapa y la ficha de cada beneficio.", ajustes: "Suma o resta puntos a varios participantes a la vez. Cada ajuste queda en su historial con el motivo y quién lo hizo." }[tipo];
   const imagenes = d.conImagenes ? ["Las imágenes se suben aparte (varias a la vez o un ZIP) en el paso «Imágenes» y se enlazan por el nombre del archivo."] : [];
   const notas = tipo === "participantes"
     ? ["Un participante cuyo documento ya existe se rechaza: esta carga solo crea.", "Las filas con errores no se importan; se te entrega un reporte para corregirlas y volver a subirlas.", "No dejes filas vacías entre los datos."]
-    : tipo === "codigos"
+    : tipo === "locales"
+      ? [NOTA_ACTUALIZAR, "El comercio debe existir en Marcas aliadas.", "Las coordenadas (latitud y longitud) se usan para ubicar el local en el mapa."]
+      : tipo === "codigos"
       ? ["Los repetidos dentro del archivo y los que ya están en otro lote del mismo beneficio se omiten.", "Los lotes se usan en orden de carga: cuando uno se agota o vence, sigue el siguiente."]
       : [NOTA_ACTUALIZAR, ...imagenes, "Las listas se separan con punto y coma."];
   const ej: Record<TipoCarga, (string | number)[][]> = {
     participantes: [["0923456781", "Luis Mora", "luis.mora@correo.com", "Clásico"]],
     codigos: [["ABC-0002"], ["ABC-0003"]],
+    locales: [["BEMBOS-MIRAFLORES", "Bembos", "Bembos Miraflores", "Av. Larco 345", "Miraflores", "Lima", -12.1219, -77.0297, "Lun a Dom 11:00 a 23:30", "01 4445566", "Sí"]],
     beneficios: [["CAFE-2X1", "2x1 en bebidas grandes", "Sweet & Coffee", "Cafeterías", "2x1", "Cupón", 0, "Oro", "", "", "", "2026-12-01", "2027-03-31", "Pichincha; Azuay", "", 0, 24, 1, 3, "", "Sí"]],
     marcas: [["Sweet & Coffee", "https://www.sweetandcoffee.com", "Cafeterías", "sweet.png", "Sí"]],
   };
@@ -234,6 +253,23 @@ function construirBeneficio(v: Valores, ctx: CtxCarga, previo: any): { entidad?:
   return e ? { error: e } : { entidad, usadas };
 }
 
+function construirLocal(v: Valores, ctx: CtxCarga, previo: any): { entidad?: any; error?: string; usadas?: string[] } {
+  let marca: string | undefined = previo?.marca;
+  if (v["comercio"] !== undefined) {
+    const m = ctx.marcas.find((x) => coincide(x.nombre, String(v["comercio"])));
+    if (!m) return { error: `El comercio «${v["comercio"]}» no existe. Créalo en Marcas aliadas y vuelve a subir el archivo.` };
+    marca = m.nombre;
+  }
+  const base = previo ?? { id: String(v["codigo"]), marca: "", nombre: "", direccion: "", distrito: "", provincia: "Lima", lat: 0, lng: 0, horario: "", telefono: "", activo: true };
+  const cambios = quitarClave({
+    marca, nombre: v["nombre"], direccion: v["direccion"], distrito: v["distrito"], provincia: v["provincia"],
+    lat: v["latitud"], lng: v["longitud"], horario: v["horario"], telefono: v["telefono"], activo: v["activo"],
+  });
+  const entidad = { ...base, ...cambios, id: base.id };
+  if (!entidad.nombre) entidad.nombre = `${entidad.marca} ${entidad.distrito}`.trim();
+  return { entidad };
+}
+
 function construirMarca(v: Valores, ctx: CtxCarga, previo: any): { entidad?: any; error?: string; usadas?: string[] } {
   let logo: string | undefined;
   let usadas: string[] = [];
@@ -283,7 +319,7 @@ export function prepararCarga(tipo: TipoCarga, matriz: string[][], ctx: CtxCarga
       const falta = faltantesAlCrear(def.columnas, f.valores);
       if (falta) return { ...f, error: falta };
     }
-    const res = tipo === "beneficios" ? construirBeneficio(f.valores, ctx, previo) : construirMarca(f.valores, ctx, previo);
+    const res = tipo === "beneficios" ? construirBeneficio(f.valores, ctx, previo) : tipo === "locales" ? construirLocal(f.valores, ctx, previo) : construirMarca(f.valores, ctx, previo);
     if (res.error) return { ...f, error: res.error };
     return { ...f, accion: previo ? ("actualizar" as const) : ("crear" as const), entidad: res.entidad, imagenesUsadas: res.usadas ?? [] };
   });

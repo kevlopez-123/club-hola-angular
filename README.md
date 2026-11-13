@@ -4,6 +4,8 @@
 >
 > **Demo en GitHub Pages:** usa la MockAPI (sin backend). Para probarla: DNI `41234567`, cualquier código de 6 dígitos; panel en `/admin` con `admin@clubhola.com.pe` / `Admin#2026` (datos de prueba).
 
+> **Reunión con BanBif (fase 1, en la demo):** data completa de promociones (Beneficios → «Data completa» en Excel y «Datos para IA» en JSON, con locales y términos), **locales** de cada marca con dirección y coordenadas (Marcas → Locales, con carga masiva), **mapa de establecimientos** (`/mapa`, con «Cerca de mí»), cupón **personal** (documento ofuscado con los 4 últimos dígitos y QR generado en el navegador), **banners por nivel e interés** (Contenido → Banners) y **correos desde un remitente propio** (Correos → Ajustes → Remitente, por defecto `beneficios@clubhola.com.pe`) con campañas que incluyen promociones. Los locales y direcciones del demo son datos de ejemplo. Lo que necesita backend real (API para BanBif, QR firmado y de corta vida, sesión con renovación, envío con SPF/DKIM/DMARC) queda para la fase 2.
+
 > **Novedades:** Angular 22.2 (TypeScript 6, Node 24 local: usa siempre `npm start` / `npm run build` / `npm run e2e`), panel con interfaz SaaS (workspace, Ctrl+K, migas, tema oscuro), plataforma **white-label** (colores, logos, país, moneda y documentos desde Admin → Configuración → Marca) y pruebas de escalabilidad (`STRESS_N=500000 npm run e2e -- escalabilidad`). Para reutilizarla en otro cliente ver [docs/REPLICAR.md](docs/REPLICAR.md). Suite e2e: ~290 pruebas.
 
 Reescritura en **Angular** (componentes standalone, signals, control flow `@if/@for`, rutas con lazy loading) del proyecto original hecho con Lovable (React + TanStack + Vite). El diseño se conserva: se mantiene **Tailwind CSS 4** con los mismos tokens y clases del original.

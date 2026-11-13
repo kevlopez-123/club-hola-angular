@@ -2,6 +2,7 @@ import { user, beneficios, categoriasBeneficio, direccionesIniciales, slides, sl
 import { compras } from "./seed/historial";
 import { codigosIniciales, premiosIniciales } from "./seed/juegos";
 import { eventosIniciales, preinscripcionesIniciales } from "./seed/eventos";
+import { localesIniciales } from "./seed/locales";
 import {
   auditoria,
   camposIniciales,
@@ -57,6 +58,15 @@ export const adminSeed = () => {
     fin: i % 7 === 6 ? "2026-10-15" : "2026-12-31",
   }));
 
+  // Banners dirigidos: el mismo carrusel muestra promociones distintas según el nivel (segmento) o el interés de cada persona.
+  const dirigidos = [
+    { id: "seg-top-sushi", imagen: "img/hero-sushi.jpg", alt: "EDO SUSHI BAR · Cena aspiracional con promoción subvencionada (Oro y Diamante)", to: "/beneficios", segmentos: ["Oro", "Diamante"] },
+    { id: "seg-top-hotel", imagen: "img/b-hotel.jpg", alt: "CASA ANDINA · Noche de hotel con beneficio exclusivo (Diamante)", to: "/beneficios", segmentos: ["Diamante"] },
+    { id: "seg-masivo-polleria", imagen: "img/b-polleria.jpg", alt: "POLLERÍA · Promoción de consumo masivo (Clásico y Plata)", to: "/beneficios", segmentos: ["Clásico", "Plata"] },
+    { id: "int-cine", imagen: "img/b-cine.jpg", alt: "CINE · Para quienes disfrutan del entretenimiento", to: "/beneficios", intereses: ["Entretenimiento"] },
+    { id: "int-cafe", imagen: "img/b-cafe.jpg", alt: "CAFÉ · Para quienes disfrutan de una buena cafetería", to: "/beneficios", intereses: ["Cafetería"] },
+  ].map((s) => ({ ...s, key: s.id, canal: "Web", ubicacion: "Home", activo: true, inicio: "2026-10-01", fin: "2027-06-30" }));
+
   return {
     /** Pedidos creados por la API pública (checkout) se agregan aquí con `unshift`. */
     pedidos: pedidos as any[],
@@ -87,8 +97,10 @@ export const adminSeed = () => {
       descripcion: "",
       activo: true,
     })) as any[],
+    /** Establecimientos de las marcas (dirección, coordenadas, horario): alimentan el mapa y la ficha de cada beneficio. */
+    locales: localesIniciales() as any[],
     categoriasBeneficio: categoriasBeneficio.map((c) => ({ slug: c.slug, label: c.label, icon: c.icon, activo: true, subcategorias: [] })) as any[],
-    banners: banners as any[],
+    banners: [...banners, ...dirigidos] as any[],
     onboarding: clone(onboarding) as any[],
     campos: clone(camposIniciales) as any[],
     /** Spin & Win y Lucky Code: premios, códigos promocionales y lo que ya se jugó. */

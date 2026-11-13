@@ -5,9 +5,10 @@ import { ApiService } from "../core/api.service";
 import { BrandService } from "../core/brand.service";
 import { CatalogService } from "../core/catalog.service";
 import {
-  AJUSTES_BASE, bloqueNuevo, bloquesDe, correoValido, DISENO_BASE, EJEMPLO_VARS, MAX_CCO, FUENTE_MARCA, FUENTES_CORREO, nombreFuenteSeguro, PLANTILLAS_BASE, renderCorreoHtml, textoPlano,
+  AJUSTES_BASE, bloqueNuevo, bloquesDe, correoValido, DISENO_BASE, EJEMPLO_VARS, errorRemitente, formatoRemitente, MAX_CCO, FUENTE_MARCA, FUENTES_CORREO, nombreFuenteSeguro, PLANTILLAS_BASE, renderCorreoHtml, textoPlano,
   type AjustesCorreo, type BloqueCorreo, type NotificacionPlantilla, type CorreoEnviado, type DisenoCorreo, type EntornoCorreo, type PlantillaCorreo, type TipoBloque,
 } from "../core/correos";
+import { OPCIONES_PROMOCIONES, promocionesDestacadas } from "../core/correos-promos";
 import { IconComponent } from "../shared/icon.component";
 import { etiquetaAudiencia, type AudienciaCampana, type Campana } from "../core/campanas";
 import { AdminSession } from "./session";
@@ -47,8 +48,9 @@ const TIPOS: { t: TipoBloque; l: string; icon: string }[] = [
         </button>
       </div>
     </div>
-    @if (para() || asunto()) {
+    @if (para() || asunto() || de()) {
       <div class="mb-2 rounded-xl border border-border bg-card px-3 py-2 text-xs">
+        @if (de()) { <p class="truncate text-muted-foreground">De: {{ de() }}</p> }
         @if (para()) { <p class="truncate text-muted-foreground">Para: {{ para() }}</p> }
         <p class="truncate font-semibold text-foreground">{{ asunto() }}</p>
       </div>
@@ -67,6 +69,7 @@ export class CorreoPreviewComponent {
   readonly html = input.required<string>();
   readonly asunto = input("");
   readonly para = input("");
+  readonly de = input("");
   protected readonly modo = signal<"desktop" | "mobile">("desktop");
   private readonly caja = viewChild<ElementRef<HTMLElement>>("caja");
   private readonly disponible = signal(0);
@@ -133,7 +136,18 @@ export class CorreoPreviewComponent {
         </div>
       }
       @case ('ajustes') {
-        <div class="max-w-3xl">
+        <div class="max-w-3xl space-y-6">
+          <a-panel title="Remitente de los correos">
+            <p class="mb-4 text-sm text-muted-foreground">Todos los correos del programa salen con este remitente. Debe ser de un dominio propio del programa (por ejemplo @clubhola.com.pe): el dominio del banco (@banbif…) lo usa solo el banco.</p>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <a-field label="Nombre que ve quien lo recibe"><input [class]="input" maxlength="60" [value]="ajustes().remitente.nombre" (input)="setRem({ nombre: $any($event.target).value })" /></a-field>
+              <a-field label="Correo del remitente"><input type="email" [class]="input" maxlength="120" placeholder="beneficios@clubhola.com.pe" [value]="ajustes().remitente.correo" (input)="setRem({ correo: $any($event.target).value })" /></a-field>
+            </div>
+            <a-field label="Las respuestas llegan a (opcional)" class="mt-4 block"><input type="email" [class]="input" maxlength="120" placeholder="Vacío: al correo del remitente" [value]="ajustes().remitente.responderA" (input)="setRem({ responderA: $any($event.target).value })" /></a-field>
+            <p class="mt-4 rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground">Así lo verá el participante: <b class="text-foreground">{{ remitenteTexto() }}</b>. Para que los correos lleguen a la bandeja principal, el dominio del remitente debe tener configurados SPF, DKIM y DMARC con el proveedor de envío.</p>
+            @if (errorRem()) { <p role="alert" class="mt-3 text-sm font-medium text-destructive">{{ errorRem() }}</p> }
+            <div class="det-pie"><button aBtn (click)="guardarAjustes()">Guardar ajustes</button></div>
+          </a-panel>
           <a-panel title="Copia oculta (CCO)">
             <p class="mb-4 text-sm text-muted-foreground">Cada correo que se envía a un participante puede llegar también a estas direcciones, sin que el participante las vea. Sirve, por ejemplo, para archivar lo que se comunica o para auditoría del banco.</p>
             <div class="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
@@ -438,7 +452,7 @@ export class CorreoPreviewComponent {
               <button aBtn variant="outline" (click)="probar()">Enviar prueba</button>
             </div>
           </div>
-          <a-correo-preview [html]="htmlEdicion()" [asunto]="asuntoEdicion()" [para]="e.interna ? 'equipo@banco.com' : ''" />
+          <a-correo-preview [html]="htmlEdicion()" [asunto]="asuntoEdicion()" [de]="remitenteTexto()" [para]="e.interna ? 'equipo@banco.com' : ''" />
         </div>
         <div class="mt-6 flex flex-wrap justify-between gap-2">
           <button aBtn variant="ghost" (click)="restaurar(e)">Restaurar diseño original</button>
@@ -461,6 +475,11 @@ export class CorreoPreviewComponent {
               <a-field label="Texto del botón (opcional)"><input [class]="input" [value]="c.botonTexto ?? ''" (input)="setCamp({ botonTexto: $any($event.target).value })" /></a-field>
               <a-field label="Enlace del botón"><input [class]="input" placeholder="{sitio}/beneficios" [value]="c.botonUrl ?? ''" (input)="setCamp({ botonUrl: $any($event.target).value })" /></a-field>
             </div>
+            <a-field label="Promociones destacadas en el correo">
+              <select [class]="input" aria-label="Promociones destacadas" (change)="setCamp({ promociones: +$any($event.target).value })">
+                @for (n of opcionesPromos; track n) { <option [value]="n" [selected]="(c.promociones ?? 0) === n">{{ n === 0 ? 'Sin promociones' : n + ' promociones (una por comercio)' }}</option> }
+              </select>
+            </a-field>
             <fieldset class="space-y-3 rounded-xl border border-border p-3">
               <legend class="px-1 text-sm font-medium">Audiencia</legend>
               <select [class]="input" aria-label="Tipo de audiencia" (change)="setAud({ tipo: $any($event.target).value })">
@@ -483,7 +502,7 @@ export class CorreoPreviewComponent {
               <button aBtn variant="outline" (click)="probarCampana()">Enviar prueba</button>
             </div>
           </div>
-          <a-correo-preview [html]="htmlCampana()" [asunto]="c.asunto" para="participante@correo.com" />
+          <a-correo-preview [html]="htmlCampana()" [asunto]="c.asunto" [de]="remitenteTexto()" para="participante@correo.com" />
         </div>
         <div class="mt-6 flex justify-end gap-2">
           <button aBtn variant="outline" (click)="camp.set(null)">Cancelar</button>
@@ -519,13 +538,14 @@ export class CorreoPreviewComponent {
     <a-modal [open]="!!ver()" [wide]="true" [xl]="true" title="Correo enviado" (closed)="ver.set(null)">
       @if (ver(); as c) {
         <dl class="mb-4 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          @if (c.de) { <div class="sm:col-span-2"><dt class="inline text-muted-foreground">De: </dt><dd class="inline font-medium">{{ c.de }}</dd></div> }
           @if (c.cco?.length) { <div class="sm:col-span-2"><dt class="inline text-muted-foreground">CCO: </dt><dd class="inline font-medium">{{ c.cco!.join(', ') }}</dd></div> }
           <div><dt class="inline text-muted-foreground">Plantilla: </dt><dd class="inline font-medium">{{ c.plantilla }}</dd></div>
           <div><dt class="inline text-muted-foreground">Fecha: </dt><dd class="inline font-medium">{{ c.fecha }}</dd></div>
           <div><dt class="inline text-muted-foreground">Estado: </dt><dd class="inline font-medium">{{ c.estado }}</dd></div>
           <div><dt class="inline text-muted-foreground">Reenvíos: </dt><dd class="inline font-medium">{{ c.reenvios ?? 0 }}</dd></div>
         </dl>
-        <a-correo-preview [html]="c.html || htmlPlano(c.cuerpo)" [asunto]="c.asunto" [para]="c.para" />
+        <a-correo-preview [html]="c.html || htmlPlano(c.cuerpo)" [asunto]="c.asunto" [de]="c.de ?? ''" [para]="c.para" />
         <div class="mt-5 flex justify-end gap-2">
           <button aBtn variant="outline" (click)="ver.set(null)">Cerrar</button>
           <button aBtn (click)="reenviar(c); ver.set(null)"><app-icon name="Send" class="h-4 w-4" /> Reenviar</button>
@@ -671,12 +691,14 @@ export class CorreosPage {
   protected readonly htmlCampana = computed(() => {
     const c = this.camp();
     const bloques = bloquesDe({ asunto: c?.asunto ?? "", cuerpo: c?.mensaje ?? "", ...(c?.botonTexto && c?.botonUrl ? { boton: { texto: c.botonTexto, url: c.botonUrl } } : {}) });
-    return renderCorreoHtml(bloques, this.diseno(), this.entorno(), { ...this.vars(), bajaUrl: "https://ejemplo.com/baja?t=enlace-personal" });
+    const promociones = promocionesDestacadas(this.catalog.beneficios(), c?.promociones ?? 0, document.baseURI);
+    return renderCorreoHtml(bloques, this.diseno(), this.entorno(), { ...this.vars(), bajaUrl: "https://ejemplo.com/baja?t=enlace-personal", ...(promociones.length ? { promociones } : {}) });
   });
+  protected readonly opcionesPromos = OPCIONES_PROMOCIONES;
   protected nuevaCampana() {
     this.pruebaCamp.set("");
     this.alcance.set(null);
-    this.camp.set({ id: "", nombre: "", asunto: "", mensaje: "Hola {nombre},\n\n", audiencia: { tipo: "todos" }, estado: "Borrador" });
+    this.camp.set({ id: "", nombre: "", asunto: "", mensaje: "Hola {nombre},\n\n", promociones: 0, audiencia: { tipo: "todos" }, estado: "Borrador" });
     this.calcularAlcance();
   }
   protected setCamp(c: Partial<Campana>) {
@@ -865,7 +887,13 @@ export class CorreosPage {
   protected readonly nuevaCco = signal("");
   protected readonly errorCco = signal("");
   protected setCco(c: Partial<AjustesCorreo["cco"]>) {
-    this.ajustes.update((a) => ({ cco: { ...a.cco, ...c } }));
+    this.ajustes.update((a) => ({ ...a, cco: { ...a.cco, ...c } }));
+  }
+  protected readonly errorRem = signal("");
+  protected readonly remitenteTexto = computed(() => formatoRemitente(this.ajustes().remitente));
+  protected setRem(r: Partial<AjustesCorreo["remitente"]>) {
+    this.ajustes.update((a) => ({ ...a, remitente: { ...a.remitente, ...r } }));
+    this.errorRem.set("");
   }
   protected agregarCco() {
     const d = this.nuevaCco().trim().toLowerCase();
@@ -884,9 +912,11 @@ export class CorreosPage {
   protected guardarAjustes() {
     this.agregarCco();
     if (this.errorCco()) return;
+    const err = errorRemitente(this.ajustes().remitente, this.brand.tenant().marca.nombre);
+    if (err) { this.errorRem.set(err); return; }
     this.api.put<AjustesCorreo>("admin/correos/ajustes", this.ajustes()).subscribe({
-      next: (a) => { this.ajustes.set(a); this.toast.show("Ajustes de correos guardados"); },
-      error: (e) => this.errorCco.set(e?.error?.message ?? "No se pudieron guardar los ajustes."),
+      next: (a) => { this.ajustes.set(a); this.errorRem.set(""); this.toast.show("Ajustes de correos guardados"); },
+      error: (e) => { const m = e?.error?.message ?? "No se pudieron guardar los ajustes."; if (/remitente/i.test(m)) this.errorRem.set(m); else this.errorCco.set(m); },
     });
   }
 

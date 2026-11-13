@@ -14,6 +14,8 @@ export interface Campana {
   mensaje: string;
   botonTexto?: string;
   botonUrl?: string;
+  /** Cuántas promociones destacadas se agregan al correo (0 = ninguna). */
+  promociones?: number;
   audiencia: AudienciaCampana;
   estado: "Borrador" | "Enviada";
   /** Cuántos correos se pusieron en cola al enviarla. */

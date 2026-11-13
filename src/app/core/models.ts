@@ -39,7 +39,8 @@ export type CartItem = {
   digital: true;
 };
 
-export type Cupon = { codigo: string; expira: number };
+/** Cupón generado. `documento` es el documento de quien lo generó, ofuscado (solo los 4 últimos). */
+export type Cupon = { codigo: string; expira: number; documento?: string };
 
 /** Aviso dentro del sitio (campanita). */
 export type Notificacion = {

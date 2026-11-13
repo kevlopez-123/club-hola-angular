@@ -34,7 +34,7 @@ import { presetPorId, TENANT_POR_DEFECTO } from "../../tenants/presets";
 const clone = <T>(v: T): T => structuredClone(v);
 
 /** Clave de localStorage donde se guarda la base simulada. Subir la versión invalida datos viejos. */
-export const DB_KEY = "bancosolidario_mockdb_v19";
+export const DB_KEY = "bancosolidario_mockdb_v21";
 
 /**
  * "Base de datos" del backend simulado. Cada petición a /api/* se resuelve contra este estado,
@@ -63,7 +63,7 @@ const semilla = () => {
   /** Eventos anónimos del embudo (solo de quienes aceptaron cookies de analítica). */
   analitica: analiticaSemilla(admin.hoy, [], (admin.beneficios as any[]).map((b) => b.id)) as EventoGuardado[],
   favoritos: [] as string[],
-  cupones: {} as Record<string, { codigo: string; expira: number }>,
+  cupones: {} as Record<string, { codigo: string; expira: number; documento?: string }>,
   compras: clone(compras),
   misBeneficios: clone(misBeneficios),
   consultas: [] as { telefono: string; consulta: string; fecha: string }[],
@@ -103,6 +103,7 @@ const semilla = () => {
       { id: "beneficios", label: "Beneficios", activo: true, children: [
         { label: "Catálogo de beneficios", to: "/beneficios", activo: true },
         { label: "Mis beneficios", to: "/mis-beneficios", activo: true },
+        { label: "Mapa de establecimientos", to: "/mapa", activo: true },
       ] },
       { id: "nivel", label: "Mi nivel", to: "/mi-nivel", activo: true },
       { id: "eventos", label: "Eventos", activo: true, children: [

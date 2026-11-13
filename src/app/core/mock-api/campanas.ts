@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { coincideAudiencia, type AudienciaCampana, type Campana } from "../campanas";
-import { enviarCorreoLibre } from "./correos";
+import { enviarCorreoLibre, promosDeCampana } from "./correos";
 
 /** Participantes a los que llegaría la campaña y cuántos quedan fuera (bloqueados o que no aceptan novedades). */
 export function audienciaDe(a: AudienciaCampana) {
@@ -26,8 +26,10 @@ export function enviarCampana(c: Campana, usuario: string): Campana {
   const i = lista.findIndex((x) => x.id === c.id);
   if (i >= 0) lista[i] = guardada;
   else lista.unshift(guardada);
+  const promociones = promosDeCampana(c.promociones);
   for (const p of destinatarios) {
     enviarCorreoLibre({
+      promociones,
       plantilla: `Campaña: ${c.nombre}`, plantillaId: "campana", para: p.email, destinatario: p.nombre, participanteId: p.id,
       asunto: c.asunto, mensaje: c.mensaje, botonTexto: c.botonTexto, botonUrl: c.botonUrl, campanaId: c.id, referencia: c.nombre,
     });

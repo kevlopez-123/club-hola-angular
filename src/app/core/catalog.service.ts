@@ -1,4 +1,6 @@
-import { Injectable, computed, inject, signal } from "@angular/core";
+import { Injectable, computed, effect, inject, signal, untracked } from "@angular/core";
+import { SesionService } from "./sesion.service";
+import type { Local } from "./mock-api/seed/locales";
 import { ApiService } from "./api.service";
 import { BrandService } from "./brand.service";
 import type {
@@ -113,6 +115,11 @@ export class CatalogService {
   readonly categoriasBeneficio = signal<Categoria[]>([]);
   /** Marcas aliadas con logo y sitio web (se administran en Admin → Marcas). */
   readonly marcasAliadas = signal<MarcaAliada[]>([]);
+  /** Locales (establecimientos) de las marcas aliadas: dónde canjear cada beneficio y qué muestra el mapa. */
+  readonly locales = signal<Local[]>([]);
+  localesDe(marca: string): Local[] {
+    return this.locales().filter((l) => l.marca === marca);
+  }
   marcaPorNombre(nombre: string) {
     return this.marcasAliadas().find((m) => m.nombre === nombre);
   }
@@ -167,6 +174,23 @@ export class CatalogService {
     return true;
   }
 
+  private readonly sesion = inject(SesionService);
+  private primeraSesion = true;
+  /** Los banners dependen de quién entra (su nivel e intereses): al iniciar o cerrar sesión se vuelven a pedir. */
+  private readonly bannersSegunSesion = effect(() => {
+    this.sesion.logged();
+    untracked(() => {
+      if (this.primeraSesion) { this.primeraSesion = false; return; }
+      this.recargarBanners();
+    });
+  });
+
+  /** Banners del sitio para quien está viendo la página (personalizados por nivel e intereses si tiene sesión). */
+  recargarBanners() {
+    this.api.get<Slide[]>("catalogo/banners/home").subscribe({ next: (r) => this.bannersHome.set(r), error: this.falla });
+    this.api.get<Slide[]>("catalogo/banners/beneficios").subscribe({ next: (r) => this.bannersBeneficios.set(r), error: this.falla });
+  }
+
   constructor() {
     this.cargar();
   }
@@ -176,8 +200,8 @@ export class CatalogService {
     this.api.get<Beneficio[]>("catalogo/beneficios").subscribe({ next: (r) => this.beneficiosRaw.set(r), error: this.falla });
     this.api.get<Categoria[]>("catalogo/categorias-beneficio").subscribe({ next: (r) => this.categoriasBeneficio.set(r), error: this.falla });
     this.api.get<MarcaAliada[]>("catalogo/marcas").subscribe({ next: (r) => this.marcasAliadas.set(r), error: this.falla });
-    this.api.get<Slide[]>("catalogo/banners/home").subscribe({ next: (r) => this.bannersHome.set(r), error: this.falla });
-    this.api.get<Slide[]>("catalogo/banners/beneficios").subscribe({ next: (r) => this.bannersBeneficios.set(r), error: this.falla });
+    this.api.get<Local[]>("catalogo/locales").subscribe({ next: (r) => this.locales.set(r), error: () => undefined });
+    this.recargarBanners();
     this.recargarNiveles();
     this.recargarConfig();
     this.ultimaCarga = Date.now();

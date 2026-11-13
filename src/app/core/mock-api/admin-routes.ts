@@ -2,8 +2,8 @@ import { ocupaCupo } from "../eventos";
 import { ajustarCupos } from "./eventos-api";
 import { db } from "./db";
 import { ApiError, type Route } from "./types";
-import { avisarAlta, avisarNivel, enviarCorreo, enviarCorreoLibre, procesarCola, reintentarCorreo } from "./correos";
-import { AJUSTES_BASE, correoValido, DISENO_BASE, EJEMPLO_VARS, MAX_CCO, PLANTILLAS_BASE } from "../correos";
+import { avisarAlta, avisarNivel, enviarCorreo, enviarCorreoLibre, procesarCola, promosDeCampana, reintentarCorreo } from "./correos";
+import { AJUSTES_BASE, correoValido, DISENO_BASE, EJEMPLO_VARS, errorRemitente, MAX_CCO, PLANTILLAS_BASE, REMITENTE_BASE } from "../correos";
 import { describir, registrarCuenta } from "./auditoria";
 import { reporteResumen } from "./reportes";
 import { embudo } from "./analitica";
@@ -20,11 +20,12 @@ import { aAvisar as aAvisarLegales, descartarBorrador as descartarBorradorLegal,
 import { dashboard } from "./dashboard";
 import { audienciaDe, enviarCampana } from "./campanas";
 import { conservarVersiones } from "./versiones";
+import { promocionesCompletas } from "../promociones";
 
 const LISTAS = [
   "participantes", "pedidos", "mensajes", "usuarios", "auditoria", "beneficios",
   "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas",
-  "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias", "premios", "codigosPromo", "giros", "eventos", "preinscripciones",
+  "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias", "premios", "codigosPromo", "giros", "eventos", "preinscripciones", "locales",
 ] as const;
 type Lista = (typeof LISTAS)[number];
 
@@ -96,7 +97,7 @@ const col = (name: string): Lista => {
 };
 
 /* ---------------- Consultas paginadas (para colecciones grandes) ---------------- */
-const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", mensajes: "id", usuarios: "id", marcas: "id", premios: "id", codigosPromo: "codigo", giros: "id", eventos: "id", preinscripciones: "id", plantillasCorreo: "id", correosEnviados: "id", campanas: "id", importaciones: "id" };
+const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", mensajes: "id", usuarios: "id", marcas: "id", premios: "id", codigosPromo: "codigo", giros: "id", eventos: "id", preinscripciones: "id", locales: "id", plantillasCorreo: "id", correosEnviados: "id", campanas: "id", importaciones: "id" };
 const BUSCABLES: Record<string, string[]> = {
   participantes: ["nombre", "cedula", "email"],
   pedidos: ["codigo", "cliente"],
@@ -109,6 +110,7 @@ const BUSCABLES: Record<string, string[]> = {
   codigosPromo: ["codigo", "premio", "usadoPor"],
   giros: ["participante", "premio"],
   eventos: ["nombre", "marca", "lugar", "distrito"],
+  locales: ["nombre", "marca", "direccion", "distrito", "provincia"],
   preinscripciones: ["codigo", "participante", "evento", "email"],
   auditoria: ["accion", "usuario"],
   comprasPuntos: ["codigo", "cliente", "email"],
@@ -293,7 +295,7 @@ export const adminRoutes: Route[] = [
    */
   ["POST", "admin/c/:col/upsert", ({ params, body }) => {
     const c = col(params["col"]!);
-    if (!["beneficios", "marcas"].includes(c)) throw new ApiError(400, "Esta colección no admite carga masiva.");
+    if (!["beneficios", "marcas", "locales"].includes(c)) throw new ApiError(400, "Esta colección no admite carga masiva.");
     const items = body?.items as any[];
     if (!Array.isArray(items) || !items.length) throw new ApiError(422, "No hay filas para cargar.");
     if (items.length > 2000) throw new ApiError(422, "Una carga puede tener como máximo 2.000 filas: divide el archivo.");
@@ -312,6 +314,11 @@ export const adminRoutes: Route[] = [
     return { creados, actualizados };
   }],
 
+  /** Data completa de las promociones (ficha, condiciones, vigencia, regla del cupón y locales) para que BanBif la explote. */
+  ["GET", "admin/promociones/export", () => {
+    const registros = promocionesCompletas(db.admin.beneficios as any[], db.admin.marcas as any[], db.admin.locales as any[], hoy(), (db.config as any).cupon);
+    return { generado: new Date().toISOString(), total: registros.length, promociones: registros };
+  }],
   ["GET", "admin/c/:col", ({ params }) => (db.admin as any)[col(params["col"]!)]],
   ["PUT", "admin/c/:col", ({ params, body }) => {
     const c = col(params["col"]!);
@@ -406,7 +413,7 @@ export const adminRoutes: Route[] = [
     const para = String(body?.para ?? "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(para)) throw new ApiError(422, "Escribe un correo válido para la prueba.");
     const c = body?.campana ?? {};
-    return enviarCorreoLibre({ plantilla: `Campaña: ${c.nombre ?? "prueba"}`, plantillaId: "campana", para, destinatario: "Prueba", asunto: c.asunto ?? "", mensaje: c.mensaje ?? "", botonTexto: c.botonTexto, botonUrl: c.botonUrl, referencia: "Envío de prueba" });
+    return enviarCorreoLibre({ plantilla: `Campaña: ${c.nombre ?? "prueba"}`, plantillaId: "campana", para, destinatario: "Prueba", asunto: c.asunto ?? "", mensaje: c.mensaje ?? "", botonTexto: c.botonTexto, botonUrl: c.botonUrl, referencia: "Envío de prueba", promociones: promosDeCampana(c.promociones) });
   }],
   /** Envío de prueba de una plantilla (con datos de ejemplo) a un correo del equipo. */
   ["POST", "admin/correos/prueba", ({ body }) => {
@@ -477,8 +484,16 @@ export const adminRoutes: Route[] = [
     return db.admin.plantillasCorreo;
   }],
   /** Ajustes de envío: copia oculta (CCO). */
-  ["GET", "admin/correos/ajustes", () => ({ ...AJUSTES_BASE, ...((db.admin as any).ajustesCorreo ?? {}) })],
+  ["GET", "admin/correos/ajustes", () => {
+    const a: any = (db.admin as any).ajustesCorreo ?? {};
+    return { ...AJUSTES_BASE, ...a, remitente: { ...REMITENTE_BASE, ...(a.remitente ?? {}) } };
+  }],
   ["PUT", "admin/correos/ajustes", ({ body }) => {
+    const actual: any = (db.admin as any).ajustesCorreo ?? {};
+    const rem = { ...REMITENTE_BASE, ...(actual.remitente ?? {}), ...(body?.remitente ?? {}) };
+    const errRem = errorRemitente(rem, String((db.config as any).tenant?.marca?.nombre ?? "BanBif"));
+    if (errRem) throw new ApiError(422, errRem);
+    const remitente = { nombre: String(rem.nombre).trim(), correo: String(rem.correo).trim().toLowerCase(), responderA: String(rem.responderA ?? "").trim().toLowerCase() };
     const c = body?.cco ?? {};
     const lista: string[] = Array.isArray(c.direcciones) ? c.direcciones.map((d: unknown) => String(d).trim().toLowerCase()).filter(Boolean) : [];
     const malas = lista.filter((d) => !correoValido(d));
@@ -486,7 +501,7 @@ export const adminRoutes: Route[] = [
     const direcciones = [...new Set(lista)];
     if (direcciones.length > MAX_CCO) throw new ApiError(422, `Puedes agregar hasta ${MAX_CCO} direcciones.`);
     if (c.activo && !direcciones.length) throw new ApiError(422, "Agrega al menos una dirección o desactiva la copia oculta.");
-    (db.admin as any).ajustesCorreo = { cco: { activo: !!c.activo, direcciones, sistema: c.sistema !== false, campanas: c.campanas !== false } };
+    (db.admin as any).ajustesCorreo = { remitente, cco: { activo: !!c.activo, direcciones, sistema: c.sistema !== false, campanas: c.campanas !== false } };
     return (db.admin as any).ajustesCorreo;
   }],
   ["GET", "admin/correos/diseno", () => ({ ...DISENO_BASE, ...(db.admin.disenoCorreo as any) })],

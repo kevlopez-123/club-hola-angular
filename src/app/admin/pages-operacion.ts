@@ -54,6 +54,8 @@ type Ficha = Participante & { direcciones: Direccion[] };
     PillComponent,
     BtnDirective,
     PagerComponent,
+    AdminModalComponent,
+    FieldComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -61,6 +63,7 @@ type Ficha = Participante & { direcciones: Direccion[] };
       <button aBtn variant="outline" (click)="carga.set(true)">
         <app-icon name="Upload" class="h-4 w-4" /> Carga masiva
       </button>
+      <button aBtn (click)="abrirNuevo()"><app-icon name="Plus" class="h-4 w-4" /> Nuevo participante</button>
     </a-header>
 
     <div class="adm-filtros"><div class="adm-busca">
@@ -113,9 +116,71 @@ type Ficha = Participante & { direcciones: Direccion[] };
     <a-pager [p]="pag" />
 
     <a-carga-masiva tipo="participantes" [abierto]="carga()" (cerrado)="carga.set(false)" (terminada)="pag.recargar()" />
+
+    <a-modal [open]="!!nuevo()" title="Nuevo participante" (closed)="nuevo.set(null)">
+      @if (nuevo(); as n) {
+        <div class="space-y-4">
+          <a-field [label]="docEtiqueta()"><input [class]="input" [attr.maxlength]="docDigitos()" inputmode="text" autocomplete="off" [value]="n.documento" (input)="setN({ documento: $any($event.target).value.toUpperCase() })" /></a-field>
+          <a-field label="Nombre y apellidos"><input [class]="input" maxlength="80" [value]="n.nombre" (input)="setN({ nombre: $any($event.target).value })" /></a-field>
+          <a-field label="Correo"><input type="email" [class]="input" maxlength="120" [value]="n.correo" (input)="setN({ correo: $any($event.target).value })" /></a-field>
+          <a-field label="Nivel">
+            <select [class]="input" (change)="setN({ nivel: $any($event.target).value })">
+              @for (v of niveles(); track v.id) { <option [value]="v.nombre" [selected]="v.nombre === n.nivel">{{ v.nombre }}</option> }
+            </select>
+          </a-field>
+          <p class="text-xs text-muted-foreground">Recibirá un correo de bienvenida con su código de acceso.</p>
+          @if (errorNuevo()) { <p role="alert" class="text-sm font-semibold text-destructive">{{ errorNuevo() }}</p> }
+          <div class="det-pie"><button aBtn variant="outline" (click)="nuevo.set(null)">Cancelar</button><button aBtn [disabled]="guardando()" (click)="crear()">Crear participante</button></div>
+        </div>
+      }
+    </a-modal>
   `,
 })
 export class ParticipantesPage {
+  private readonly brand = inject(BrandService);
+  protected readonly niveles = computed(() => this.catalog.niveles());
+  protected readonly nuevo = signal<{ documento: string; nombre: string; correo: string; nivel: string } | null>(null);
+  protected readonly errorNuevo = signal('');
+  protected readonly guardando = signal(false);
+  protected readonly docDigitos = computed(() => this.brand.pais().documentos[0]?.digitos ?? 10);
+  protected readonly docEtiqueta = computed(() => this.brand.pais().documentos[0]?.label ?? 'Documento');
+
+  protected abrirNuevo() {
+    this.errorNuevo.set('');
+    this.nuevo.set({ documento: '', nombre: '', correo: '', nivel: this.niveles()[0]?.nombre ?? 'Clásico' });
+  }
+  protected setN(p: Partial<{ documento: string; nombre: string; correo: string; nivel: string }>) {
+    const n = this.nuevo();
+    if (n) this.nuevo.set({ ...n, ...p });
+  }
+  protected crear() {
+    const n = this.nuevo();
+    if (!n) return;
+    const doc = n.documento.trim();
+    const nombre = n.nombre.trim();
+    const correo = n.correo.trim();
+    if (!/^[A-Za-z0-9]+$/.test(doc)) { this.errorNuevo.set('El documento solo lleva letras y números.'); return; }
+    if (doc.length !== this.docDigitos()) { this.errorNuevo.set(`El documento debe tener ${this.docDigitos()} caracteres.`); return; }
+    if (nombre.length < 3) { this.errorNuevo.set('Escribe el nombre y los apellidos.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { this.errorNuevo.set('Escribe un correo válido.'); return; }
+    this.errorNuevo.set('');
+    this.guardando.set(true);
+    const entidad = {
+      id: `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, nombre, cedula: doc, email: correo, celular: '—', nivel: n.nivel,
+      estado: 'Activo', canal: 'Web + App', alta: new Date().toLocaleDateString('es-PE'), direcciones: [], ajustes: [],
+    };
+    this.api.post<{ creados: number }>('admin/c/participantes/bulk', { items: [entidad] }).subscribe({
+      next: (r) => {
+        this.guardando.set(false);
+        if (!r.creados) { this.errorNuevo.set('Ya existe un participante con ese documento o correo.'); return; }
+        this.nuevo.set(null);
+        this.pag.recargar();
+        this.toast.show('Participante creado');
+      },
+      error: (e) => { this.guardando.set(false); this.errorNuevo.set(e?.error?.message ?? e?.message ?? 'No se pudo crear el participante.'); },
+    });
+  }
+
   private readonly session = inject(AdminSession);
   protected readonly toast = inject(ToastService);
   private readonly admin = inject(AdminApi);

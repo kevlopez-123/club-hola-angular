@@ -124,7 +124,7 @@ const COLECCION_A_SECCION: Record<string, Seccion> = {
   participantes: "participantes", pedidos: "pedidos", mensajes: "atencion", usuarios: "usuarios", auditoria: "auditoria",
   beneficios: "beneficios", categoriasBeneficio: "beneficios", lotes: "beneficios",
   banners: "contenido", onboarding: "contenido", seccionesHome: "contenido",
-  campos: "formulario", marcas: "marcas", premios: "ruleta", giros: "ruleta", codigosPromo: "codigos", eventos: "eventos", preinscripciones: "preinscripciones", plantillasCorreo: "correos", correosEnviados: "correos", campanas: "correos", importaciones: "importaciones",
+  campos: "formulario", marcas: "marcas", locales: "marcas", premios: "ruleta", giros: "ruleta", codigosPromo: "codigos", eventos: "eventos", preinscripciones: "preinscripciones", plantillasCorreo: "correos", correosEnviados: "correos", campanas: "correos", importaciones: "importaciones",
   popups: "popups", guias: "ayuda",
 };
 
@@ -144,7 +144,7 @@ export function requisitoApi(metodo: string, ruta: string, body?: any): { seccio
     if (!s) return null;
     // Las guías completas (con borradores y las de otros roles) solo las ve quien puede administrarlas; cada rol lee las suyas en admin/ayuda.
     if (p[2] === "guias" && m === "GET") return { secciones: ["ayuda"], accion: "editar" };
-    if (m === "GET" && ["marcas", "categoriasProducto", "categoriasBeneficio", "participantes", "usuarios", "lotes", "plantillasCorreo", "campos", "banners", "seccionesHome", "onboarding"].includes(p[2]!)) return null;
+    if (m === "GET" && ["marcas", "locales", "categoriasProducto", "categoriasBeneficio", "participantes", "usuarios", "lotes", "plantillasCorreo", "campos", "banners", "seccionesHome", "onboarding"].includes(p[2]!)) return null;
     return { secciones: [s], accion };
   }
   switch (q) {
@@ -156,6 +156,7 @@ export function requisitoApi(metodo: string, ruta: string, body?: any): { seccio
     case "participantes": return { secciones: ["participantes"], accion };
     case "importaciones": return { secciones: ["importaciones"], accion };
     case "lotes": return { secciones: ["beneficios"], accion };
+    case "promociones": return { secciones: ["beneficios"], accion: "exportar" };
     case "legales": return { secciones: ["legales"], accion };
     case "marcas": return { secciones: ["marcas"], accion };
     case "codigos-promo": return { secciones: ["codigos"], accion };

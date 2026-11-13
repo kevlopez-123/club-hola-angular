@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AJUSTES_BASE, ccoPara, correoValido, type AjustesCorreo } from "./correos";
 
-const con = (c: Partial<AjustesCorreo["cco"]>): AjustesCorreo => ({ cco: { ...AJUSTES_BASE.cco, activo: true, direcciones: ["audit@banco.com", "archivo@banco.com"], ...c } });
+const con = (c: Partial<AjustesCorreo["cco"]>): AjustesCorreo => ({ remitente: AJUSTES_BASE.remitente, cco: { ...AJUSTES_BASE.cco, activo: true, direcciones: ["audit@banco.com", "archivo@banco.com"], ...c } });
 
 describe("copia oculta (CCO)", () => {
   it("apagada o sin ajustes no copia a nadie", () => {

@@ -108,10 +108,48 @@ export interface CorreoEnviado {
   campanaId?: string;
   /** Copia oculta (CCO) con la que salió: los destinatarios no la ven. */
   cco?: string[];
+  /** Remitente con el que salió: «Club Hola <beneficios@clubhola.com.pe>». */
+  de?: string;
+  responderA?: string;
+}
+
+/**
+ * Quién envía los correos. Salen de un dominio propio del programa (por ejemplo beneficios@clubhola.com.pe) y no de uno del banco:
+ * el dominio del banco (@banbif…) lo usa solo el banco.
+ */
+export interface Remitente {
+  /** Nombre que ve quien recibe el correo. */
+  nombre: string;
+  correo: string;
+  /** Dirección a la que llegan las respuestas (vacío: las respuestas van al correo del remitente). */
+  responderA: string;
+}
+export const REMITENTE_BASE: Remitente = { nombre: "Club Hola", correo: "beneficios@clubhola.com.pe", responderA: "" };
+
+/** Texto del remitente como lo ve el destinatario: «Club Hola <beneficios@clubhola.com.pe>». */
+export const formatoRemitente = (r: Pick<Remitente, "nombre" | "correo"> | undefined) => {
+  const x = { ...REMITENTE_BASE, ...(r ?? {}) };
+  return `${x.nombre} <${x.correo}>`;
+};
+
+/** Mensaje de error si el remitente no sirve (vacío si está bien). `banco` es el nombre del banco: su dominio no se puede usar. */
+export function errorRemitente(r: Partial<Remitente> | undefined, banco: string): string {
+  const nombre = String(r?.nombre ?? "").trim();
+  const correo = String(r?.correo ?? "").trim().toLowerCase();
+  const responder = String(r?.responderA ?? "").trim().toLowerCase();
+  if (!nombre) return "Escribe el nombre del remitente.";
+  if (nombre.length > 60) return "El nombre del remitente es muy largo (máximo 60 caracteres).";
+  if (!correoValido(correo)) return "Escribe un correo de remitente válido, por ejemplo beneficios@clubhola.com.pe.";
+  const marca = banco.toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g, "");
+  const dominio = correo.split("@")[1]!.replace(/[^a-z0-9.]/g, "");
+  if (marca && dominio.split(".").some((p) => p.includes(marca))) return `El remitente no puede ser de un dominio de ${banco}: los correos del programa salen de un dominio propio (por ejemplo @clubhola.com.pe).`;
+  if (responder && !correoValido(responder)) return "La dirección para respuestas no es válida.";
+  return "";
 }
 
 /** Ajustes de envío de los correos. */
 export interface AjustesCorreo {
+  remitente: Remitente;
   cco: {
     activo: boolean;
     direcciones: string[];
@@ -120,7 +158,7 @@ export interface AjustesCorreo {
     campanas: boolean;
   };
 }
-export const AJUSTES_BASE: AjustesCorreo = { cco: { activo: false, direcciones: [], sistema: true, campanas: true } };
+export const AJUSTES_BASE: AjustesCorreo = { remitente: { ...REMITENTE_BASE }, cco: { activo: false, direcciones: [], sistema: true, campanas: true } };
 export const MAX_CCO = 10;
 
 export const correoValido = (s: string) => /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]{2,}$/.test(s.trim());
@@ -228,6 +266,15 @@ export const textoPlano = (bloques: BloqueCorreo[], vars: Record<string, unknown
 const esc = (t: unknown) => String(t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const urlSegura = (u: string, permitir: RegExp) => (permitir.test(u.trim()) ? u.trim() : "");
 
+/** Una promoción dentro de un correo de novedades. */
+export interface PromoCorreo {
+  comercio: string;
+  nombre: string;
+  descuento: string;
+  imagen: string;
+  url: string;
+}
+
 export interface EntornoCorreo {
   logoClaro: string;
   logoOscuro: string;
@@ -275,19 +322,32 @@ export function renderCorreoHtml(bloques: BloqueCorreo[], d: DisenoCorreo, env: 
       case "divisor": return `<tr><td style="padding:12px 32px"><div style="border-top:1px solid #e5e7eb;line-height:0;font-size:0">&nbsp;</div></td></tr>`;
     }
   }).join("");
+  // Novedades con promociones: tarjetas con imagen, comercio, beneficio y enlace.
+  const promos = Array.isArray(vars["promociones"]) ? (vars["promociones"] as PromoCorreo[]).slice(0, 6) : [];
+  const tarjetas = promos.length
+    ? `<tr><td style="padding:16px 32px 4px;font:700 18px/1.3 ${fuente};color:${c.texto}">Promociones para ti</td></tr>` + promos.map((p) => {
+      const src = imgOk.test(p.imagen ?? "") ? esc(p.imagen) : "";
+      const href = urlSegura(p.url ?? "", hrefOk) || "#";
+      return `<tr><td style="padding:8px 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden"><tr>`
+        + (src ? `<td width="130" style="width:130px;padding:0"><img src="${src}" alt="" width="130" style="display:block;width:130px;height:100%;min-height:96px;object-fit:cover;border:0"></td>` : "")
+        + `<td style="padding:12px 14px;font:400 14px/1.5 ${fuente};color:${c.texto}"><div style="font:700 11px/1.4 ${fuente};letter-spacing:.06em;text-transform:uppercase;color:#6b7280">${esc(p.comercio)}</div><div style="font:700 15px/1.35 ${fuente}">${esc(p.nombre)}</div>`
+        + (p.descuento ? `<div style="margin-top:4px"><span style="display:inline-block;padding:2px 10px;border-radius:999px;background:${c.botonBg};color:${c.botonTx};font:700 12px/1.6 ${fuente}">${esc(p.descuento)}</span></div>` : "")
+        + `<div style="margin-top:6px"><a href="${esc(href)}" style="color:${c.botonBg};font-weight:700;text-decoration:underline">Ver beneficio</a></div></td></tr></table></td></tr>`;
+    }).join("")
+    : "";
   const redes = d.mostrarRedes
     ? Object.entries(env.redes).filter(([, u]) => u && hrefOk.test(u)).map(([k, u]) => `<a href="${esc(u)}" style="color:${c.texto};text-decoration:underline;margin:0 6px">${esc(k.charAt(0).toUpperCase() + k.slice(1))}</a>`).join("")
     : "";
   const banner = d.banner && imgOk.test(d.banner) ? `<tr><td><img src="${esc(d.banner)}" alt="" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0"></td></tr>` : "";
   // Los correos de campaña traen `bajaUrl`: enlace obligatorio para dejar de recibir novedades.
   const baja = typeof vars["bajaUrl"] === "string" ? urlSegura(vars["bajaUrl"], hrefOk) : "";
-  const pie = r(d.pie || `Enviado por ${env.banco}. Este es un correo automático: no respondas a este mensaje.`)
+  const pie = r(d.pie || `Enviado por ${env.programa}, el programa de beneficios de ${env.banco}.`)
     + (baja ? `<div style="margin-top:8px"><a href="${esc(baja)}" style="color:#6b7280;text-decoration:underline">Dejar de recibir novedades</a></div>` : "");
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${hojaFuente}<style>body{margin:0}img{-ms-interpolation-mode:bicubic}</style></head>
 <body style="margin:0;padding:0;background:${c.fondo}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${c.fondo}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden">
 <tr><td align="center" style="background:${c.enc};padding:22px 24px">${logo && imgOk.test(logo) ? `<img src="${esc(logo)}" alt="${esc(env.programa)}" height="36" style="display:block;height:36px;max-width:220px;border:0;margin:0 auto">` : `<span style="font:800 20px ${fuente};color:${env.textoPrimario || "#fff"}">${esc(env.programa)}</span>`}</td></tr>
-${banner}${cuerpo}<tr><td style="height:16px;line-height:16px;font-size:0">&nbsp;</td></tr>
+${banner}${cuerpo}${tarjetas}<tr><td style="height:16px;line-height:16px;font-size:0">&nbsp;</td></tr>
 <tr><td style="background:#fafafa;border-top:1px solid #e5e7eb;padding:18px 24px;text-align:center;font:400 12px/1.6 ${fuente};color:#6b7280">${redes ? `<div style="margin-bottom:8px">${redes}</div>` : ""}${pie}</td></tr>
 </table></td></tr></table></body></html>`;
 }

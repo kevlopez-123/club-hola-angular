@@ -33,6 +33,7 @@ const grupos = [
   { label: "Catálogos", items: [
     { to: "/admin/beneficios", label: "Beneficios", icon: "Gift" },
     { to: "/admin/marcas", label: "Marcas", icon: "Tag" },
+    { to: "/admin/marcas/locales", label: "Locales", icon: "MapPin" },
   ] },
   { label: "Juegos", items: [
     { to: "/admin/ruleta", label: "Ruleta", icon: "Trophy" },
@@ -330,7 +331,7 @@ const leer = (k: string) => {
             <div>
               @if (!compacto) { <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ g.label }}</p> } @else { <div class="mx-3 mb-2 border-t border-border"></div> }
               @for (it of g.items; track it.to) {
-                <a [routerLink]="it.to" routerLinkActive="!bg-primary !text-primary-foreground" ariaCurrentWhenActive="page" [routerLinkActiveOptions]="{ exact: it.to === '/admin' }"
+                <a [routerLink]="it.to" routerLinkActive="!bg-primary !text-primary-foreground" ariaCurrentWhenActive="page" [routerLinkActiveOptions]="{ exact: it.to === '/admin' || it.to === '/admin/marcas' }"
                   [attr.title]="compacto ? it.label : null" [attr.aria-label]="it.label"
                   [class]="'flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted ' + (compacto ? 'justify-center' : '')">
                   <app-icon [name]="it.icon" class="h-4 w-4 shrink-0" /> @if (!compacto) { <span class="truncate">{{ it.label }}</span> }
