@@ -157,11 +157,16 @@ export class SearchBoxComponent {
             }
           </div>
 
-          <button type="button" [attr.aria-label]="open() ? 'Cerrar menú' : 'Abrir menú'" [attr.aria-expanded]="open()"
-            (click)="open.set(!open())"
-            class="grid h-11 w-11 place-items-center justify-self-end rounded-full text-white lg:hidden">
-            <app-icon [name]="open() ? 'X' : 'Menu'" class="h-7 w-7" />
-          </button>
+          <div class="flex items-center gap-1 justify-self-end lg:hidden">
+            @if (!sesion.logged()) {
+              <a routerLink="/login" [queryParams]="volver()" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-base font-bold text-ink transition-colors hover:bg-white/90"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
+            }
+            <button type="button" [attr.aria-label]="open() ? 'Cerrar menú' : 'Abrir menú'" [attr.aria-expanded]="open()"
+              (click)="open.set(!open())"
+              class="grid h-11 w-11 place-items-center rounded-full text-white">
+              <app-icon [name]="open() ? 'X' : 'Menu'" class="h-7 w-7" />
+            </button>
+          </div>
         </div>
 
         <!-- Buscador móvil -->
@@ -315,7 +320,7 @@ export class SiteHeaderComponent {
       <div class="mx-auto max-w-[1440px] px-4 py-12 sm:px-6 lg:px-10">
         <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <app-logo class="h-16" />
+            <app-logo class="h-9" />
             <div class="mt-5 flex gap-3">
               @for (s of socials(); track s.label) {
                 <a [href]="s.url" target="_blank" rel="noopener noreferrer" [attr.aria-label]="s.label"
@@ -349,9 +354,8 @@ export class SiteHeaderComponent {
           <div>
             <h3 class="text-sm font-bold uppercase tracking-wide">Libro de Reclamaciones</h3>
             <a routerLink="/libro-reclamaciones" aria-label="Libro de Reclamaciones"
-              class="mt-4 inline-flex items-center gap-3 rounded-xl border border-white/30 px-4 py-3 transition-colors hover:border-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
-              <app-icon name="FileText" class="h-8 w-8" />
-              <span class="text-left text-sm font-bold leading-tight">Libro de<br />Reclamaciones</span>
+              class="mt-4 inline-block rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+              <img src="img/libro-reclamaciones.png" alt="Libro de Reclamaciones" width="250" height="188" loading="lazy" class="h-auto w-36 rounded-md bg-white" />
             </a>
             <ul class="mt-4 text-sm text-white/70">
               <li><a [href]="sitio()?.agenciasUrl || 'https://www.banbif.com.pe'" target="_blank" rel="noopener noreferrer" class="transition-colors hover:text-white">{{ sitio()?.agenciasTexto || "Encuentra tu agencia " + brand.marca().nombre }}</a></li>
