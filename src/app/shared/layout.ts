@@ -12,7 +12,13 @@ import { BrandService } from "../core/brand.service";
 import { ToasterComponent } from "./toast";
 import { CampanitaComponent } from "./notificaciones";
 import { SesionService } from "../core/sesion.service";
+import type { MenuItem } from "../core/models";
 import { ConsentimientoService } from "../core/consentimiento.service";
+
+const MENU_PUBLICO: MenuItem[] = [
+  { label: "Inicio", to: "/", activo: true },
+  { label: "Preguntas frecuentes", to: "/preguntas-frecuentes", activo: true },
+];
 
 type Resultado = { id: string; nombre: string; marca: string; imagen: string; tipo: "beneficio" };
 
@@ -269,8 +275,8 @@ export class SiteHeaderComponent {
   }
   private readonly catalog = inject(CatalogService);
   /** Menú publicado desde Admin → Contenido → Menú (solo ítems activos). */
-  /** Sin sesión no hay menú: el sitio solo se explora iniciando sesión. */
-  protected readonly nav = computed(() => (this.sesion.logged() ? this.catalog.menu() : []));
+  /** Sin sesión solo hay menú público: inicio y preguntas frecuentes (el resto se abre iniciando sesión). */
+  protected readonly nav = computed(() => (this.sesion.logged() ? this.catalog.menu() : MENU_PUBLICO));
   protected readonly open = signal(false);
   protected readonly submenu = signal<string | null>(null);
 
@@ -305,7 +311,7 @@ export class SiteHeaderComponent {
   imports: [RouterLink, IconComponent, LogoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <footer class="bg-brand-red text-white">
+    <footer class="bg-brand-dark text-white">
       <div class="mx-auto max-w-[1440px] px-4 py-12 sm:px-6 lg:px-10">
         <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -341,9 +347,14 @@ export class SiteHeaderComponent {
           </div>
 
           <div>
-            <h3 class="text-sm font-bold uppercase tracking-wide">Atención al cliente</h3>
-            <ul class="mt-2 text-sm text-white/70">
-              <li><a [href]="sitio()?.agenciasUrl || 'https://www.banco-solidario.com'" target="_blank" rel="noopener noreferrer" class="transition-colors hover:text-white">{{ sitio()?.agenciasTexto || "Encuentra tu agencia " + brand.marca().nombre }}</a></li>
+            <h3 class="text-sm font-bold uppercase tracking-wide">Libro de Reclamaciones</h3>
+            <a routerLink="/libro-reclamaciones" aria-label="Libro de Reclamaciones"
+              class="mt-4 inline-flex items-center gap-3 rounded-xl border border-white/30 px-4 py-3 transition-colors hover:border-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+              <app-icon name="FileText" class="h-8 w-8" />
+              <span class="text-left text-sm font-bold leading-tight">Libro de<br />Reclamaciones</span>
+            </a>
+            <ul class="mt-4 text-sm text-white/70">
+              <li><a [href]="sitio()?.agenciasUrl || 'https://www.banbif.com.pe'" target="_blank" rel="noopener noreferrer" class="transition-colors hover:text-white">{{ sitio()?.agenciasTexto || "Encuentra tu agencia " + brand.marca().nombre }}</a></li>
               @for (l of atencion(); track $index) {
                 <li>@if (externo(l.to)) { <a [href]="l.to" target="_blank" rel="noopener noreferrer" class="transition-colors hover:text-white">{{ l.label }}</a> } @else { <a [routerLink]="l.to" class="transition-colors hover:text-white">{{ l.label }}</a> }</li>
               }

@@ -145,8 +145,8 @@ export const ETIQUETA_FRECUENCIA: Record<FrecuenciaPopup, string> = {
 /** Ejemplo con el que arranca el panel: está pausado para no mostrarse a los participantes hasta que alguien lo active. */
 export const POPUPS_INICIALES: Popup[] = [
   {
-    id: "popup-bienvenida", nombre: "Bienvenida a la nueva experiencia (ejemplo)", activo: false, frecuencia: "sesion", paginas: "inicio", prioridad: 50,
-    web: { activo: true, titulo: "¡Bienvenido!", mensaje: "Descubre los nuevos beneficios y productos que tenemos para ti.", boton: "Ver beneficios", enlace: "/beneficios" },
+    id: "popup-bienvenida", nombre: "Bienvenida: beneficios exclusivos (ejemplo)", activo: true, frecuencia: "sesion", paginas: "inicio", prioridad: 50,
+    web: { activo: true, formato: "imagen", titulo: "Beneficios exclusivos Club Hola", mensaje: "", imagen: "img/cta-catalogo.jpg", enlace: "/beneficios" },
     app: { activo: true, titulo: "¡Bienvenido a la app!", mensaje: "Canjea tus puntos y genera tus cupones desde el celular.", boton: "Ver beneficios", enlace: "/beneficios" },
     vistas: { web: 0, app: 0 }, clics: { web: 0, app: 0 },
   },

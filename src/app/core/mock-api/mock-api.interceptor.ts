@@ -194,6 +194,14 @@ const customerRoutes: Route[] = [
   ["POST", "popups/:id/evento", ({ params, body }) => registrarEventoPopup(params["id"]!, String(body?.canal ?? ""), String(body?.tipo ?? ""))],
   ["GET", "catalogo/categorias-beneficio", () => db.catalogo.categoriasBeneficio],
   /** Marcas aliadas publicadas (nombre, logo y sitio web). */
+  /** Libro de Reclamaciones: se guarda la hoja y se devuelve su número (correlativo). Público: no pide sesión. */
+  ["POST", "reclamaciones", ({ body }) => {
+    const lista = ((db.admin as any).reclamaciones ??= []) as any[];
+    const numero = String(lista.length + 1).padStart(6, "0");
+    const fecha = new Date().toLocaleString("es-PE", { timeZone: "America/Lima" });
+    lista.unshift({ id: `rc${numero}`, numero, fecha, fechaISO: new Date().toISOString().slice(0, 10), estado: "Pendiente", ...body });
+    return { numero, fecha };
+  }],
   ["GET", "catalogo/locales", () => (db.admin.locales as any[]).filter((l) => l.activo)],
   ["GET", "catalogo/marcas", () => db.admin.marcas.filter((m: any) => m.activo).map(({ nombre, logo, web, descripcion }: any) => ({ nombre, logo, web, descripcion }))],
   ["GET", "catalogo/banners/:seccion", ({ params }) => bannersPara(params["seccion"]!)],

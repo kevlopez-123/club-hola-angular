@@ -34,7 +34,7 @@ import { presetPorId, TENANT_POR_DEFECTO } from "../../tenants/presets";
 const clone = <T>(v: T): T => structuredClone(v);
 
 /** Clave de localStorage donde se guarda la base simulada. Subir la versión invalida datos viejos. */
-export const DB_KEY = "bancosolidario_mockdb_v21";
+export const DB_KEY = "bancosolidario_mockdb_v22";
 
 /**
  * "Base de datos" del backend simulado. Cada petición a /api/* se resuelve contra este estado,
@@ -95,7 +95,7 @@ const semilla = () => {
       agenciasUrl: "https://www.banbif.com.pe",
       ciudadesPie: "Lima · Arequipa · Cusco",
       agenciasTexto: "Encuentra tu agencia BanBif",
-      redes: { facebook: "", x: "", linkedin: "", instagram: "", tiktok: "", youtube: "" } as Record<string, string>,
+      redes: { facebook: "https://www.facebook.com/banbif", x: "https://x.com/BanBif", linkedin: "https://www.linkedin.com/company/banbif/posts/", instagram: "https://www.instagram.com/banbifperu/", tiktok: "", youtube: "" } as Record<string, string>,
     },
     /** Menú principal. Los ítems con `activo: false` quedan ocultos hasta que el admin los habilite. */
     menu: [

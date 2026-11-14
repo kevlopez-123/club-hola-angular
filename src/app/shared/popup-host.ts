@@ -78,7 +78,7 @@ export class PopupHostComponent {
   private readonly cola = signal<PopupPublico[]>([]);
   private readonly cerrados = signal<Set<string>>(new Set());
   protected readonly actual = computed(() => {
-    if (!this.sesion.logged() || this.legales.hayPendientes()) return null;
+    if (this.sesion.logged() && this.legales.hayPendientes()) return null;
     return this.cola().find((p) => !this.cerrados().has(p.id)) ?? null;
   });
   private vistoId = "";
@@ -102,8 +102,9 @@ export class PopupHostComponent {
   protected interno = (e: string) => e.startsWith("/");
 
   private cargar(url: string) {
-    if (!this.sesion.logged() || url.startsWith("/admin") || url.startsWith("/login")) { this.cola.set([]); return; }
     const pagina = url.split(/[?#]/)[0] === "/" ? "inicio" : "otra";
+    // Sin sesión solo sale en la portada pública; el resto de las páginas se piden con sesión.
+    if ((!this.sesion.logged() && pagina !== "inicio") || url.startsWith("/admin") || url.startsWith("/login")) { this.cola.set([]); return; }
     this.api.get<PopupPublico[]>("popups", { canal: "web", pagina }).subscribe({
       next: (lista) => {
         const historial = leer<HistorialPopups>(LS, {}, almacen("local"));

@@ -23,25 +23,29 @@ import {
   OrdenSelectComponent, SearchFilterBarComponent, type OrdenCatalogo,
 } from "../shared/widgets";
 import { Countdown } from "../shared/countdown";
+import { GuestGateDirective } from "../shared/guest-gate";
 
 /* ------------------------------------------------------------------ */
 /* Inicio                                                              */
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-home-page",
-  imports: [HeroSliderComponent, BenefitsSectionComponent, NivelBenefitsSectionComponent, CtaDuoComponent, HomeCategoriesComponent],
+  imports: [HeroSliderComponent, BenefitsSectionComponent, NivelBenefitsSectionComponent, CtaDuoComponent, HomeCategoriesComponent, GuestGateDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="sr-only">{{ brand.programa() }}: beneficios y descuentos exclusivos para ti</h1>
-    @for (s of secciones(); track s.id) {
-      @switch (s.id) {
-        @case ("banners") { <app-hero-slider [items]="catalog.bannersHome()" /> }
-        @case ("categorias") { <app-home-categories /> }
-        @case ("niveles") { <div class="animate-fade-up"><app-nivel-benefits-section /></div> }
-        @case ("beneficios") { <app-benefits-section /> }
-        @case ("cta-duo") { <app-cta-duo /> }
+    <!-- Sin sesión la portada se puede mirar, pero tocar un beneficio o un enlace lleva al ingreso (GuestGate). -->
+    <div appGuestGate>
+      <h1 class="sr-only">{{ brand.programa() }}: beneficios y descuentos exclusivos para ti</h1>
+      @for (s of secciones(); track s.id) {
+        @switch (s.id) {
+          @case ("banners") { <app-hero-slider [items]="catalog.bannersHome()" /> }
+          @case ("categorias") { <app-home-categories /> }
+          @case ("niveles") { <div class="animate-fade-up"><app-nivel-benefits-section /></div> }
+          @case ("beneficios") { <app-benefits-section /> }
+          @case ("cta-duo") { <app-cta-duo /> }
+        }
       }
-    }
+    </div>
   `,
 })
 export class HomePage {

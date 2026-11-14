@@ -9,10 +9,11 @@ export const participanteGuard: CanActivateFn = (_ruta, estado) => {
   return inject(Router).createUrlTree(["/login"], { queryParams: volver ? { volver } : {} });
 };
 /**
- * Páginas del sitio que se pueden ver sin haber iniciado sesión: solo los textos legales (el ingreso los enlaza y la ley exige que
- * se puedan leer antes de aceptar) y la baja de correos (debe funcionar desde el enlace del mensaje, sin sesión).
+ * Páginas del sitio que se pueden ver sin haber iniciado sesión: la portada (versión pública: al tocar un beneficio se pide ingresar),
+ * las preguntas frecuentes, el Libro de Reclamaciones, los textos legales (el ingreso los enlaza y la ley exige que se puedan leer antes
+ * de aceptar) y la baja de correos (debe funcionar desde el enlace del mensaje, sin sesión).
  */
-export const RUTAS_ABIERTAS = ["/terminos", "/privacidad", "/baja"];
+export const RUTAS_ABIERTAS = ["/", "/preguntas-frecuentes", "/libro-reclamaciones", "/terminos", "/privacidad", "/baja"];
 
 export const esRutaAbierta = (url: string) => {
   const p = url.split(/[?#]/)[0]!.replace(/\/$/, "") || "/";
