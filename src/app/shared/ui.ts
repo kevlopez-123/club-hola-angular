@@ -232,8 +232,8 @@ const cardBase = "card-elevate group flex h-full flex-col overflow-hidden rounde
         <a [routerLink]="['/beneficios', beneficio().id]">
           <h3 [attr.aria-level]="nivel()" class="mt-1 line-clamp-2 min-h-12 text-base font-semibold text-ink hover:text-primary">{{ beneficio().nombre }}</h3>
         </a>
-        <p class="mt-2 text-base font-extrabold text-ink">{{ titulo() }}@if (original()) { <s class="ml-2 text-sm font-medium text-muted-foreground">{{ original() }}</s> }</p>
-        <p class="text-sm text-muted-foreground">{{ subtitulo() }}</p>
+        @if (titulo()) { <p class="mt-2 text-base font-extrabold text-ink">{{ titulo() }}@if (original()) { <s class="ml-2 text-sm font-medium text-muted-foreground">{{ original() }}</s> }</p> }
+        @if (subtitulo()) { <p class="text-sm text-muted-foreground">{{ subtitulo() }}</p> }
         <div class="mt-auto flex items-center gap-2 pt-5">
           <a [routerLink]="['/beneficios', beneficio().id]"
             class="flex min-h-11 flex-1 items-center justify-center rounded-full bg-primary px-4 text-center text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:scale-[1.03] lg:min-h-14">
@@ -268,11 +268,11 @@ export class BenefitCardComponent {
 
   protected readonly titulo = computed(() => {
     const b = this.beneficio();
-    return b.tipo === "compra" && b.precio ? formatUSD(b.precio) : "Cupón sin costo";
+    return b.tipo === "compra" && b.precio ? formatUSD(b.precio) : "";
   });
   protected readonly subtitulo = computed(() => {
     const b = this.beneficio();
-    return b.tipo === "compra" ? "Pago con tu tarjeta del banco" : b.tipo === "informativo" ? "Código de descuento" : `Categoría ${b.categoria}`;
+    return b.tipo === "compra" ? "Pago con tu tarjeta del banco" : b.tipo === "informativo" ? "Código de descuento" : "";
   });
 }
 
