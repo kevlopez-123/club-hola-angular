@@ -422,10 +422,25 @@ export class PerfilPage {
           <div class="p-6 sm:p-9">
             <h1 class="text-center text-xl font-extrabold text-ink sm:text-2xl">¿Alguna pregunta o sugerencia?<br />Ponte en contacto con nosotros</h1>
 
-            <dl class="mt-7 rounded-2xl bg-surface p-5 text-base">
-              <div class="flex flex-wrap justify-between gap-2"><dt class="font-semibold text-ink">Nombre completo</dt><dd class="text-muted-foreground">{{ nombreCompleto() }}</dd></div>
-              <div class="mt-3 flex flex-wrap justify-between gap-2"><dt class="font-semibold text-ink">Correo electrónico</dt><dd class="text-muted-foreground">{{ perfil()?.correo }}</dd></div>
-            </dl>
+            @if (sesion.logged()) {
+              <dl class="mt-7 rounded-2xl bg-surface p-5 text-base">
+                <div class="flex flex-wrap justify-between gap-2"><dt class="font-semibold text-ink">Nombre completo</dt><dd class="text-muted-foreground">{{ nombreCompleto() }}</dd></div>
+                <div class="mt-3 flex flex-wrap justify-between gap-2"><dt class="font-semibold text-ink">Correo electrónico</dt><dd class="text-muted-foreground">{{ perfil()?.correo }}</dd></div>
+              </dl>
+            } @else {
+              <div class="mt-7 space-y-5">
+                <div>
+                  <label for="nombre" class="block text-base font-semibold text-ink">Nombre completo</label>
+                  <input id="nombre" type="text" autocomplete="name" maxlength="80" [value]="nombre()" (input)="nombre.set($any($event.target).value)" placeholder="Ej. María Pérez"
+                    class="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-ink outline-none focus:ring-2 focus:ring-primary/50" />
+                </div>
+                <div>
+                  <label for="correo" class="block text-base font-semibold text-ink">Correo electrónico</label>
+                  <input id="correo" type="email" autocomplete="email" maxlength="80" [value]="correo()" (input)="correo.set($any($event.target).value)" placeholder="tucorreo@ejemplo.com"
+                    class="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-ink outline-none focus:ring-2 focus:ring-primary/50" />
+                </div>
+              </div>
+            }
 
             <form class="mt-6" (submit)="$event.preventDefault(); enviar()">
               <label for="telefono" class="block text-base font-semibold text-ink">Teléfono</label>
@@ -435,11 +450,17 @@ export class PerfilPage {
                   class="h-full min-w-0 flex-1 bg-transparent text-base text-ink outline-none" />
               </div>
 
+              <label for="motivo" class="mt-5 block text-base font-semibold text-ink">¿Sobre qué quieres más información?</label>
+              <select id="motivo" (change)="motivo.set($any($event.target).value)"
+                class="select-field mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-ink outline-none focus:ring-2 focus:ring-primary/50">
+                @for (m of motivos; track m) { <option [value]="m" [selected]="m === motivo()">{{ m }}</option> }
+              </select>
+
               <label for="consulta" class="mt-5 block text-base font-semibold text-ink">Consulta</label>
               <textarea id="consulta" rows="4" maxlength="1000" [value]="consulta()" (input)="consulta.set($any($event.target).value)" placeholder="Escribe aquí"
                 class="mt-2 w-full rounded-2xl border border-border bg-surface p-4 text-base text-ink focus:ring-2 focus:ring-primary/50"></textarea>
 
-              <button type="submit" [disabled]="telefono().length < brand.pais().telefonoDigitos || consulta().trim().length < 5"
+              <button type="submit" [disabled]="!datosValidos() || telefono().length < brand.pais().telefonoDigitos || consulta().trim().length < 5"
                 class="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-base font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-14">
                 <app-icon name="Send" class="h-5 w-5" /> Enviar
               </button>
@@ -466,7 +487,7 @@ export class PerfilPage {
     </div>
 
     <app-modal [open]="enviado()" title="Consulta enviada" (closed)="enviado.set(false)">
-      <p class="text-base text-ink">¡Gracias {{ perfil()?.nombres }}! Recibimos tu consulta y te responderemos a {{ perfil()?.correo }} dentro de las próximas 48 horas hábiles.</p>
+      <p class="text-base text-ink">¡Gracias {{ quien().nombre }}! Recibimos tu consulta y te responderemos a {{ quien().correo }} dentro de las próximas 48 horas hábiles.</p>
       <button type="button" (click)="reiniciar()" class="mt-6 min-h-12 w-full rounded-full bg-primary text-base font-bold uppercase tracking-wide text-primary-foreground lg:min-h-14">Entendido</button>
     </app-modal>
   `,
@@ -489,20 +510,32 @@ export class ContactoPage {
   });
   protected readonly nombreCompleto = computed(() => (this.perfil() ? `${this.perfil()!.nombres} ${this.perfil()!.apellidos}` : ""));
 
+  protected readonly sesion = inject(SesionService);
   protected readonly telefono = signal("");
   protected readonly consulta = signal("");
   protected readonly enviado = signal(false);
+  /** Sin sesión se pide el nombre y el correo para poder responder. */
+  protected readonly nombre = signal("");
+  protected readonly correo = signal("");
+  protected readonly motivos = ["Conocer Club Hola y sus beneficios", "Cómo acceder a mi nivel o beneficios", "Comercios y promociones", "Problemas para ingresar", "Otro"];
+  protected readonly motivo = signal(this.motivos[0]!);
+  protected readonly datosValidos = computed(() => this.sesion.logged() || (this.nombre().trim().length >= 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.correo().trim())));
+  /** A quién se le responde (con sesión, su perfil; sin sesión, lo que escribió). */
+  protected readonly quien = computed(() => (this.sesion.logged() ? { nombre: this.perfil()?.nombres ?? "", correo: this.perfil()?.correo ?? "" } : { nombre: this.nombre().trim(), correo: this.correo().trim() }));
 
   protected onTelefono(e: Event) {
     this.telefono.set((e.target as HTMLInputElement).value.replace(/\D/g, ""));
   }
   protected enviar() {
-    this.api.post("contacto", { telefono: this.telefono(), consulta: this.consulta() }).subscribe(() => this.enviado.set(true));
+    const q = this.quien();
+    this.api.post("contacto", { telefono: this.telefono(), consulta: this.consulta(), motivo: this.motivo(), ...(this.sesion.logged() ? {} : { nombre: q.nombre, correo: q.correo }) }).subscribe(() => this.enviado.set(true));
   }
   protected reiniciar() {
     this.enviado.set(false);
     this.consulta.set("");
     this.telefono.set("");
+    this.nombre.set("");
+    this.correo.set("");
   }
 }
 

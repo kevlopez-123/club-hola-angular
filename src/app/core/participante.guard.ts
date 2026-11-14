@@ -13,7 +13,7 @@ export const participanteGuard: CanActivateFn = (_ruta, estado) => {
  * las preguntas frecuentes, el Libro de Reclamaciones, los textos legales (el ingreso los enlaza y la ley exige que se puedan leer antes
  * de aceptar) y la baja de correos (debe funcionar desde el enlace del mensaje, sin sesión).
  */
-export const RUTAS_ABIERTAS = ["/", "/preguntas-frecuentes", "/libro-reclamaciones", "/terminos", "/privacidad", "/baja"];
+export const RUTAS_ABIERTAS = ["/", "/preguntas-frecuentes", "/contacto", "/libro-reclamaciones", "/terminos", "/privacidad", "/baja"];
 
 export const esRutaAbierta = (url: string) => {
   const p = url.split(/[?#]/)[0]!.replace(/\/$/, "") || "/";

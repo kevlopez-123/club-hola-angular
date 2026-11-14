@@ -18,6 +18,7 @@ import { ConsentimientoService } from "../core/consentimiento.service";
 const MENU_PUBLICO: MenuItem[] = [
   { label: "Inicio", to: "/", activo: true },
   { label: "Preguntas frecuentes", to: "/preguntas-frecuentes", activo: true },
+  { label: "Contáctanos", to: "/contacto", activo: true },
 ];
 
 type Resultado = { id: string; nombre: string; marca: string; imagen: string; tipo: "beneficio" };

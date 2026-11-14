@@ -98,7 +98,7 @@ export const routes: Routes = [
       { path: "mis-compras/:codigo", canActivate: [participanteGuard], title: "Detalle de compra | Banco Solidario Puntos", loadComponent: () => account().then((m) => m.DetalleCompraPage) },
 
       { path: "perfil", canActivate: [participanteGuard], title: "Mi perfil | Banco Solidario Puntos", loadComponent: () => profile().then((m) => m.PerfilPage) },
-      { path: "contacto", canActivate: [participanteGuard], title: "Contáctanos | Banco Solidario Puntos", loadComponent: () => profile().then((m) => m.ContactoPage) },
+      { path: "contacto", title: "Contáctanos | Banco Solidario Puntos", loadComponent: () => profile().then((m) => m.ContactoPage) },
 
 
       { path: "preguntas-frecuentes", title: "Preguntas frecuentes | Banco Solidario Puntos", loadComponent: () => info().then((m) => m.FaqPage) },

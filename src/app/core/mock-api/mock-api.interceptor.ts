@@ -331,20 +331,26 @@ const customerRoutes: Route[] = [
   }],
   /** La consulta de Contáctanos llega a Atención (Admin) con los datos del participante y su teléfono. */
   ["POST", "contacto", ({ body }) => {
-    db.consultas.push({ ...body, fecha: hoy().iso });
     const consulta = String(body?.consulta ?? "").trim();
+    const motivo = String(body?.motivo ?? "").trim();
+    // Con sesión se usan los datos del participante; sin sesión (visitante) el nombre y el correo vienen en la consulta.
+    const visitante = !contexto.participante;
+    const nombre = visitante ? String(body?.nombre ?? "").trim() : nombreParticipante();
+    const email = visitante ? String(body?.correo ?? "").trim() : db.perfil.correo;
+    if (visitante && (nombre.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) throw new ApiError(422, "Escribe tu nombre y un correo válido para poder responderte.");
+    db.consultas.push({ ...body, fecha: hoy().iso });
     (db.admin.mensajes as any[]).unshift({
       id: `c${Date.now()}`,
-      nombre: nombreParticipante(),
-      email: db.perfil.correo,
+      nombre,
+      email,
       telefono: body?.telefono ?? "",
       asunto: consulta.length > 60 ? consulta.slice(0, 57) + "…" : consulta || "Consulta desde Contáctanos",
-      mensaje: consulta,
+      mensaje: motivo ? `[${motivo}] ${consulta}` : consulta,
       fecha: hoy().txt,
       estado: "Nuevo",
-      origen: "Contáctanos",
+      origen: visitante ? "Contáctanos (visitante)" : "Contáctanos",
     });
-    enviarCorreo("contacto-acuse", db.perfil.correo, { consulta }, { destinatario: nombreParticipante(), participanteId: "p1" });
+    enviarCorreo("contacto-acuse", email, { consulta }, { destinatario: nombre, ...(visitante ? {} : { participanteId: "p1" }) });
     return { ok: true };
   }],
 
@@ -504,7 +510,7 @@ const respond = (req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> =
   const url = new URL(req.url, "http://mock.local");
   const path = url.pathname.replace(/^\/api\//, "");
   // Las rutas de cuenta del participante (me/*, canje y consulta) exigen su sesión; el catálogo y los textos son públicos.
-  if (path.startsWith("me/") || path === "me" || path === "ordenes" || path === "contacto" || path === "eventos") {
+  if (path.startsWith("me/") || path === "me" || path === "ordenes" || path === "eventos") {
     if (!/^Bearer mock\.participante\./.test(req.headers.get("Authorization") ?? "")) {
       return throwError(() => new HttpErrorResponse({ status: 401, statusText: "Inicia sesión", error: { message: "Inicia sesión para continuar." }, url: req.url }));
     }

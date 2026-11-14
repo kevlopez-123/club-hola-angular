@@ -25,7 +25,7 @@ describe("SEO: rutas (el sitio está cerrado: hay que iniciar sesión)", () => {
 
 describe("Páginas abiertas sin sesión", () => {
   it("la portada pública, las preguntas frecuentes, el Libro de Reclamaciones, los textos legales y la baja de correos", () => {
-    for (const r of ["/", "/preguntas-frecuentes", "/libro-reclamaciones", "/terminos", "/privacidad", "/baja", "/baja?t=p1.abc", "/terminos/"]) expect(esRutaAbierta(r), r).toBe(true);
+    for (const r of ["/", "/preguntas-frecuentes", "/contacto", "/libro-reclamaciones", "/terminos", "/privacidad", "/baja", "/baja?t=p1.abc", "/terminos/"]) expect(esRutaAbierta(r), r).toBe(true);
     for (const r of ["/canjea", "/beneficios", "/beneficios/b1", "/mapa", "/buscar", "/perfil", "/mis-beneficios", "/eventos"]) expect(esRutaAbierta(r), r).toBe(false);
   });
 });
