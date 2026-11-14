@@ -516,21 +516,21 @@ export class ContactoPage {
   template: `
     <div class="grid min-h-screen bg-surface font-sans lg:grid-cols-2">
       <!-- Banner lateral -->
-      <aside class="relative hidden overflow-hidden bg-brand-dark lg:block">
-        <img [src]="brand.imagenes().login" [alt]="'Clientes de ' + brand.marca().nombre + ' disfrutando sus beneficios'" width="900" height="1200" class="h-full w-full object-cover" />
+      <aside class="relative hidden overflow-hidden bg-brand-dark lg:sticky lg:top-0 lg:block lg:h-dvh">
+        <img [src]="brand.imagenes().login" [alt]="'Clientes de ' + brand.marca().nombre + ' disfrutando sus beneficios'" width="900" height="1200" class="absolute inset-0 h-full w-full object-cover" />
         <div class="absolute inset-0 bg-header-gradient opacity-80"></div>
-        <div class="absolute inset-x-0 bottom-0 p-10 text-white">
-          <p class="text-sm font-semibold uppercase tracking-widest text-white">{{ brand.programa() }}</p>
-          <h2 class="mt-3 max-w-md text-3xl font-extrabold leading-tight">{{ txt().tituloLateral }}</h2>
-          <p class="mt-4 max-w-md text-base text-white/85">{{ txt().mensajeLateral }}</p>
+        <div class="absolute inset-x-0 bottom-0 max-h-full overflow-y-auto p-6 text-white xl:p-10">
+          <p class="text-xs font-semibold uppercase tracking-widest text-white xl:text-sm">{{ brand.programa() }}</p>
+          <h2 class="mt-2 max-w-md text-2xl font-extrabold leading-tight xl:mt-3 xl:text-3xl">{{ txt().tituloLateral }}</h2>
+          <p class="mt-3 max-w-md text-sm text-white/85 xl:mt-4 xl:text-base">{{ txt().mensajeLateral }}</p>
         </div>
       </aside>
 
       <!-- Formulario -->
       <main class="flex items-center justify-center px-4 py-10 sm:px-8">
         <div class="w-full max-w-md">
-          <div class="flex justify-center px-6 py-4 lg:hidden"><app-logo variant="light" class="h-16" /></div>
-          <div class="mt-6 hidden justify-center lg:flex"><app-logo variant="light" class="h-16" /></div>
+          <div class="flex justify-center px-6 py-2 lg:hidden"><app-logo variant="light" class="h-9" /></div>
+          <div class="hidden justify-center lg:flex"><app-logo variant="light" class="h-10" /></div>
 
           <div class="mt-8 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] sm:p-8">
             @if (paso() > 1) {
