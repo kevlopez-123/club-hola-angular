@@ -24,19 +24,17 @@ export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
   template: `
     <div>
       <div class="relative flex items-center gap-2">
-        @if (desborda()) {
-          <button type="button" aria-label="Categorías anteriores" (click)="scroll(-1)"
-            class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card text-ink shadow transition-colors hover:bg-secondary">
-            <app-icon name="ChevronLeft" class="h-5 w-5" />
-          </button>
-        }
+        <button type="button" aria-label="Categorías anteriores" (click)="scroll(-1)"
+          [class]="'grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card text-ink shadow transition-colors hover:bg-secondary ' + (desborda() ? '' : 'lg:hidden')">
+          <app-icon name="ChevronLeft" class="h-5 w-5" />
+        </button>
 
-        <!-- Celular y tablet: dos filas que se desplazan hacia el costado (se ve que hay más). Escritorio: una fila; si caben todas, centradas y sin flechas. -->
-        <div #scroller [class]="'no-scrollbar grid flex-1 grid-flow-col auto-cols-[100px] gap-2 overflow-x-auto py-2 lg:flex lg:grid-rows-none ' + (categorias().length > 3 ? 'grid-rows-2' : 'grid-rows-1') + (desborda() ? '' : ' justify-center')">
+        <!-- Una sola fila. Celular y tablet: categorías más juntas (se asoma la siguiente) y con flechas. Escritorio: si caben todas, centradas y sin flechas. -->
+        <div #scroller [class]="'no-scrollbar flex flex-1 gap-1 overflow-x-auto py-2 lg:gap-2 ' + (desborda() ? '' : 'lg:justify-center')">
           @for (c of categorias(); track c.slug) {
             <button type="button" (click)="value.set(value() === c.slug ? null : c.slug); subcategoria.set(null)"
-              [class]="'flex w-full flex-col items-center gap-2 rounded-2xl px-2 py-2 text-center transition-colors lg:w-[110px] lg:shrink-0 lg:px-3 lg:py-3 ' + (value() === c.slug ? 'bg-secondary text-primary' : 'text-ink hover:bg-secondary/60')">
-              <span [class]="'grid h-12 w-12 place-items-center rounded-full border transition-colors ' + (value() === c.slug ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-primary')">
+              [class]="'flex w-[80px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-2 text-center transition-colors lg:w-[110px] lg:gap-2 lg:px-3 lg:py-3 ' + (value() === c.slug ? 'bg-secondary text-primary' : 'text-ink hover:bg-secondary/60')">
+              <span [class]="'grid h-11 w-11 place-items-center rounded-full border transition-colors lg:h-12 lg:w-12 ' + (value() === c.slug ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-primary')">
                 <app-cat-icon [icon]="c.icon" [imagen]="c.imagen" class="h-6 w-6" />
               </span>
               <span class="text-[11px] font-medium leading-tight">{{ c.label }}</span>
@@ -44,12 +42,10 @@ export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
           }
         </div>
 
-        @if (desborda()) {
-          <button type="button" aria-label="Más categorías" (click)="scroll(1)"
-            class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card text-ink shadow transition-colors hover:bg-secondary">
-            <app-icon name="ChevronRight" class="h-5 w-5" />
-          </button>
-        }
+        <button type="button" aria-label="Más categorías" (click)="scroll(1)"
+          [class]="'grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card text-ink shadow transition-colors hover:bg-secondary ' + (desborda() ? '' : 'lg:hidden')">
+          <app-icon name="ChevronRight" class="h-5 w-5" />
+        </button>
       </div>
 
       @if (subs().length > 0 && conSubcategorias()) {
