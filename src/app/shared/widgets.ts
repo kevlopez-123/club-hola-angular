@@ -33,7 +33,7 @@ export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
         <div #scroller [class]="'no-scrollbar flex flex-1 gap-1 overflow-x-auto py-2 lg:gap-2 ' + (desborda() ? '' : 'lg:justify-center')">
           @for (c of categorias(); track c.slug) {
             <button type="button" (click)="value.set(value() === c.slug ? null : c.slug); subcategoria.set(null)"
-              [class]="'flex w-[92px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1.5 py-2 text-center transition-colors lg:w-[110px] lg:gap-2 lg:px-3 lg:py-3 ' + (value() === c.slug ? 'bg-secondary text-primary' : 'text-ink hover:bg-secondary/60')">
+              [class]="'flex w-[92px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-0.5 py-2 text-center transition-colors lg:w-[110px] lg:gap-2 lg:px-3 lg:py-3 ' + (value() === c.slug ? 'bg-secondary text-primary' : 'text-ink hover:bg-secondary/60')">
               <span [class]="'grid h-11 w-11 place-items-center rounded-full border transition-colors lg:h-12 lg:w-12 ' + (value() === c.slug ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-primary')">
                 <app-cat-icon [icon]="c.icon" [imagen]="c.imagen" class="h-6 w-6" />
               </span>
