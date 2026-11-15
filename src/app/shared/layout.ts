@@ -154,6 +154,12 @@ export class SearchBoxComponent {
               }
             </div>
             } @else {
+              <nav class="flex items-center gap-1" aria-label="Navegación pública">
+                @for (item of nav(); track item.label) {
+                  <a [routerLink]="item.to" routerLinkActive="!text-white font-bold" [routerLinkActiveOptions]="{ exact: item.to === '/' }"
+                    class="flex min-h-11 items-center rounded-full px-4 text-base font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white">{{ item.label }}</a>
+                }
+              </nav>
               <a routerLink="/login" [queryParams]="volver()" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
             }
           </div>
@@ -174,7 +180,7 @@ export class SearchBoxComponent {
         @if (sesion.logged()) { <div class="pb-3 lg:hidden"><app-search-box /></div> }
 
         <!-- Navegación desktop -->
-        <div class="hidden border-t border-white/15 lg:block">
+        <div [class]="'hidden border-t border-white/15 ' + (sesion.logged() ? 'lg:block' : '')">
           <nav class="hidden items-center gap-6 lg:flex">
             @for (item of nav(); track item.label) {
               <div class="group relative">
