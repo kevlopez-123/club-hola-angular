@@ -6,7 +6,7 @@ import { MapPickerComponent, type SugerenciaDireccion, type Ubicacion } from "..
 import { CargaMasivaComponent } from "./carga-masiva";
 import {
   AdminModalComponent, BtnDirective, ConfirmComponent, FieldComponent, FilaEsqueletoComponent, INPUT_CLS, OrdenColumnaComponent,
-  PageHeaderComponent, PagerComponent, Paginado, ToastService, ToggleComponent,
+  PageHeaderComponent, PagerComponent, Paginado, PillComponent, ToastService, ToggleComponent,
 } from "./kit";
 import type { Local } from "../core/mock-api/seed/locales";
 
@@ -18,7 +18,7 @@ const vacio = (): Fila => ({ id: `loc-${Date.now().toString(36)}`, marca: "", no
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "a-locales-page",
-  imports: [CargaMasivaComponent, OrdenColumnaComponent, FilaEsqueletoComponent, IconComponent, PageHeaderComponent, BtnDirective, ToggleComponent, ConfirmComponent, PagerComponent, AdminModalComponent, FieldComponent, MapPickerComponent, LimpiarFiltrosComponent],
+  imports: [CargaMasivaComponent, OrdenColumnaComponent, FilaEsqueletoComponent, IconComponent, PageHeaderComponent, BtnDirective, ToggleComponent, ConfirmComponent, PagerComponent, AdminModalComponent, FieldComponent, MapPickerComponent, LimpiarFiltrosComponent, PillComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a-header title="Locales" [desc]="pag.total().toLocaleString('es') + ' locales · dónde se puede canjear cada beneficio y qué se ve en el mapa'">
@@ -40,7 +40,7 @@ const vacio = (): Fila => ({ id: `loc-${Date.now().toString(36)}`, marca: "", no
     </div>
 
     <div class="adm-wrap">
-      <table class="adm-table adm-compacta">
+      <table class="adm-table">
         <thead>
           <tr>
             <th aOrden="nombre" [pag]="pag" etiquetaOrden="Local">Local</th>
@@ -56,16 +56,14 @@ const vacio = (): Fila => ({ id: `loc-${Date.now().toString(36)}`, marca: "", no
           @for (l of pag.items(); track l.id) {
             <tr>
               <td><b>{{ l.nombre }}</b>@if (l.telefono) { <p class="text-xs text-muted-foreground">{{ l.telefono }}</p> }</td>
-              <td class="det-completo det-chip">{{ l.marca }}</td>
-              <td>{{ l.distrito }}<p class="text-xs text-muted-foreground">{{ l.provincia }}</p></td>
-              <td class="text-sm">{{ l.direccion }}</td>
-              <td class="text-sm">{{ l.horario || '—' }}</td>
+              <td class="det-completo det-chip"><a-pill tone="info">{{ l.marca }}</a-pill></td>
+              <td>{{ l.distrito }}, {{ l.provincia }}</td>
+              <td>{{ l.direccion }}</td>
+              <td>{{ l.horario || '—' }}</td>
               <td><a-toggle label="Publicado" [on]="l.activo" (onChange)="alternar(l, $event)" /></td>
-              <td>
-                <div class="flex gap-1">
-                  <button type="button" data-compact class="adm-accion adm-accion-icono" [attr.aria-label]="'Editar ' + l.nombre" (click)="edit.set({ ...l })"><app-icon name="Pencil" class="h-4 w-4" /></button>
-                  <button type="button" data-compact class="adm-accion adm-accion-icono peligro" [attr.aria-label]="'Eliminar ' + l.nombre" (click)="borrar.set(l)"><app-icon name="Trash2" class="h-4 w-4" /></button>
-                </div>
+              <td class="whitespace-nowrap">
+                <button aBtn variant="ghost" [attr.aria-label]="'Editar ' + l.nombre" (click)="edit.set({ ...l })"><app-icon name="Pencil" class="h-4 w-4" /> Editar</button>
+                <button aBtn variant="peligro-ghost" [attr.aria-label]="'Eliminar ' + l.nombre" (click)="borrar.set(l)"><app-icon name="Trash2" class="h-4 w-4" /> Eliminar</button>
               </td>
             </tr>
           } @empty {
