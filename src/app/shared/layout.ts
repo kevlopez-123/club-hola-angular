@@ -214,7 +214,7 @@ export class SearchBoxComponent {
       @if (open()) {
         <div class="max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain border-t border-white/15 bg-brand-dark px-4 pb-6 pt-4 lg:hidden">
           @if (!sesion.logged()) {
-            <a routerLink="/login" [queryParams]="volver()" (click)="open.set(false)" class="mb-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-base font-bold text-primary-foreground"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
+            <!-- Sin sesión, «Ingresar» ya está en el encabezado: no se repite en el menú. -->
           } @else {
           <div class="mb-5 flex flex-wrap items-center gap-3">
             <span class="w-full text-base text-white/90">Hola {{ store.usuario().nombre }}</span>
