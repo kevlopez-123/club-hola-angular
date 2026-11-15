@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, model, output, signal, viewChild,
+  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, input, model, output, signal, viewChild,
 } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { CatIconComponent, IconComponent } from "./icon.component";
@@ -24,15 +24,18 @@ export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
   template: `
     <div>
       <div class="relative flex items-center gap-2">
-        <button type="button" aria-label="Categorías anteriores" (click)="scroll(-1)"
-          class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card text-ink shadow transition-colors hover:bg-secondary">
-          <app-icon name="ChevronLeft" class="h-5 w-5" />
-        </button>
+        @if (desborda()) {
+          <button type="button" aria-label="Categorías anteriores" (click)="scroll(-1)"
+            class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card text-ink shadow transition-colors hover:bg-secondary">
+            <app-icon name="ChevronLeft" class="h-5 w-5" />
+          </button>
+        }
 
-        <div #scroller class="no-scrollbar flex flex-1 gap-2 overflow-x-auto py-2">
+        <!-- Celular y tablet: dos filas que se desplazan hacia el costado (se ve que hay más). Escritorio: una fila; si caben todas, centradas y sin flechas. -->
+        <div #scroller [class]="'no-scrollbar grid flex-1 grid-flow-col auto-cols-[100px] gap-2 overflow-x-auto py-2 lg:flex lg:grid-rows-none ' + (categorias().length > 3 ? 'grid-rows-2' : 'grid-rows-1') + (desborda() ? '' : ' justify-center')">
           @for (c of categorias(); track c.slug) {
             <button type="button" (click)="value.set(value() === c.slug ? null : c.slug); subcategoria.set(null)"
-              [class]="'flex w-[110px] shrink-0 flex-col items-center gap-2 rounded-2xl px-3 py-3 text-center transition-colors ' + (value() === c.slug ? 'bg-secondary text-primary' : 'text-ink hover:bg-secondary/60')">
+              [class]="'flex w-full flex-col items-center gap-2 rounded-2xl px-2 py-2 text-center transition-colors lg:w-[110px] lg:shrink-0 lg:px-3 lg:py-3 ' + (value() === c.slug ? 'bg-secondary text-primary' : 'text-ink hover:bg-secondary/60')">
               <span [class]="'grid h-12 w-12 place-items-center rounded-full border transition-colors ' + (value() === c.slug ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-primary')">
                 <app-cat-icon [icon]="c.icon" [imagen]="c.imagen" class="h-6 w-6" />
               </span>
@@ -41,10 +44,12 @@ export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
           }
         </div>
 
-        <button type="button" aria-label="Más categorías" (click)="scroll(1)"
-          class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card text-ink shadow transition-colors hover:bg-secondary">
-          <app-icon name="ChevronRight" class="h-5 w-5" />
-        </button>
+        @if (desborda()) {
+          <button type="button" aria-label="Más categorías" (click)="scroll(1)"
+            class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card text-ink shadow transition-colors hover:bg-secondary">
+            <app-icon name="ChevronRight" class="h-5 w-5" />
+          </button>
+        }
       </div>
 
       @if (subs().length > 0 && conSubcategorias()) {
@@ -71,6 +76,22 @@ export class CategoryStripComponent {
   /** Muestra la fila de subcategorías (solo catálogo de productos). */
   readonly conSubcategorias = input(false);
   private readonly scroller = viewChild.required<ElementRef<HTMLElement>>("scroller");
+  /** ¿No caben todas? Solo entonces se muestran las flechas (y las categorías no se centran). */
+  protected readonly desborda = signal(true);
+  private observador?: ResizeObserver;
+
+  constructor() {
+    afterNextRender(() => {
+      const el = this.scroller().nativeElement;
+      const medir = () => this.desborda.set(el.scrollWidth > el.clientWidth + 1);
+      this.observador = new ResizeObserver(medir);
+      this.observador.observe(el);
+      // Si las categorías cambian (se ocultan o se agregan desde el panel), se vuelve a medir.
+      effect(() => { this.categorias(); queueMicrotask(medir); }, { injector: this.injector });
+    });
+    inject(DestroyRef).onDestroy(() => this.observador?.disconnect());
+  }
+  private readonly injector = inject(Injector);
 
   protected readonly subs = computed(() => this.categorias().find((c) => c.slug === this.value())?.subcategorias ?? []);
 
