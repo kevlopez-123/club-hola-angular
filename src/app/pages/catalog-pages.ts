@@ -454,7 +454,7 @@ export class BeneficioDetallePage {
   /** El QR se muestra mientras el cupón no haya vencido; vencido, vuelve el botón o el motivo del bloqueo. */
   protected readonly cuponActivo = computed(() => { const c = this.cupon(); return c && c.expira > Date.now() ? c : null; });
   /** Locales de la marca donde se puede canjear (los que están publicados). */
-  protected readonly locales = computed(() => { const b = this.beneficio(); return b ? this.catalog.localesDe(b.marca) : []; });
+  protected readonly locales = computed(() => { const b = this.beneficio(); return b ? this.catalog.localesDeBeneficio(b) : []; });
   /** El QR se dibuja en el navegador: el código del cupón no sale a ningún servicio externo. */
   protected readonly qr = signal("");
   protected readonly etiquetaDocumento = computed(() => this.brand.pais().documentos[0]?.label ?? "Documento");

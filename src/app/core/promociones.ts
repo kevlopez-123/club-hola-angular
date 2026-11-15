@@ -1,4 +1,5 @@
 import { estadoVigencia, reglaDe } from "./cupones";
+import { localesAplicables } from "./locales-beneficio";
 import type { HojaXlsx } from "./xlsx";
 
 /**
@@ -45,13 +46,7 @@ type Registro = any;
 
 export function promocionesCompletas(beneficios: Registro[], marcas: Registro[], locales: Registro[], hoyIso: string, reglaGeneral?: Registro): PromocionCompleta[] {
   const marcaDe = new Map(marcas.map((m) => [String(m.nombre), m]));
-  const localesDe = new Map<string, LocalPromocion[]>();
-  for (const l of locales) {
-    if (l.activo === false) continue;
-    const lista = localesDe.get(String(l.marca)) ?? [];
-    lista.push({ id: l.id, nombre: l.nombre, direccion: l.direccion, distrito: l.distrito, provincia: l.provincia, latitud: l.lat, longitud: l.lng, horario: l.horario ?? "", telefono: l.telefono ?? "" });
-    localesDe.set(String(l.marca), lista);
-  }
+  const aLocal = (l: Registro): LocalPromocion => ({ id: l.id, nombre: l.nombre, direccion: l.direccion, distrito: l.distrito, provincia: l.provincia, latitud: l.lat, longitud: l.lng, horario: l.horario ?? "", telefono: l.telefono ?? "" });
   return beneficios.map((b) => {
     const m = marcaDe.get(String(b.marca));
     const r = reglaDe(b.cupon, reglaGeneral);
@@ -75,7 +70,8 @@ export function promocionesCompletas(beneficios: Registro[], marcas: Registro[],
       especificaciones: Array.isArray(b.especificaciones) ? b.especificaciones : [],
       terminosYCondiciones: b.terminos ?? "",
       cupon: { duracionHoras: r.horas, limiteCanjesPorPersona: r.limite, esperaMeses: r.meses, tipoCodigo: b.modoCodigo === "compartido" ? "compartido" : "unico" },
-      locales: localesDe.get(String(b.marca)) ?? [],
+      // Solo los locales donde ese beneficio se canjea (los elegidos en el beneficio, o todos los de la marca).
+      locales: localesAplicables({ marca: String(b.marca), localesIds: b.localesIds }, locales).map(aLocal),
     };
   });
 }

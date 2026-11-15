@@ -22,6 +22,8 @@ export interface CtxCarga {
   digitosDocumento?: number;
   /** Códigos: los que ya están cargados en otros lotes del beneficio elegido. */
   codigosExistentes?: Set<string>;
+  /** Beneficios: locales publicados (para validar dónde se canjea cada uno). */
+  locales?: { id: string; marca: string }[];
 }
 
 export interface FilaPreparada extends FilaProcesada {
@@ -82,6 +84,7 @@ export const COLUMNAS: Record<TipoCarga, ColCarga[]> = {
     { clave: "horas", titulo: "Duración (horas)", tipo: "entero", min: 1, max: 720, ayuda: "Cuánto dura el cupón. Vacío: 3 al crear; sin cambios al actualizar.", ejemplo: 24, alias: ["horas"] },
     { clave: "limite", titulo: "Límite de canjes", tipo: "entero", min: 0, max: 99, ayuda: "Veces que cada participante puede canjearlo (0 = sin límite). Vacío: sin límite al crear; sin cambios al actualizar.", ejemplo: 1, alias: ["limite"] },
     { clave: "meses", titulo: "Espera (meses)", tipo: "entero", min: 1, max: 60, ayuda: "Meses de espera desde el último canje para volver a canjearlo. Vacío: 3 al crear; sin cambios al actualizar.", ejemplo: 3, alias: ["meses"] },
+    { clave: "locales", titulo: "Locales", tipo: "lista", limite: "nombre", ayuda: "Códigos de los locales donde se canjea (los de Marcas → Locales), separados por punto y coma. Vacío: todos los locales de la marca (al crear) o sin cambios (al actualizar).", ejemplo: "BEMBOS-MIRAFLORES; BEMBOS-SURCO" },
     IMAGENES,
     ACTIVO,
   ],
@@ -134,7 +137,7 @@ const sn = (v: unknown) => (v === false ? "No" : "Sí");
 export function filaDeEntidad(tipo: TipoCarga, e: any): (string | number)[] {
   switch (tipo) {
     case "beneficios":
-      return [e.id, e.nombre ?? "", e.marca ?? "", e.categoria ?? "", e.descuento ?? "", e.tipo === "compra" ? "Compra" : "Cupón", e.precio ?? "", e.nivelMinimo ?? "", e.descripcion ?? "", lista(e.pasos), e.terminos ?? "", e.desde ?? "", e.hasta ?? "", lista(e.provincias), e.modoCodigo === "compartido" ? (e.codigoCompartido ?? "") : "", e.modoCodigo === "compartido" ? (e.usosMaximos ?? "") : "", e.cupon?.horas ?? "", e.cupon?.limite ?? "", e.cupon?.meses ?? "", soloUrls(e.imagenes?.length ? e.imagenes : e.galeria), sn(e.activo)];
+      return [e.id, e.nombre ?? "", e.marca ?? "", e.categoria ?? "", e.descuento ?? "", e.tipo === "compra" ? "Compra" : "Cupón", e.precio ?? "", e.nivelMinimo ?? "", e.descripcion ?? "", lista(e.pasos), e.terminos ?? "", e.desde ?? "", e.hasta ?? "", lista(e.provincias), e.modoCodigo === "compartido" ? (e.codigoCompartido ?? "") : "", e.modoCodigo === "compartido" ? (e.usosMaximos ?? "") : "", e.cupon?.horas ?? "", e.cupon?.limite ?? "", e.cupon?.meses ?? "", lista(e.localesIds), soloUrls(e.imagenes?.length ? e.imagenes : e.galeria), sn(e.activo)];
     case "marcas":
       return [e.nombre ?? "", e.web ?? "", e.descripcion ?? "", soloUrls([e.logo]), sn(e.activo)];
     case "locales":
@@ -171,7 +174,7 @@ export function plantillaDe(tipo: TipoCarga): PlantillaDef {
     participantes: [["0923456781", "Luis Mora", "luis.mora@correo.com", "Clásico"]],
     codigos: [["ABC-0002"], ["ABC-0003"]],
     locales: [["BEMBOS-MIRAFLORES", "Bembos", "Bembos Miraflores", "Av. Larco 345", "Miraflores", "Lima", -12.1219, -77.0297, "Lun a Dom 11:00 a 23:30", "01 4445566", "Sí"]],
-    beneficios: [["CAFE-2X1", "2x1 en bebidas grandes", "Sweet & Coffee", "Cafeterías", "2x1", "Cupón", 0, "Oro", "", "", "", "2026-12-01", "2027-03-31", "Pichincha; Azuay", "", 0, 24, 1, 3, "", "Sí"]],
+    beneficios: [["CAFE-2X1", "2x1 en bebidas grandes", "Sweet & Coffee", "Cafeterías", "2x1", "Cupón", 0, "Oro", "", "", "", "2026-12-01", "2027-03-31", "Pichincha; Azuay", "", 0, 24, 1, 3, "", "", "Sí"]],
     marcas: [["Sweet & Coffee", "https://www.sweetandcoffee.com", "Cafeterías", "sweet.png", "Sí"]],
   };
   return plantillaDeColumnas(d.columnas, { titulo: d.titulo, descripcion: base, ejemplos: ej[tipo], notas });
@@ -211,6 +214,16 @@ function construirBeneficio(v: Valores, ctx: CtxCarga, previo: any): { entidad?:
     if (!c) return { error: `La categoría «${v["categoria"]}» no existe. Categorías: ${ctx.categoriasBeneficio.map((x) => x.label).join(", ")}.` };
     cat = c;
   }
+  let localesIds: string[] | undefined;
+  if (v["locales"] !== undefined) {
+    localesIds = [];
+    for (const codigo of v["locales"] as string[]) {
+      const l = (ctx.locales ?? []).find((x) => coincide(x.id, codigo));
+      if (!l) return { error: `El local «${codigo}» no existe. Los códigos están en Marcas → Locales.` };
+      if (marca && l.marca !== marca.nombre) return { error: `El local «${codigo}» es de ${l.marca}, no de ${marca.nombre}.` };
+      if (!localesIds.includes(l.id)) localesIds.push(l.id);
+    }
+  }
   let provincias: string[] | undefined;
   if (v["provincias"] !== undefined) {
     provincias = [];
@@ -241,7 +254,7 @@ function construirBeneficio(v: Valores, ctx: CtxCarga, previo: any): { entidad?:
   const compartido = v["codigocompartido"] !== undefined;
   const cambios = quitarClave({
     nombre: v["nombre"], marca: marca?.nombre, marcaUrl: marca?.web ?? "", categoria: cat?.label, categoriaSlug: cat?.slug, descuento: v["descuento"],
-    tipo: modalidad, precio: v["precio"], nivelMinimo: v["nivel"],
+    tipo: modalidad, precio: v["precio"], nivelMinimo: v["nivel"], localesIds,
     descripcion: v["descripcion"], pasos: v["pasos"], terminos: v["terminos"],
     desde: v["desde"], hasta: v["hasta"], provincias, cupon,
     ...(compartido ? { modoCodigo: "compartido", codigoCompartido: String(v["codigocompartido"]).toUpperCase(), ...(v["usosmaximos"] !== undefined ? { usosMaximos: v["usosmaximos"] } : {}) } : {}),

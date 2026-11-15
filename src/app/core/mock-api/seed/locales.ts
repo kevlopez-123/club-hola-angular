@@ -97,3 +97,6 @@ export function localesIniciales(): Local[] {
   }
   return salida;
 }
+
+/** Ejemplo: beneficios que solo se canjean en algunos locales de su marca (el resto vale en todos). */
+export const LOCALES_POR_BENEFICIO: Record<string, string[]> = { b1: ["pardos-chicken-01", "pardos-chicken-02"] };

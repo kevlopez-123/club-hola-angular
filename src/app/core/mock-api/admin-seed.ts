@@ -2,7 +2,7 @@ import { user, beneficios, categoriasBeneficio, direccionesIniciales, slides, sl
 import { compras } from "./seed/historial";
 import { codigosIniciales, premiosIniciales } from "./seed/juegos";
 import { eventosIniciales, preinscripcionesIniciales } from "./seed/eventos";
-import { localesIniciales } from "./seed/locales";
+import { localesIniciales, LOCALES_POR_BENEFICIO } from "./seed/locales";
 import {
   auditoria,
   camposIniciales,
@@ -87,7 +87,8 @@ export const adminSeed = () => {
       const ts = m ? new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00`).toISOString() : new Date().toISOString();
       return { id: `au-seed-${i}`, ...clone(a), ts, fechaISO: m ? `${m[3]}-${m[2]}-${m[1]}` : ts.slice(0, 10), seccion: ["Niveles", "Contenido", "Participantes"][i] ?? "Usuarios", descrita: true };
     }) as any[],
-    beneficios: beneficios.map((b) => ({ ...clone(b), activo: true, exclusivo: b.tipo === "compra", imagenes: [b.imagen] })) as any[],
+    // Ejemplo: la promoción de Pardos solo se canjea en dos de sus locales (el resto de beneficios vale en todos los de su marca).
+    beneficios: beneficios.map((b) => ({ ...clone(b), activo: true, exclusivo: b.tipo === "compra", imagenes: [b.imagen], ...(LOCALES_POR_BENEFICIO[b.id] ? { localesIds: LOCALES_POR_BENEFICIO[b.id] } : {}) })) as any[],
     // Marcas aliadas: se administran con logo y sitio web; productos y beneficios eligen una por nombre.
     marcas: [...new Set([...beneficios.map((b) => b.marca)])].sort().map((nombre) => ({
       id: nombre.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),

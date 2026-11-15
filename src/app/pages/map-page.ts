@@ -4,6 +4,7 @@ import type * as Leaflet from "leaflet";
 import { BrandService } from "../core/brand.service";
 import { CatalogService } from "../core/catalog.service";
 import { distanciaKm, textoDistancia } from "../core/geo";
+import { aplicaEnLocal } from "../core/locales-beneficio";
 import type { Local } from "../core/mock-api/seed/locales";
 import { IconComponent } from "../shared/icon.component";
 
@@ -146,7 +147,7 @@ export class MapaPage implements OnDestroy {
   }
 
   private popup(l: Local): string {
-    const beneficios = this.catalog.beneficios().filter((b) => b.marca === l.marca).slice(0, 3);
+    const beneficios = this.catalog.beneficios().filter((b) => aplicaEnLocal(b, l, this.catalog.locales())).slice(0, 3);
     const lista = beneficios.map((b) => `<li><a href="/beneficios/${encodeURIComponent(b.id)}" style="color:var(--primary);font-weight:700">${esc(b.nombre)}</a></li>`).join("");
     return `<div style="min-width:180px"><strong>${esc(l.nombre)}</strong><br>${esc(l.direccion)}, ${esc(l.distrito)}${l.horario ? `<br><small>${esc(l.horario)}</small>` : ""}${lista ? `<ul style="margin:.5rem 0 0;padding-left:1rem">${lista}</ul>` : ""}</div>`;
   }

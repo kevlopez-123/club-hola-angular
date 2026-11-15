@@ -1,6 +1,7 @@
 import { Injectable, computed, effect, inject, signal, untracked } from "@angular/core";
 import { SesionService } from "./sesion.service";
 import type { Local } from "./mock-api/seed/locales";
+import { localesAplicables } from "./locales-beneficio";
 import { ApiService } from "./api.service";
 import { BrandService } from "./brand.service";
 import type {
@@ -119,6 +120,10 @@ export class CatalogService {
   readonly locales = signal<Local[]>([]);
   localesDe(marca: string): Local[] {
     return this.locales().filter((l) => l.marca === marca);
+  }
+  /** Locales donde se canjea ese beneficio: los que eligió el panel o, si no eligió, todos los de la marca. */
+  localesDeBeneficio(b: Pick<Beneficio, "marca" | "localesIds">): Local[] {
+    return localesAplicables(b, this.locales());
   }
   marcaPorNombre(nombre: string) {
     return this.marcasAliadas().find((m) => m.nombre === nombre);

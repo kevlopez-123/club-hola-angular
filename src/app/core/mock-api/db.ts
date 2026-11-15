@@ -7,6 +7,7 @@ import {
   slidesBeneficios,
   user,
 } from "./seed/mock";
+import { LOCALES_POR_BENEFICIO } from "./seed/locales";
 import { niveles, nivelesTexto } from "./seed/niveles";
 import { GUIAS_INICIALES } from "../ayuda";
 import { POPUPS_INICIALES } from "../popups";
@@ -34,7 +35,7 @@ import { presetPorId, TENANT_POR_DEFECTO } from "../../tenants/presets";
 const clone = <T>(v: T): T => structuredClone(v);
 
 /** Clave de localStorage donde se guarda la base simulada. Subir la versión invalida datos viejos. */
-export const DB_KEY = "bancosolidario_mockdb_v23";
+export const DB_KEY = "bancosolidario_mockdb_v25";
 
 /**
  * "Base de datos" del backend simulado. Cada petición a /api/* se resuelve contra este estado,
@@ -72,7 +73,7 @@ const semilla = () => {
 
   catalogo: {
     // El catálogo público parte de las filas del admin (así comparten sus datos).
-    beneficios: clone(beneficios),
+    beneficios: clone(beneficios).map((b) => (LOCALES_POR_BENEFICIO[b.id] ? { ...b, localesIds: LOCALES_POR_BENEFICIO[b.id] } : b)),
     categoriasBeneficio: clone(categoriasBeneficio) as unknown as typeof categoriasBeneficio,
     banners: {
       home: clone(slides),

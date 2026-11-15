@@ -67,6 +67,8 @@ export type Beneficio = {
   cuponPdf?: "local" | "web" | "ambos" | undefined;
   /** Nivel mínimo para acceder (Clásico, Plata, Oro o Diamante). Sin valor = todos los niveles. */
   nivelMinimo?: string | undefined;
+  /** Locales donde se canjea (ids de Marcas → Locales). Vacío: en todos los locales de la marca. */
+  localesIds?: string[] | undefined;
   /** Cupón gratuito que solo muestra un código alfanumérico (sin QR). */
   cuponSinQr?: boolean | undefined;
   precio?: number | undefined;
