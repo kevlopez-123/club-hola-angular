@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@angular/core";
 import { ApiService } from "../core/api.service";
 import { CatalogService } from "../core/catalog.service";
-import { ETIQUETA_ESTADO, TIPOS_EVENTO, etiquetaTipo, fechaLabel, esPasado, type EstadoPreinscripcion, type Evento, type Preinscripcion } from "../core/eventos";
+import { ETIQUETA_ESTADO, TIPOS_EVENTO, etiquetaTipo, fechaLabel, esPasado, type CategoriaEvento, type EstadoPreinscripcion, type Evento, type Preinscripcion } from "../core/eventos";
+import { BannersEditorComponent } from "./pages-banners";
+import { CategoryModalComponent, type CategoriaEdit } from "./pages-catalogos";
 import { IconComponent } from "../shared/icon.component";
 import { LimpiarFiltrosComponent } from "../shared/limpiar-filtros";
 import {
@@ -18,12 +20,44 @@ const lineas = (t: string) => t.split(/\r?\n/).map((x) => x.trim()).filter(Boole
 @Component({
   selector: "a-eventos-page",
   imports: [AdminModalComponent, BtnDirective, ConfirmComponent, FieldComponent, FilaEsqueletoComponent, IconComponent, ImageUploadComponent,
-    LimpiarFiltrosComponent, OrdenColumnaComponent, PageHeaderComponent, PagerComponent, PillComponent, ToggleComponent],
+    LimpiarFiltrosComponent, OrdenColumnaComponent, PageHeaderComponent, PagerComponent, PillComponent, ToggleComponent, BannersEditorComponent, CategoryModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a-header title="Eventos" [desc]="pag.total().toLocaleString('es') + ' eventos · se publican en el sitio cuando están activos'">
-      <button aBtn (click)="nuevo()"><app-icon name="Plus" class="h-4 w-4" /> Nuevo evento</button>
+      @if (tab() === 'eventos') { <button aBtn (click)="nuevo()"><app-icon name="Plus" class="h-4 w-4" /> Nuevo evento</button> }
+      @if (tab() === 'categorias') { <button aBtn (click)="editCat.set({ slug: '', label: '', activo: true, subcategorias: [] })"><app-icon name="Plus" class="h-4 w-4" /> Nueva categoría</button> }
     </a-header>
+    <div class="mb-4 flex flex-wrap gap-2">
+      @for (t of tabs; track t.k) {
+        <button aBtn [variant]="tab() === t.k ? 'primary' : 'outline'" (click)="tab.set(t.k)">{{ t.l }}</button>
+      }
+    </div>
+
+    @switch (tab()) {
+      @case ('categorias') {
+        <p class="mb-3 text-sm text-muted-foreground">Las categorías son los filtros de la página Eventos y el tipo de cada evento. Una categoría oculta deja de verse en los filtros, pero sus eventos conservan el nombre.</p>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          @for (c of cats(); track c.slug) {
+            <div class="rounded-2xl border border-border bg-card p-4">
+              <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <span class="flex min-w-0 items-center gap-2">
+                  @if (c.imagen) { <img [src]="c.imagen" alt="" class="h-8 w-8 rounded-lg object-cover" /> } @else if (c.icon) { <app-icon [name]="c.icon" class="h-5 w-5 text-primary" /> }
+                  <b>{{ c.label }}</b>
+                  @if (c.activo === false) { <a-pill tone="bad">Oculta</a-pill> }
+                </span>
+                <button aBtn variant="ghost" [attr.aria-label]="'Editar ' + c.label" (click)="editCat.set(c)">Editar</button>
+              </div>
+              <p class="mt-1 text-xs text-muted-foreground">{{ usos(c.slug) }} {{ usos(c.slug) === 1 ? 'evento' : 'eventos' }}</p>
+            </div>
+          }
+        </div>
+        <a-category-modal [value]="editCat()" [conSub]="false" (closed)="editCat.set(null)" (saved)="guardarCat($event)" />
+      }
+      @case ('banners') {
+        <p class="mb-4 text-sm text-muted-foreground">Carrusel de la parte de arriba de la página Eventos.</p>
+        <a-banners-editor [ubicaciones]="['Eventos']" />
+      }
+      @default {
 
     <div class="adm-filtros">
       <div class="adm-busca">
@@ -32,7 +66,7 @@ const lineas = (t: string) => t.split(/\r?\n/).map((x) => x.trim()).filter(Boole
       </div>
       <select aria-label="Tipo" [class]="input + ' w-auto'" (change)="pag.filtrar('tipo', $any($event.target).value)">
         <option value="">Todos los tipos</option>
-        @for (t of tipos; track t.slug) { <option [value]="t.slug">{{ t.label }}</option> }
+        @for (t of tipos(); track t.slug) { <option [value]="t.slug">{{ t.label }}</option> }
       </select>
       <app-limpiar-filtros [activo]="pag.activo()" (limpiar)="pag.limpiar()" />
     </div>
@@ -69,6 +103,9 @@ const lineas = (t: string) => t.split(/\r?\n/).map((x) => x.trim()).filter(Boole
     </div>
     <a-pager [p]="pag" />
 
+      }
+    }
+
     <a-modal [open]="!!edit()" [wide]="true" [title]="esNuevo() ? 'Nuevo evento' : 'Editar evento'" (closed)="edit.set(null)">
       @if (edit(); as e) {
         <div class="space-y-4">
@@ -77,7 +114,7 @@ const lineas = (t: string) => t.split(/\r?\n/).map((x) => x.trim()).filter(Boole
             <a-field label="Marca o anfitrión"><input [class]="input" maxlength="60" [value]="e.marca" (input)="setE({ marca: $any($event.target).value })" /></a-field>
             <a-field label="Tipo de evento">
               <select [class]="input" (change)="setE({ tipo: $any($event.target).value })">
-                @for (t of tipos; track t.slug) { <option [value]="t.slug" [selected]="t.slug === e.tipo">{{ t.label }}</option> }
+                @for (t of tipos(); track t.slug) { <option [value]="t.slug" [selected]="t.slug === e.tipo">{{ t.label }}</option> }
               </select>
             </a-field>
             <a-field label="Nivel mínimo">
@@ -127,7 +164,16 @@ export class EventosAdminPage {
   private readonly toast = inject(ToastService);
   protected readonly catalog = inject(CatalogService);
   protected readonly input = INPUT_CLS;
-  protected readonly tipos = TIPOS_EVENTO;
+  protected readonly tabs = [{ k: 'eventos', l: 'Eventos' }, { k: 'categorias', l: 'Categorías' }, { k: 'banners', l: 'Banners' }] as const;
+  protected readonly tab = signal<'eventos' | 'categorias' | 'banners'>('eventos');
+  /** Categorías administrables (las usa el filtro, el formulario del evento y la pestaña Categorías). */
+  protected readonly cats = signal<(CategoriaEvento & CategoriaEdit)[]>([]);
+  protected readonly editCat = signal<CategoriaEdit | null>(null);
+  protected readonly tipos = computed(() => this.cats().filter((c) => c.activo !== false));
+  private readonly conteo = signal<Record<string, number>>({});
+  protected usos(slug: string) {
+    return this.conteo()[slug] ?? 0;
+  }
   protected readonly pag = new Paginado<Evento>(inject(ApiService), "eventos");
   protected readonly edit = signal<EventoEdit | null>(null);
   protected readonly borrar = signal<Evento | null>(null);
@@ -136,9 +182,29 @@ export class EventosAdminPage {
 
   constructor() {
     this.pag.recargar();
+    this.cargarCats();
   }
 
-  protected etiqueta = etiquetaTipo;
+  private cargarCats() {
+    this.api.get<(CategoriaEvento & CategoriaEdit)[]>("admin/c/categoriasEvento").subscribe((c) => this.cats.set(c));
+    this.api.get<Evento[]>("admin/c/eventos").subscribe((l) => {
+      const n: Record<string, number> = {};
+      for (const e of l) n[e.tipo] = (n[e.tipo] ?? 0) + 1;
+      this.conteo.set(n);
+    });
+  }
+  protected guardarCat(c: CategoriaEdit) {
+    const lista = this.cats();
+    const nueva = !lista.some((x) => x.slug === c.slug);
+    if (nueva && lista.some((x) => x.label.trim().toLowerCase() === c.label.trim().toLowerCase())) { this.toast.error("Ya hay una categoría con ese nombre."); return; }
+    const slug = c.slug || `cat-${Date.now().toString(36)}`;
+    this.api.put(`admin/c/categoriasEvento/${slug}`, { ...c, slug, subcategorias: [] }).subscribe({
+      next: () => { this.editCat.set(null); this.cargarCats(); this.toast.show("Categoría guardada"); },
+      error: (e) => this.toast.error(e?.error?.message ?? "No se pudo guardar la categoría."),
+    });
+  }
+
+  protected etiqueta = (slug: string) => etiquetaTipo(slug, this.cats().length ? this.cats() : TIPOS_EVENTO);
   protected fecha = fechaLabel;
   protected pasado = (e: Pick<Evento, "fechaISO">) => esPasado(e);
 

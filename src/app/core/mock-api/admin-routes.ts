@@ -25,7 +25,7 @@ import { promocionesCompletas } from "../promociones";
 const LISTAS = [
   "participantes", "pedidos", "mensajes", "usuarios", "auditoria", "beneficios",
   "categoriasBeneficio", "banners", "onboarding", "campos", "lotes", "seccionesHome", "marcas",
-  "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias", "premios", "codigosPromo", "giros", "eventos", "preinscripciones", "locales", "reclamaciones",
+  "plantillasCorreo", "correosEnviados", "campanas", "importaciones", "popups", "guias", "premios", "codigosPromo", "giros", "eventos", "preinscripciones", "locales", "reclamaciones", "categoriasEvento",
 ] as const;
 type Lista = (typeof LISTAS)[number];
 
@@ -97,7 +97,7 @@ const col = (name: string): Lista => {
 };
 
 /* ---------------- Consultas paginadas (para colecciones grandes) ---------------- */
-const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", mensajes: "id", usuarios: "id", marcas: "id", premios: "id", codigosPromo: "codigo", giros: "id", eventos: "id", preinscripciones: "id", locales: "id", reclamaciones: "id", plantillasCorreo: "id", correosEnviados: "id", campanas: "id", importaciones: "id" };
+const CLAVES: Record<string, string> = { participantes: "id", pedidos: "codigo", productos: "id", beneficios: "id", mensajes: "id", usuarios: "id", marcas: "id", premios: "id", codigosPromo: "codigo", giros: "id", eventos: "id", preinscripciones: "id", locales: "id", reclamaciones: "id", categoriasEvento: "slug", plantillasCorreo: "id", correosEnviados: "id", campanas: "id", importaciones: "id" };
 const BUSCABLES: Record<string, string[]> = {
   participantes: ["nombre", "cedula", "email"],
   pedidos: ["codigo", "cliente"],

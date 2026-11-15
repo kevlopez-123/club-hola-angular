@@ -6,7 +6,7 @@ import { leer } from "../core/leer";
 import { StoreService } from "../core/store.service";
 import { SesionService } from "../core/sesion.service";
 import {
-  ETIQUETA_ESTADO, TIPOS_EVENTO, esPasado, etiquetaTipo, fechaLabel, fotosEvento, type EstadoPreinscripcion, type Evento, type Preinscripcion,
+  ETIQUETA_ESTADO, esPasado, fechaLabel, fotosEvento, type EstadoPreinscripcion, type Evento, type Preinscripcion,
 } from "../core/eventos";
 import { tieneAcceso } from "../core/mock-api/seed/niveles";
 import { IconComponent } from "../shared/icon.component";
@@ -69,7 +69,8 @@ export class EventoCardComponent {
   protected readonly pasado = computed(() => esPasado(this.evento()));
   protected readonly inscrito = computed(() => this.inscritos().includes(this.evento().id));
   protected readonly agotado = computed(() => !this.pasado() && this.evento().cuposRestantes === 0);
-  protected readonly tipo = computed(() => etiquetaTipo(this.evento().tipo));
+  private readonly catalog = inject(CatalogService);
+  protected readonly tipo = computed(() => this.catalog.etiquetaEvento(this.evento().tipo));
   protected readonly fecha = computed(() => fechaLabel(this.evento().fechaISO));
   protected readonly fotos = computed(() => fotosEvento(this.evento()).length);
   protected readonly estado = computed(() => {
@@ -101,7 +102,7 @@ export class EventoCardComponent {
               [class]="'min-h-11 rounded-full px-6 text-sm font-bold transition-colors ' + (vista() === t.k ? 'bg-primary text-primary-foreground' : 'text-primary hover:bg-secondary')">{{ t.label }}</button>
           }
         </div>
-        <div class="mt-4"><app-category-strip [categorias]="categorias" [(value)]="tipo" /></div>
+        <div class="mt-4"><app-category-strip [categorias]="categorias()" [(value)]="tipo" /></div>
       </div>
     </section>
 
@@ -143,7 +144,7 @@ export class EventosPage {
   private readonly api = inject(ApiService);
   private readonly sesion = inject(SesionService);
   protected readonly vistas = [{ k: "proximos", label: "Próximos eventos" }, { k: "pasados", label: "Eventos pasados" }] as const;
-  protected readonly categorias = TIPOS_EVENTO;
+  protected readonly categorias = computed(() => this.catalog.categoriasEventoVisibles() as never);
   protected readonly vista = signal<"proximos" | "pasados">("proximos");
   protected readonly tipo = signal<string | null>(null);
   protected readonly query = signal("");
@@ -161,7 +162,7 @@ export class EventosPage {
     return (this.eventos() ?? [])
       .filter((e) => (pasados ? esPasado(e) : !esPasado(e)))
       .filter((e) => !this.tipo() || e.tipo === this.tipo())
-      .filter((e) => !q || `${e.nombre} ${e.marca} ${etiquetaTipo(e.tipo)} ${e.distrito}`.toLowerCase().includes(q))
+      .filter((e) => !q || `${e.nombre} ${e.marca} ${this.catalog.etiquetaEvento(e.tipo)} ${e.distrito}`.toLowerCase().includes(q))
       .filter((e) => (!this.desde() || e.fechaISO >= this.desde()) && (!this.hasta() || e.fechaISO <= this.hasta()))
       .sort((a, b) => (pasados ? b.fechaISO.localeCompare(a.fechaISO) : a.fechaISO.localeCompare(b.fechaISO)));
   });
@@ -361,7 +362,7 @@ export class EventoDetallePage {
   protected readonly relacionados = computed(() => (this.todos() ?? []).filter((e) => e.tipo === this.evento()?.tipo && e.id !== this.id()).slice(0, 4));
 
   protected readonly pasado = computed(() => { const e = this.evento(); return !!e && esPasado(e); });
-  protected readonly tipo = computed(() => etiquetaTipo(this.evento()?.tipo ?? ""));
+  protected readonly tipo = computed(() => this.catalog.etiquetaEvento(this.evento()?.tipo ?? ""));
   protected readonly fecha = computed(() => fechaLabel(this.evento()?.fechaISO ?? ""));
   protected readonly fotos = computed(() => { const e = this.evento(); return e ? fotosEvento(e) : []; });
   protected readonly galeria = computed(() => { const e = this.evento(); return !e ? [] : this.pasado() ? this.fotos() : e.galeria; });
@@ -514,6 +515,7 @@ export class EventoDetallePage {
   `,
 })
 export class MisInscripcionesPage {
+  private readonly catalog = inject(CatalogService);
   private readonly api = inject(ApiService);
   protected readonly estilos = ESTILO_ESTADO;
   protected readonly etiquetas = ETIQUETA_ESTADO;
@@ -529,7 +531,7 @@ export class MisInscripcionesPage {
     return this.eventos().find((e) => e.id === id);
   }
   protected tipo(e: Evento) {
-    return etiquetaTipo(e.tipo);
+    return this.catalog.etiquetaEvento(e.tipo);
   }
   protected fecha(e: Evento) {
     return fechaLabel(e.fechaISO);

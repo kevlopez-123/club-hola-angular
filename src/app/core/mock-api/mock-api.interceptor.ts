@@ -203,6 +203,7 @@ const customerRoutes: Route[] = [
     lista.unshift({ ...body, id: `rc${numero}`, numero, fecha, fechaISO: new Date().toISOString().slice(0, 10), vence: sumarDiasHabiles(new Date().toISOString().slice(0, 10), 15), estado: "Pendiente" });
     return { numero, fecha };
   }],
+  ["GET", "catalogo/categorias-evento", () => (db.admin.categoriasEvento as any[]).map(({ slug, label, icon, imagen, activo }) => ({ slug, label, icon, imagen, activo }))],
   ["GET", "catalogo/locales", () => (db.admin.locales as any[]).filter((l) => l.activo)],
   ["GET", "catalogo/marcas", () => db.admin.marcas.filter((m: any) => m.activo).map(({ nombre, logo, web, descripcion }: any) => ({ nombre, logo, web, descripcion }))],
   ["GET", "catalogo/banners/:seccion", ({ params }) => bannersPara(params["seccion"]!)],

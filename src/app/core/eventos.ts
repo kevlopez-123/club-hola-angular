@@ -1,5 +1,9 @@
 /** Eventos exclusivos de Club Hola: tipos compartidos por el sitio y el panel. */
-export type TipoEventoSlug = "cenas" | "gastronomicas" | "catas" | "lanzamientos" | "funciones" | "deportivos" | "culturales";
+/** Identificador de la categoría de un evento (se administra en Eventos → Categorías). */
+export type TipoEventoSlug = string;
+
+/** Categoría de eventos tal como la guarda el panel. */
+export type CategoriaEvento = { slug: TipoEventoSlug; label: string; icon?: string | undefined; imagen?: string | undefined; activo?: boolean | undefined };
 
 export const TIPOS_EVENTO: { slug: TipoEventoSlug; label: string; icon: string }[] = [
   { slug: "cenas", label: "Cenas exclusivas", icon: "UtensilsCrossed" },
@@ -11,7 +15,8 @@ export const TIPOS_EVENTO: { slug: TipoEventoSlug; label: string; icon: string }
   { slug: "culturales", label: "Eventos culturales", icon: "Theater" },
 ];
 
-export const etiquetaTipo = (slug: string) => TIPOS_EVENTO.find((t) => t.slug === slug)?.label ?? slug;
+/** Categorías de fábrica (las que trae el demo; después se administran desde el panel). */
+export const etiquetaTipo = (slug: string, lista: readonly { slug: string; label: string }[] = TIPOS_EVENTO) => lista.find((t) => t.slug === slug)?.label ?? slug;
 
 export type Evento = {
   id: string;

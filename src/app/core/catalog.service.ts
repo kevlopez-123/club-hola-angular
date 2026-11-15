@@ -1,5 +1,6 @@
 import { Injectable, computed, effect, inject, signal, untracked } from "@angular/core";
 import { SesionService } from "./sesion.service";
+import { etiquetaTipo, TIPOS_EVENTO, type CategoriaEvento } from "./eventos";
 import type { Local } from "./mock-api/seed/locales";
 import { localesAplicables } from "./locales-beneficio";
 import { ApiService } from "./api.service";
@@ -132,6 +133,12 @@ export class CatalogService {
   readonly bannersHome = signal<Slide[]>([]);
   readonly bannersBeneficios = signal<Slide[]>([]);
   readonly bannersEventos = signal<Slide[]>([]);
+  /** Categorías de eventos (todas; las ocultas no salen en los filtros pero sus eventos conservan el nombre). */
+  readonly categoriasEvento = signal<CategoriaEvento[]>([]);
+  readonly categoriasEventoVisibles = computed(() => this.categoriasEvento().filter((c) => c.activo !== false));
+  etiquetaEvento(slug: string): string {
+    return etiquetaTipo(slug, this.categoriasEvento().length ? this.categoriasEvento() : TIPOS_EVENTO);
+  }
 
   private readonly nivelesRes = signal<NivelesRespuesta | undefined>(undefined);
   readonly niveles = computed(() => this.nivelesRes()?.niveles ?? []);
@@ -207,6 +214,7 @@ export class CatalogService {
     this.api.get<Beneficio[]>("catalogo/beneficios").subscribe({ next: (r) => this.beneficiosRaw.set(r), error: this.falla });
     this.api.get<Categoria[]>("catalogo/categorias-beneficio").subscribe({ next: (r) => this.categoriasBeneficio.set(r), error: this.falla });
     this.api.get<MarcaAliada[]>("catalogo/marcas").subscribe({ next: (r) => this.marcasAliadas.set(r), error: this.falla });
+    this.api.get<CategoriaEvento[]>("catalogo/categorias-evento").subscribe({ next: (r) => this.categoriasEvento.set(r), error: () => undefined });
     this.api.get<Local[]>("catalogo/locales").subscribe({ next: (r) => this.locales.set(r), error: () => undefined });
     this.recargarBanners();
     this.recargarNiveles();
