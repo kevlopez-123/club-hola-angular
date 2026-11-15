@@ -12,6 +12,7 @@ import { legalAMarkdown } from "../markdown";
 import { aplicarPromo } from "../promo";
 import { popupsPublicos, registrarEventoPopup } from "./popups";
 import { ofuscarDocumento } from "../documento";
+import { sumarDiasHabiles } from "../reclamaciones";
 import { bannersPara } from "./banners";
 import { disponibleEn, estadoVigencia, evaluarCanje, fechaLarga, listaTexto, reglaDe, type ReglaCupon } from "../cupones";
 import { alertaLote, avisarNivel, enviarCorreo } from "./correos";
@@ -199,7 +200,7 @@ const customerRoutes: Route[] = [
     const lista = ((db.admin as any).reclamaciones ??= []) as any[];
     const numero = String(lista.length + 1).padStart(6, "0");
     const fecha = new Date().toLocaleString("es-PE", { timeZone: "America/Lima" });
-    lista.unshift({ id: `rc${numero}`, numero, fecha, fechaISO: new Date().toISOString().slice(0, 10), estado: "Pendiente", ...body });
+    lista.unshift({ ...body, id: `rc${numero}`, numero, fecha, fechaISO: new Date().toISOString().slice(0, 10), vence: sumarDiasHabiles(new Date().toISOString().slice(0, 10), 15), estado: "Pendiente" });
     return { numero, fecha };
   }],
   ["GET", "catalogo/locales", () => (db.admin.locales as any[]).filter((l) => l.activo)],

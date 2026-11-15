@@ -124,7 +124,7 @@ const COLECCION_A_SECCION: Record<string, Seccion> = {
   participantes: "participantes", pedidos: "pedidos", mensajes: "atencion", usuarios: "usuarios", auditoria: "auditoria",
   beneficios: "beneficios", categoriasBeneficio: "beneficios", lotes: "beneficios",
   banners: "contenido", onboarding: "contenido", seccionesHome: "contenido",
-  campos: "formulario", marcas: "marcas", locales: "marcas", premios: "ruleta", giros: "ruleta", codigosPromo: "codigos", eventos: "eventos", preinscripciones: "preinscripciones", plantillasCorreo: "correos", correosEnviados: "correos", campanas: "correos", importaciones: "importaciones",
+  campos: "formulario", marcas: "marcas", locales: "marcas", reclamaciones: "atencion", premios: "ruleta", giros: "ruleta", codigosPromo: "codigos", eventos: "eventos", preinscripciones: "preinscripciones", plantillasCorreo: "correos", correosEnviados: "correos", campanas: "correos", importaciones: "importaciones",
   popups: "popups", guias: "ayuda",
 };
 

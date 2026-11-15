@@ -3,6 +3,7 @@ import { compras } from "./seed/historial";
 import { codigosIniciales, premiosIniciales } from "./seed/juegos";
 import { eventosIniciales, preinscripcionesIniciales } from "./seed/eventos";
 import { localesIniciales, LOCALES_POR_BENEFICIO } from "./seed/locales";
+import { reclamacionesIniciales } from "./seed/reclamaciones";
 import {
   auditoria,
   camposIniciales,
@@ -98,6 +99,8 @@ export const adminSeed = () => {
       descripcion: "",
       activo: true,
     })) as any[],
+    /** Hojas del Libro de Reclamaciones (las nuevas se agregan al enviarlas desde el sitio). */
+    reclamaciones: reclamacionesIniciales() as any[],
     /** Establecimientos de las marcas (dirección, coordenadas, horario): alimentan el mapa y la ficha de cada beneficio. */
     locales: localesIniciales() as any[],
     categoriasBeneficio: categoriasBeneficio.map((c) => ({ slug: c.slug, label: c.label, icon: c.icon, activo: true, subcategorias: [] })) as any[],

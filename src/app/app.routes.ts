@@ -45,6 +45,7 @@ export const routes: Routes = [
       { path: "niveles", title: adminTitle("Niveles"), loadComponent: () => general().then((m) => m.NivelesPage) },
       { path: "configuracion", title: adminTitle("Configuración"), loadComponent: () => general().then((m) => m.ConfiguracionPage) },
       { path: "atencion", title: adminTitle("Atención"), loadComponent: () => general().then((m) => m.AtencionPage) },
+      { path: "atencion/reclamos", title: adminTitle("Reclamos"), loadComponent: () => import("./admin/pages-reclamos").then((m) => m.ReclamosAdminPage) },
       { path: "correos", title: adminTitle("Correos"), loadComponent: () => import("./admin/pages-correos").then((m) => m.CorreosPage) },
       { path: "perfil", title: adminTitle("Mi perfil"), loadComponent: () => import("./admin/pages-perfil").then((m) => m.PerfilAdminPage) },
       { path: "popups", title: adminTitle("Pop-ups"), loadComponent: () => import("./admin/pages-popups").then((m) => m.PopupsPage) },

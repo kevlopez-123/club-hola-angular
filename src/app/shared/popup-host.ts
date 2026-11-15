@@ -33,7 +33,7 @@ const almacen = (tipo: "local" | "session"): Storage | undefined => {
     @if (actual(); as p) {
       <div class="fixed inset-0 z-[90] flex items-center justify-center bg-ink/60 p-4" (keydown)="atrapar($event)">
         <div #caja role="dialog" aria-modal="true" [attr.aria-labelledby]="p.formato === 'imagen' ? null : 'popup-t-' + p.id" [attr.aria-label]="p.formato === 'imagen' ? p.titulo : null" tabindex="-1"
-          class="animate-fade-up relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-card shadow-2xl outline-none">
+          [class]="'animate-fade-up relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-3xl bg-card shadow-2xl outline-none ' + (p.formato === 'imagen' ? 'max-w-xl lg:max-w-[40rem]' : 'max-w-md')">
           <button type="button" aria-label="Cerrar" (click)="cerrar(p)"
             class="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-card/90 text-ink shadow hover:bg-card">
             <app-icon name="X" class="h-5 w-5" />

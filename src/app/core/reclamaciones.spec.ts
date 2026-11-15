@@ -34,3 +34,18 @@ describe("hojaReclamacion", () => {
     expect(t).toContain("Indecopi");
   });
 });
+
+import { diasParaVencer, sumarDiasHabiles } from "./reclamaciones";
+
+describe("plazo de respuesta", () => {
+  it("suma días hábiles saltando los fines de semana", () => {
+    // viernes 13/11/2026 + 1 día hábil = lunes 16/11
+    expect(sumarDiasHabiles("2026-11-13", 1)).toBe("2026-11-16");
+    // lunes 02/11/2026 + 15 días hábiles = lunes 23/11
+    expect(sumarDiasHabiles("2026-11-02", 15)).toBe("2026-11-23");
+  });
+  it("calcula cuántos días faltan", () => {
+    expect(diasParaVencer("2026-11-20", "2026-11-17")).toBe(3);
+    expect(diasParaVencer("2026-11-16", "2026-11-17")).toBe(-1);
+  });
+});
