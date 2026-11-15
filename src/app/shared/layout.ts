@@ -154,13 +154,13 @@ export class SearchBoxComponent {
               }
             </div>
             } @else {
-              <a routerLink="/login" [queryParams]="volver()" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-5 text-base font-bold text-ink transition-colors hover:bg-white/90"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
+              <a routerLink="/login" [queryParams]="volver()" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
             }
           </div>
 
           <div class="flex items-center gap-1 justify-self-end lg:hidden">
             @if (!sesion.logged()) {
-              <a routerLink="/login" [queryParams]="volver()" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-base font-bold text-ink transition-colors hover:bg-white/90"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
+              <a routerLink="/login" [queryParams]="volver()" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
             }
             <button type="button" [attr.aria-label]="open() ? 'Cerrar menú' : 'Abrir menú'" [attr.aria-expanded]="open()"
               (click)="open.set(!open())"
@@ -208,7 +208,7 @@ export class SearchBoxComponent {
       @if (open()) {
         <div class="max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain border-t border-white/15 bg-brand-dark px-4 pb-6 pt-4 lg:hidden">
           @if (!sesion.logged()) {
-            <a routerLink="/login" [queryParams]="volver()" (click)="open.set(false)" class="mb-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-white px-5 text-base font-bold text-ink"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
+            <a routerLink="/login" [queryParams]="volver()" (click)="open.set(false)" class="mb-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-base font-bold text-primary-foreground"><app-icon name="User" class="h-5 w-5" /> Ingresar</a>
           } @else {
           <div class="mb-5 flex flex-wrap items-center gap-3">
             <span class="w-full text-base text-white/90">Hola {{ store.usuario().nombre }}</span>
