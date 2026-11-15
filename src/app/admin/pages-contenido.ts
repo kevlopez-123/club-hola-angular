@@ -64,7 +64,7 @@ type SeccionHome = { s: string; on: boolean };
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a-header title="Contenido" desc="Banners del Home, onboarding de la app, secciones del Home, textos legales y menú. Los cambios se publican al guardarlos." />
+    <a-header title="Contenido" desc="Banners del Home y de Eventos, onboarding de la app, secciones del Home, textos legales y menú. Los cambios se publican al guardarlos." />
     @if (errorCarga()) { <a-error-carga (reintentar)="cargar()" /> }
     <div class="mb-4 flex flex-wrap gap-2">
       @for (t of tabs; track t.k) {
@@ -76,8 +76,8 @@ type SeccionHome = { s: string; on: boolean };
 
     @switch (tab()) {
       @case ('banners') {
-        <p class="mb-4 text-sm text-muted-foreground">Banners del Home. Los de Productos y Beneficios están en su módulo, en la pestaña Banners.</p>
-        <a-banners-editor [ubicaciones]="['Home']" />
+        <p class="mb-4 text-sm text-muted-foreground">Banners del Home y de Eventos (elige la ubicación al crear cada uno). Los de Beneficios están en su módulo, en la pestaña Banners.</p>
+        <a-banners-editor [ubicaciones]="['Home', 'Eventos']" />
       }
       @case ('onboarding') {
         <div class="grid gap-6 md:grid-cols-3">
@@ -289,7 +289,7 @@ export class ContenidoPage {
   ] as const;
   protected readonly textoTab = signal<'faq' | 'terminos' | 'privacidad'>('faq');
   protected readonly tabs = [
-    { k: 'banners', l: 'Banners del Home' },
+    { k: 'banners', l: 'Banners (Home y Eventos)' },
     { k: 'onboarding', l: 'Onboarding app' },
     { k: 'home', l: 'Secciones del Home' },
     { k: 'textos', l: 'FAQ y legales' },

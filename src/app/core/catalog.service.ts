@@ -131,6 +131,7 @@ export class CatalogService {
 
   readonly bannersHome = signal<Slide[]>([]);
   readonly bannersBeneficios = signal<Slide[]>([]);
+  readonly bannersEventos = signal<Slide[]>([]);
 
   private readonly nivelesRes = signal<NivelesRespuesta | undefined>(undefined);
   readonly niveles = computed(() => this.nivelesRes()?.niveles ?? []);
@@ -194,6 +195,7 @@ export class CatalogService {
   recargarBanners() {
     this.api.get<Slide[]>("catalogo/banners/home").subscribe({ next: (r) => this.bannersHome.set(r), error: this.falla });
     this.api.get<Slide[]>("catalogo/banners/beneficios").subscribe({ next: (r) => this.bannersBeneficios.set(r), error: this.falla });
+    this.api.get<Slide[]>("catalogo/banners/eventos").subscribe({ next: (r) => this.bannersEventos.set(r), error: () => undefined });
   }
 
   constructor() {

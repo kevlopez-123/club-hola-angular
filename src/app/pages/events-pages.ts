@@ -10,7 +10,7 @@ import {
 } from "../core/eventos";
 import { tieneAcceso } from "../core/mock-api/seed/niveles";
 import { IconComponent } from "../shared/icon.component";
-import { ModalComponent, SectionTitleComponent } from "../shared/ui";
+import { HeroSliderComponent, ModalComponent, SectionTitleComponent } from "../shared/ui";
 import { CategoryStripComponent } from "../shared/widgets";
 
 const ESTILO_ESTADO: Record<EstadoPreinscripcion, string> = {
@@ -87,12 +87,10 @@ export class EventoCardComponent {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-eventos-page",
-  imports: [RouterLink, CategoryStripComponent, EventoCardComponent, SectionTitleComponent],
+  imports: [RouterLink, CategoryStripComponent, EventoCardComponent, SectionTitleComponent, HeroSliderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="overflow-hidden">
-      <img src="img/e-hero.jpg" alt="Eventos exclusivos para tarjetahabientes" width="1600" height="700" class="aspect-[16/9] w-full object-cover sm:aspect-[21/8] lg:aspect-[3/1]" />
-    </section>
+    <app-hero-slider [items]="catalog.bannersEventos()" />
 
     <h1 class="sr-only">Eventos exclusivos</h1>
     <section class="bg-background py-6">
@@ -141,6 +139,7 @@ export class EventoCardComponent {
   `,
 })
 export class EventosPage {
+  protected readonly catalog = inject(CatalogService);
   private readonly api = inject(ApiService);
   private readonly sesion = inject(SesionService);
   protected readonly vistas = [{ k: "proximos", label: "Próximos eventos" }, { k: "pasados", label: "Eventos pasados" }] as const;

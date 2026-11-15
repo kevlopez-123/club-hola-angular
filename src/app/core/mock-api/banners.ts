@@ -13,7 +13,7 @@ function interesesDelParticipante(): string[] {
 
 /** Banners de una sección del sitio (web), vigentes hoy y filtrados para quien pregunta: su nivel y sus intereses. */
 export function bannersPara(seccion: string) {
-  const ubicacion = seccion === "home" ? "Home" : seccion === "beneficios" ? "Beneficios" : "";
+  const ubicacion = seccion === "home" ? "Home" : seccion === "beneficios" ? "Beneficios" : seccion === "eventos" ? "Eventos" : "";
   const visitante: Visitante = contexto.participante ? { nivel: db.usuario.nivel, intereses: interesesDelParticipante() } : { intereses: [] };
   const hoy = hoyIso();
   const vigentes = (db.admin.banners as any[]).filter((b) => b.canal === "Web" && b.ubicacion === ubicacion && b.activo && b.inicio <= hoy && b.fin >= hoy);

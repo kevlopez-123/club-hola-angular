@@ -68,6 +68,13 @@ export const adminSeed = () => {
     { id: "int-cafe", imagen: "img/b-cafe.jpg", alt: "CAFÉ · Para quienes disfrutan de una buena cafetería", to: "/beneficios", intereses: ["Cafetería"] },
   ].map((s) => ({ ...s, key: s.id, canal: "Web", ubicacion: "Home", activo: true, inicio: "2026-10-01", fin: "2027-06-30" }));
 
+  // Banners de la sección Eventos (el carrusel de la parte de arriba de /eventos).
+  const deEventos = [
+    { id: "ev-hero", imagen: "img/e-hero.jpg", alt: "Eventos exclusivos para clientes BanBif", to: "/eventos" },
+    { id: "ev-cena", imagen: "img/e-cena.jpg", alt: "Cenas exclusivas con chefs invitados", to: "/eventos" },
+    { id: "ev-lanzamiento", imagen: "img/e-lanzamiento.jpg", alt: "Lanzamientos de marcas solo para ti", to: "/eventos" },
+  ].map((s) => ({ ...s, key: s.id, canal: "Web", ubicacion: "Eventos", activo: true, inicio: "2026-10-01", fin: "2027-06-30" }));
+
   return {
     /** Pedidos creados por la API pública (checkout) se agregan aquí con `unshift`. */
     pedidos: pedidos as any[],
@@ -104,7 +111,7 @@ export const adminSeed = () => {
     /** Establecimientos de las marcas (dirección, coordenadas, horario): alimentan el mapa y la ficha de cada beneficio. */
     locales: localesIniciales() as any[],
     categoriasBeneficio: categoriasBeneficio.map((c) => ({ slug: c.slug, label: c.label, icon: c.icon, activo: true, subcategorias: [] })) as any[],
-    banners: [...banners, ...dirigidos] as any[],
+    banners: [...banners, ...dirigidos, ...deEventos] as any[],
     onboarding: clone(onboarding) as any[],
     campos: clone(camposIniciales) as any[],
     /** Spin & Win y Lucky Code: premios, códigos promocionales y lo que ya se jugó. */
