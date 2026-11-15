@@ -203,7 +203,7 @@ const cardBase = "card-elevate group flex h-full flex-col overflow-hidden rounde
   selector: "app-benefit-card",
   imports: [RouterLink, FavButtonComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: "block h-full" },
+  host: { class: "block" },
   template: `
     <article [class]="base">
       <a [routerLink]="['/beneficios', beneficio().id]" tabindex="-1" aria-hidden="true" class="relative block overflow-hidden bg-muted">
