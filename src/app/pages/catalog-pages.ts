@@ -3,6 +3,8 @@ import { ApiService } from "../core/api.service";
 import { fechaLarga, listaTexto } from "../core/cupones";
 import { SesionService } from "../core/sesion.service";
 import { ofuscarDocumento } from "../core/documento";
+import { htmlCuponImpreso, imprimirDocumento } from "../core/cupon-impreso";
+import { ToastService } from "../shared/toast";
 import { tieneAcceso } from "../core/mock-api/seed/niveles";
 import { RouterLink } from "@angular/router";
 import { CatalogService } from "../core/catalog.service";
@@ -282,8 +284,8 @@ export class BeneficiosPage {
                     </div>
                   </div>
                   <div class="mt-4 flex justify-center gap-3">
-                    <button type="button" aria-label="Descargar cupón" class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><app-icon name="Download" class="h-4 w-4" /></button>
-                    <button type="button" aria-label="Imprimir cupón" class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><app-icon name="Printer" class="h-4 w-4" /></button>
+                    <button type="button" aria-label="Descargar cupón" title="Descargar (guardar como PDF)" (click)="exportarCupon(true)" class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><app-icon name="Download" class="h-4 w-4" /></button>
+                    <button type="button" aria-label="Imprimir cupón" title="Imprimir" (click)="exportarCupon(false)" class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><app-icon name="Printer" class="h-4 w-4" /></button>
                   </div>
                   <p class="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-ink">
                     <app-icon name="CheckCircle2" class="h-4 w-4 text-primary" /> Cupón generado. Este beneficio queda bloqueado hasta que expire.
@@ -460,6 +462,31 @@ export class BeneficioDetallePage {
   protected readonly qr = signal("");
   /** Tipo de documento de quien tiene la sesión (DNI, CE…). */
   protected readonly etiquetaDocumento = computed(() => this.store.perfil()?.tipoDocumento || this.brand.pais().documentos[0]?.label || "Documento");
+  private readonly toast = inject(ToastService);
+  /** Imprime el cupón o lo guarda como PDF (desde el cuadro de impresión). Lleva el código, el QR y el documento ofuscado. */
+  protected exportarCupon(comoPdf: boolean) {
+    const b = this.beneficio();
+    const c = this.cuponActivo();
+    if (!b || !c) return;
+    const logo = this.brand.marca().logoOscuro;
+    imprimirDocumento(htmlCuponImpreso({
+      programa: this.brand.programa(),
+      banco: this.brand.marca().nombre,
+      logo: logo ? new URL(logo, document.baseURI).href : undefined,
+      beneficio: b.nombre,
+      comercio: b.marca,
+      descuento: b.descuento,
+      codigo: c.codigo,
+      qr: this.qr() || undefined,
+      documentoEtiqueta: this.etiquetaDocumento(),
+      documento: this.documentoCupon(),
+      venceEl: new Date(c.expira).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" }),
+      vigenciaHasta: b.hasta ? fechaLarga(b.hasta) : undefined,
+      locales: this.locales().map((l) => ({ nombre: l.nombre, direccion: l.direccion, distrito: l.distrito, horario: l.horario })),
+      terminos: b.terminos,
+    }));
+    if (comoPdf) this.toast.show("En el cuadro de impresión elige «Guardar como PDF».");
+  }
   /** Documento ofuscado (solo los 4 últimos): el del cupón o, si es un cupón anterior que no lo guardó, el del participante con sesión. */
   protected readonly documentoCupon = computed(() => this.cuponActivo()?.documento || ofuscarDocumento(this.store.perfil()?.codigoParticipante));
   private readonly dibujarQr = effect(() => {
