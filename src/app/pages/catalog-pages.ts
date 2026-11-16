@@ -30,6 +30,7 @@ import {
 } from "../shared/widgets";
 import { Countdown } from "../shared/countdown";
 import { distanciaKm, textoDistancia } from "../core/geo";
+import { cargarQr } from "../core/qr";
 import { GuestGateDirective } from "../shared/guest-gate";
 import { MapaLocalesComponent } from "../shared/mapa-locales";
 
@@ -576,7 +577,7 @@ export class BeneficioDetallePage {
   private readonly dibujarQr = effect(() => {
     const codigo = this.cuponActivo()?.codigo;
     if (!codigo) { this.qr.set(""); return; }
-    void import("qrcode").then((m) => m.toDataURL(codigo, { width: 220, margin: 1, errorCorrectionLevel: "M" })).then((u) => this.qr.set(u)).catch(() => this.qr.set(""));
+    void cargarQr().then((m) => m.toDataURL(codigo, { width: 220, margin: 1, errorCorrectionLevel: "M" })).then((u) => this.qr.set(u)).catch(() => this.qr.set(""));
   });
 
   protected itemAgregado(b: { id: string; marca: string; nombre: string; imagen: string; precio?: number | undefined }) {

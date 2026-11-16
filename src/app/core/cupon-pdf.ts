@@ -1,5 +1,6 @@
 import { ancho, col, envolver, esc, rgb, type Rgb } from "./pdf-base";
 import type { DatosCupon } from "./cupon-datos";
+import { cargarQr } from "./qr";
 
 /**
  * Cupón en PDF «de verdad» (como un pase de abordar): texto seleccionable, QR dibujado con vectores (nítido al imprimir a cualquier
@@ -66,7 +67,7 @@ export async function cabeceraEnNavegador(d: DatosCupon, anchoPt: number, altoPt
 
 /** Módulos oscuros del QR (true = negro). */
 async function matrizQr(texto: string): Promise<{ n: number; oscuro: (fila: number, columna: number) => boolean }> {
-  const QR = await import("qrcode");
+  const QR = await cargarQr();
   const modulos = (QR as unknown as { create: (t: string, o: { errorCorrectionLevel: string }) => { modules: { size: number; get: (r: number, c: number) => number } } }).create(texto, { errorCorrectionLevel: "M" }).modules;
   return { n: modulos.size, oscuro: (f, c) => !!modulos.get(f, c) };
 }
