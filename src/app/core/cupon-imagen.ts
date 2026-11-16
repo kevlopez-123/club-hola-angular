@@ -1,4 +1,5 @@
-import type { DatosCuponImpreso } from "./cupon-impreso";
+import type { DatosCupon } from "./cupon-datos";
+import { pdfDeJpeg } from "./pdf-imagen";
 
 const FUENTE = "Manrope, Arial, Helvetica, sans-serif";
 const MORADO = "#924ff5";
@@ -42,11 +43,8 @@ function redondo(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
   ctx.closePath();
 }
 
-/**
- * Dibuja el cupón como imagen PNG (para guardarla en el celular o compartirla con el comercio). Lleva el código, el QR y el documento
- * ofuscado; nunca el documento completo.
- */
-export async function cuponComoPng(d: DatosCuponImpreso): Promise<Blob> {
+/** Dibuja el cupón (código, QR y documento ofuscado; nunca el documento completo). */
+async function dibujarCupon(d: DatosCupon): Promise<HTMLCanvasElement> {
   const [logo, qr, logoBanco] = await Promise.all([cargar(d.logo), cargar(d.qr), cargar(d.logoBanco)]);
   const medida = document.createElement("canvas").getContext("2d")!;
   const margen = 60;
@@ -158,5 +156,20 @@ export async function cuponComoPng(d: DatosCuponImpreso): Promise<Blob> {
   ctx.lineWidth = 6;
   ctx.strokeRect(3, 3, ANCHO - 6, alto - 6);
 
-  return new Promise<Blob>((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("png"))), "image/png"));
+  return c;
+}
+
+const aBlob = (c: HTMLCanvasElement, tipo: string, calidad?: number) =>
+  new Promise<Blob>((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error(tipo))), tipo, calidad));
+
+/** El cupón como imagen PNG (para guardarla en el celular o compartirla con el comercio). */
+export async function cuponComoPng(d: DatosCupon): Promise<Blob> {
+  return aBlob(await dibujarCupon(d), "image/png");
+}
+
+/** El cupón como PDF de una página (A4), listo para descargar con un nombre de archivo propio. */
+export async function cuponComoPdf(d: DatosCupon): Promise<Blob> {
+  const c = await dibujarCupon(d);
+  const jpeg = new Uint8Array(await (await aBlob(c, "image/jpeg", 0.95)).arrayBuffer());
+  return pdfDeJpeg(jpeg, c.width, c.height, `Cupón ${d.codigo} - ${d.beneficio}`);
 }
