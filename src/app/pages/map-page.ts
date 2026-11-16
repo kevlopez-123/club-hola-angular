@@ -9,6 +9,9 @@ import { aplicaEnLocal } from "../core/locales-beneficio";
 import type { Local } from "../core/mock-api/seed/locales";
 import { IconComponent } from "../shared/icon.component";
 import { ComboboxComponent } from "../shared/combobox";
+import { SesionService } from "../core/sesion.service";
+import { StoreService } from "../core/store.service";
+import { regionInicial } from "../core/region";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -43,9 +46,10 @@ function cargarCssDeLeaflet() {
         </div>
         @if (avisoPos()) { <p role="status" class="mt-2 text-sm text-muted-foreground">{{ avisoPos() }}</p> }
 
-        <div class="mt-5 grid gap-3 sm:grid-cols-3">
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <input type="search" aria-label="Buscar establecimiento" placeholder="Busca por marca, local o distrito" [value]="q()" (input)="q.set($any($event.target).value)"
             class="h-11 rounded-full border border-border bg-card px-4 text-sm text-ink outline-none focus:ring-2 focus:ring-primary/50" />
+          <app-combobox etiqueta="Departamento" todas="Todos los departamentos" [opciones]="departamentos()" [value]="departamento()" (valueChange)="cambiarDepartamento($event)" />
           <app-combobox etiqueta="Marca" todas="Todas las marcas" [opciones]="marcas()" [(value)]="marca" />
           <select aria-label="Categoría" (change)="categoria.set($any($event.target).value)"
             class="select-field h-11 rounded-full border border-border bg-card px-4 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-primary/50">
@@ -54,6 +58,12 @@ function cargarCssDeLeaflet() {
           </select>
         </div>
 
+        @if (regionAuto()) {
+          <p role="status" class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink">
+            <span>Te mostramos los establecimientos de <b>{{ regionAuto() }}</b>, según tu perfil.</span>
+            <button type="button" (click)="cambiarDepartamento('')" class="font-semibold text-primary underline underline-offset-2">Ver todo el país</button>
+          </p>
+        }
         <p class="mt-4 text-sm text-muted-foreground" aria-live="polite">{{ lista().length }} {{ lista().length === 1 ? 'establecimiento' : 'establecimientos' }}</p>
 
         <div class="mt-3 grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -104,6 +114,13 @@ export class MapaPage implements OnDestroy {
   protected readonly q = signal("");
   protected readonly marca = signal(inject(ActivatedRoute).snapshot.queryParamMap.get("marca") ?? "");
   protected readonly categoria = signal("");
+  protected readonly departamento = signal("");
+  /** Departamento que se aplicó solo desde el perfil (vacío si la persona lo cambió o no había uno). */
+  protected readonly regionAuto = signal("");
+  private regionTocada = false;
+  private regionResuelta = false;
+  private readonly store = inject(StoreService);
+  private readonly sesion = inject(SesionService);
   protected readonly seleccionado = signal("");
   protected readonly miPos = signal<{ lat: number; lng: number } | null>(null);
   protected readonly buscandoPos = signal(false);
@@ -125,6 +142,13 @@ export class MapaPage implements OnDestroy {
     return m;
   });
   protected readonly marcas = computed(() => [...new Set(this.catalog.locales().map((l) => l.marca))].sort((a, b) => a.localeCompare(b, "es")));
+  /** Departamentos que tienen establecimientos. */
+  protected readonly departamentos = computed(() => [...new Set(this.catalog.locales().map((l) => l.provincia))].sort((a, b) => a.localeCompare(b, "es")));
+  protected cambiarDepartamento(v: string) {
+    this.regionTocada = true;
+    this.regionAuto.set("");
+    this.departamento.set(v);
+  }
   protected readonly categorias = computed(() => [...new Set([...this.categoriasPorMarca().values()].flatMap((s) => [...s]))].sort((a, b) => a.localeCompare(b, "es")));
 
   protected readonly lista = computed(() => {
@@ -132,7 +156,7 @@ export class MapaPage implements OnDestroy {
     const pos = this.miPos();
     const cat = this.categoria();
     const filas = this.catalog.locales()
-      .filter((l) => (!this.marca() || l.marca === this.marca()) && (!cat || this.categoriasPorMarca().get(l.marca)?.has(cat)))
+      .filter((l) => (!this.marca() || l.marca === this.marca()) && (!this.departamento() || l.provincia === this.departamento()) && (!cat || this.categoriasPorMarca().get(l.marca)?.has(cat)))
       .filter((l) => !q || `${l.nombre} ${l.marca} ${l.distrito} ${l.direccion}`.toLowerCase().includes(q))
       .map((l) => ({ ...l, distancia: pos ? distanciaKm(pos, l) : (null as number | null) }));
     return pos ? filas.sort((a, b) => a.distancia! - b.distancia!) : filas.sort((a, b) => a.marca.localeCompare(b.marca, "es") || a.nombre.localeCompare(b.nombre, "es"));
@@ -147,6 +171,25 @@ export class MapaPage implements OnDestroy {
 
   constructor() {
     afterNextRender(() => void this.iniciar());
+    // Con sesión, el mapa abre en el departamento de su perfil (o de sus direcciones) si ahí hay establecimientos.
+    effect(() => {
+      const locales = this.catalog.locales();
+      const perfil = this.store.perfil();
+      const direcciones = this.store.direcciones();
+      const campos = this.catalog.config()?.formulario ?? [];
+      if (this.regionResuelta || this.regionTocada || !this.sesion.logged() || !locales.length || !perfil) return;
+      this.regionResuelta = true;
+      const campoDepartamento = campos.find((c) => c.mapeo === "provincia");
+      const delPerfil = campoDepartamento ? String(perfil.extra?.[campoDepartamento.id] ?? "") : "";
+      // Si llegaron desde un enlace con una marca, solo cuenta el departamento donde esa marca tiene locales.
+      const marca = this.marca();
+      const disponibles = [...new Set(locales.filter((l) => !marca || l.marca === marca).map((l) => l.provincia))];
+      const region = regionInicial(delPerfil, direcciones, disponibles);
+      if (region) {
+        this.departamento.set(region);
+        this.regionAuto.set(region);
+      }
+    });
     // Los pines siguen a los filtros.
     effect(() => {
       const filas = this.lista();
@@ -210,6 +253,8 @@ export class MapaPage implements OnDestroy {
       (p) => {
         const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
         this.miPos.set(pos);
+        // Si la región se había aplicado sola, se amplía para que lo más cercano a la persona aparezca primero.
+        if (this.regionAuto()) this.cambiarDepartamento("");
         this.buscandoPos.set(false);
         this.avisoPos.set("Ordenados del más cercano al más lejano.");
         const L = this.L;
