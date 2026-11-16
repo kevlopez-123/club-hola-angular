@@ -26,7 +26,7 @@ describe("pdfDeJpeg", () => {
     expect(t.slice(inicio, inicio + 4)).toBe("xref");
     const offs = [...t.slice(inicio).matchAll(/(\d{10}) 00000 n/g)].map((m) => Number(m[1]));
     expect(offs).toHaveLength(6);
-    offs.forEach((o, i) => expect(t.slice(o, o + 6)).toBe(`${i + 1} 0 obj`));
+    offs.forEach((o, i) => expect(t.slice(o, o + 7)).toBe(`${i + 1} 0 obj`));
   });
   it("el título no puede romper el documento", async () => {
     const t = await leer(pdfDeJpeg(jpegFalso(), 100, 100, "a) /Evil (b\\"));
