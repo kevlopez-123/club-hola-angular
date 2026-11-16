@@ -134,6 +134,7 @@ export const CLUB_HOLA: TenantConfig = {
     unidadPuntos: "beneficios",
     logoClaro: "img/club-hola-dark.svg",
     logoOscuro: "img/club-hola-white.svg",
+    logoBanco: "img/banbif-logo.png",
     favicon: "img/favicon-clubhola.png",
     derechos: "BanBif 2026 | Todos los derechos reservados | Powered by Motiva Soluciones",
   },

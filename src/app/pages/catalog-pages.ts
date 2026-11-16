@@ -475,6 +475,7 @@ export class BeneficioDetallePage {
       programa: this.brand.programa(),
       banco: this.brand.marca().nombre,
       logo: logo ? new URL(logo, document.baseURI).href : undefined,
+      logoBanco: this.brand.marca().logoBanco ? new URL(this.brand.marca().logoBanco!, document.baseURI).href : undefined,
       beneficio: b.nombre,
       comercio: b.marca,
       descuento: b.descuento,

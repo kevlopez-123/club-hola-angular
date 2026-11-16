@@ -23,6 +23,8 @@ export type TenantConfig = {
     logoClaro: string;
     /** Logo para fondos de color/oscuros (URL o data URL). */
     logoOscuro: string;
+    /** Logo de la empresa (el banco) para fondos oscuros: va junto al del programa en el cupón impreso y descargado. Opcional. */
+    logoBanco?: string | undefined;
     /** Ícono de la pestaña del navegador. */
     favicon: string;
     /** Texto legal del pie de página. */

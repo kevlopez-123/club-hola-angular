@@ -47,7 +47,7 @@ function redondo(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
  * ofuscado; nunca el documento completo.
  */
 export async function cuponComoPng(d: DatosCuponImpreso): Promise<Blob> {
-  const [logo, qr] = await Promise.all([cargar(d.logo), cargar(d.qr)]);
+  const [logo, qr, logoBanco] = await Promise.all([cargar(d.logo), cargar(d.qr), cargar(d.logoBanco)]);
   const medida = document.createElement("canvas").getContext("2d")!;
   const margen = 60;
   const util = ANCHO - margen * 2;
@@ -79,10 +79,16 @@ export async function cuponComoPng(d: DatosCuponImpreso): Promise<Blob> {
     ctx.textAlign = "left";
     ctx.fillText(d.programa, margen, 70);
   }
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `600 26px ${FUENTE}`;
-  ctx.textAlign = "right";
-  ctx.fillText(d.banco, ANCHO - margen, 66);
+  if (logoBanco) {
+    const h = 44;
+    const w = (logoBanco.width / logoBanco.height) * h;
+    ctx.drawImage(logoBanco, ANCHO - margen - w, 33, w, h);
+  } else {
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `600 26px ${FUENTE}`;
+    ctx.textAlign = "right";
+    ctx.fillText(d.banco, ANCHO - margen, 66);
+  }
 
   // Cuerpo
   ctx.textAlign = "center";

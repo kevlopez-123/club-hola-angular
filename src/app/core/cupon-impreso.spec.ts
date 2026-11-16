@@ -16,6 +16,11 @@ describe("htmlCuponImpreso", () => {
     expect(h).toContain("Pardos Miraflores");
     expect(h).toContain("Cupón personal");
   });
+  it("lleva el logo del banco junto al del programa y fuerza los colores al imprimir", () => {
+    const h = htmlCuponImpreso({ ...base(), logoBanco: "img/banbif-logo.png" });
+    expect(h).toContain('class="banco" src="img/banbif-logo.png"');
+    expect(h).toContain("print-color-adjust: exact");
+  });
   it("nunca incluye el documento completo", () => {
     expect(htmlCuponImpreso(base())).not.toContain("41234567");
   });

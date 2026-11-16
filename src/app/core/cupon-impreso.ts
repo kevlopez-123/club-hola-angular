@@ -6,6 +6,8 @@ export interface DatosCuponImpreso {
   programa: string;
   banco: string;
   logo?: string | undefined;
+  /** Logo del banco (fondo oscuro). Si falta, se escribe el nombre. */
+  logoBanco?: string | undefined;
   beneficio: string;
   comercio: string;
   descuento: string;
@@ -29,16 +31,18 @@ const imgSegura = (u: string | undefined) => (u && /^(data:image\/(png|jpeg|svg\
 
 export function htmlCuponImpreso(d: DatosCuponImpreso): string {
   const logo = imgSegura(d.logo);
+  const logoBanco = imgSegura(d.logoBanco);
   const qr = imgSegura(d.qr);
   const locales = d.locales.slice(0, 6);
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cupón ${esc(d.codigo)} · ${esc(d.beneficio)}</title>
 <style>
   @page { size: A4; margin: 16mm; }
-  * { box-sizing: border-box; }
+  /* Al imprimir o guardar como PDF los navegadores quitan los fondos: se fuerzan para que la cabecera oscura (y sus logos blancos) se vea. */
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { margin: 0; font: 14px/1.5 Arial, Helvetica, sans-serif; color: #141925; }
   .cupon { max-width: 520px; margin: 0 auto; border: 2px solid #924ff5; border-radius: 16px; overflow: hidden; }
   .cab { background: #131927; color: #fff; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .cab img { height: 30px; } .cab b { font-size: 18px; }
+  .cab img { height: 30px; } .cab img.banco { height: 24px; } .cab b { font-size: 18px; }
   .cuerpo { padding: 20px; text-align: center; }
   .marca { text-transform: uppercase; letter-spacing: .06em; font-size: 12px; color: #6b7280; margin: 0; }
   h1 { font-size: 20px; margin: 6px 0; } .desc { display: inline-block; background: #924ff5; color: #fff; border-radius: 999px; padding: 2px 14px; font-weight: 700; }
@@ -51,7 +55,7 @@ export function htmlCuponImpreso(d: DatosCuponImpreso): string {
   .sec ul { margin: 0; padding-left: 16px; } .pie { font-size: 11px; color: #6b7280; text-align: center; margin-top: 12px; }
 </style></head><body>
 <div class="cupon">
-  <div class="cab">${logo ? `<img src="${esc(logo)}" alt="${esc(d.programa)}">` : `<b>${esc(d.programa)}</b>`}<span>${esc(d.banco)}</span></div>
+  <div class="cab">${logo ? `<img src="${esc(logo)}" alt="${esc(d.programa)}">` : `<b>${esc(d.programa)}</b>`}${logoBanco ? `<img class="banco" src="${esc(logoBanco)}" alt="${esc(d.banco)}">` : `<span>${esc(d.banco)}</span>`}</div>
   <div class="cuerpo">
     <p class="marca">${esc(d.comercio)}</p>
     <h1>${esc(d.beneficio)}</h1>
