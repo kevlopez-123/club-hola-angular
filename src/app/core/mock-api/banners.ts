@@ -1,4 +1,6 @@
 import { bannerVisible, ordenarPorAudiencia, type Visitante } from "../banners-audiencia";
+import { sinRepetidos, slideDeBeneficio } from "../banner-beneficio";
+import { slideDeEvento } from "../banner-evento";
 import { contexto } from "./contexto";
 import { db } from "./db";
 
@@ -17,6 +19,21 @@ export function bannersPara(seccion: string) {
   const visitante: Visitante = contexto.participante ? { nivel: db.usuario.nivel, intereses: interesesDelParticipante() } : { intereses: [] };
   const hoy = hoyIso();
   const vigentes = (db.admin.banners as any[]).filter((b) => b.canal === "Web" && b.ubicacion === ubicacion && b.activo && b.inicio <= hoy && b.fin >= hoy);
-  return ordenarPorAudiencia(vigentes.filter((b) => bannerVisible(b, visitante)))
-    .map(({ id, key, imagen, imagenMovil, alt, to }: any) => ({ id: id ?? key ?? crypto.randomUUID(), imagen, imagenMovil, alt, to }));
+  const beneficios = db.admin.beneficios as any[];
+  const marcas = db.admin.marcas as any[];
+  const slides = ordenarPorAudiencia(vigentes.filter((b) => bannerVisible(b, visitante)))
+    .map((b: any) => {
+      // Banner de un beneficio: sale con su foto, marca y nombre; si el beneficio ya no se puede mostrar, el banner no aparece.
+      if (b.eventoId) {
+        return slideDeEvento(b, (db.admin.eventos as any[]).find((x) => x.id === b.eventoId), db.admin.categoriasEvento as any[], hoy);
+      }
+      if (b.beneficioId) {
+        const ben = beneficios.find((x) => x.id === b.beneficioId);
+        return slideDeBeneficio(b, ben, marcas.find((m) => m.nombre === ben?.marca)?.logo ?? "", hoy);
+      }
+      const { id, key, imagen, imagenMovil, alt, to } = b;
+      return { id: id ?? key ?? crypto.randomUUID(), imagen, imagenMovil, alt, to };
+    })
+    .filter((s): s is NonNullable<typeof s> => !!s);
+  return sinRepetidos(slides);
 }

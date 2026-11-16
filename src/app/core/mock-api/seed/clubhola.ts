@@ -1142,5 +1142,229 @@ export const beneficiosClubHola: Beneficio[] = [
     "tipo": "compra",
     "precio": 49,
     "cuponPdf": "web"
+  },
+  {
+    "id": "b27",
+    "marca": "KFC",
+    "marcaUrl": "",
+    "nombre": "25% dscto. en baldes de pollo para compartir",
+    "descuento": "25%",
+    "categoria": "Restaurante",
+    "categoriaSlug": "restaurantes",
+    "imagen": "img/b-pollo-frito.jpg",
+    "galeria": [
+      "img/b-pollo-frito.jpg"
+    ],
+    "descripcion": "Descuento en baldes de pollo crispy para compartir en familia.",
+    "pasos": [
+      "Genera el cupón para reservar",
+      "Acércate al local con tu DNI en físico.",
+      "Presenta el cupón",
+      "¡Disfruta!"
+    ],
+    "especificaciones": [
+      "No acumulable con otras promociones.",
+      "Válido hasta el 31/12/2026.",
+      "Aplica solo con tarjeta BanBif.",
+      "Válido para consumo en local y para llevar."
+    ],
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones. Aplica solo con tarjeta BanBif.",
+    "tipo": "cupon"
+  },
+  {
+    "id": "b28",
+    "marca": "McDonald's",
+    "marcaUrl": "",
+    "nombre": "2x1 en McCombos medianos de lunes a jueves",
+    "descuento": "2x1",
+    "categoria": "Restaurante",
+    "categoriaSlug": "restaurantes",
+    "imagen": "img/b-hamburguesa-1.jpg",
+    "galeria": [
+      "img/b-hamburguesa-1.jpg"
+    ],
+    "descripcion": "Lleva dos McCombos medianos y paga solo uno.",
+    "pasos": [
+      "Genera el cupón para reservar",
+      "Acércate al local con tu DNI en físico.",
+      "Presenta el cupón",
+      "¡Disfruta!"
+    ],
+    "especificaciones": [
+      "No acumulable con otras promociones.",
+      "Válido hasta el 31/12/2026.",
+      "Aplica solo con tarjeta BanBif.",
+      "Válido para consumo en local y para llevar."
+    ],
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones. Aplica solo con tarjeta BanBif.",
+    "tipo": "cupon"
+  },
+  {
+    "id": "b29",
+    "marca": "Bembos",
+    "marcaUrl": "",
+    "nombre": "20% dscto. en combos de hamburguesa",
+    "descuento": "20%",
+    "categoria": "Restaurante",
+    "categoriaSlug": "restaurantes",
+    "imagen": "img/b-hamburguesa-2.jpg",
+    "galeria": [
+      "img/b-hamburguesa-2.jpg"
+    ],
+    "descripcion": "Descuento en combos de hamburguesa con papas y gaseosa.",
+    "pasos": [
+      "Genera el cupón para reservar",
+      "Acércate al local con tu DNI en físico.",
+      "Presenta el cupón",
+      "¡Disfruta!"
+    ],
+    "especificaciones": [
+      "No acumulable con otras promociones.",
+      "Válido hasta el 31/12/2026.",
+      "Aplica solo con tarjeta BanBif.",
+      "Válido para consumo en local y para llevar."
+    ],
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones. Aplica solo con tarjeta BanBif.",
+    "tipo": "cupon"
+  },
+  {
+    "id": "b30",
+    "marca": "Domino's",
+    "marcaUrl": "",
+    "nombre": "30% dscto. en pizzas familiares",
+    "descuento": "30%",
+    "categoria": "Restaurante",
+    "categoriaSlug": "restaurantes",
+    "imagen": "img/b-pizza.jpg",
+    "galeria": [
+      "img/b-pizza.jpg"
+    ],
+    "descripcion": "Descuento en pizzas familiares al pedir en local o por delivery.",
+    "pasos": [
+      "Genera el cupón para reservar",
+      "Acércate al local con tu DNI en físico.",
+      "Presenta el cupón",
+      "¡Disfruta!"
+    ],
+    "especificaciones": [
+      "No acumulable con otras promociones.",
+      "Válido hasta el 31/12/2026.",
+      "Aplica solo con tarjeta BanBif.",
+      "Válido para consumo en local y para llevar."
+    ],
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones. Aplica solo con tarjeta BanBif.",
+    "tipo": "cupon"
+  },
+  {
+    "id": "b31",
+    "marca": "Norky's",
+    "marcaUrl": "",
+    "nombre": "15% dscto. en pollo a la brasa",
+    "descuento": "15%",
+    "categoria": "Restaurante",
+    "categoriaSlug": "restaurantes",
+    "imagen": "img/b-polleria.jpg",
+    "galeria": [
+      "img/b-polleria.jpg"
+    ],
+    "descripcion": "Descuento en pollos a la brasa enteros y medios pollos.",
+    "pasos": [
+      "Genera el cupón para reservar",
+      "Acércate al local con tu DNI en físico.",
+      "Presenta el cupón",
+      "¡Disfruta!"
+    ],
+    "especificaciones": [
+      "No acumulable con otras promociones.",
+      "Válido hasta el 31/12/2026.",
+      "Aplica solo con tarjeta BanBif.",
+      "Válido para consumo en local y para llevar."
+    ],
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones. Aplica solo con tarjeta BanBif.",
+    "tipo": "cupon"
+  },
+  {
+    "id": "b32",
+    "marca": "La Sanguchería del Perú",
+    "marcaUrl": "",
+    "nombre": "2x1 en sánguches clásicos",
+    "descuento": "2x1",
+    "categoria": "Restaurante",
+    "categoriaSlug": "restaurantes",
+    "imagen": "img/b-sanguche.jpg",
+    "galeria": [
+      "img/b-sanguche.jpg"
+    ],
+    "descripcion": "Dos sánguches clásicos al precio de uno, de lunes a viernes.",
+    "pasos": [
+      "Genera el cupón para reservar",
+      "Acércate al local con tu DNI en físico.",
+      "Presenta el cupón",
+      "¡Disfruta!"
+    ],
+    "especificaciones": [
+      "No acumulable con otras promociones.",
+      "Válido hasta el 31/12/2026.",
+      "Aplica solo con tarjeta BanBif.",
+      "Válido para consumo en local y para llevar."
+    ],
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones. Aplica solo con tarjeta BanBif.",
+    "tipo": "cupon"
+  },
+  {
+    "id": "b33",
+    "marca": "Juan Valdez Café",
+    "marcaUrl": "",
+    "nombre": "20% dscto. en cafés y postres",
+    "descuento": "20%",
+    "categoria": "Cafetería",
+    "categoriaSlug": "cafeterias",
+    "imagen": "img/b-cafe.jpg",
+    "galeria": [
+      "img/b-cafe.jpg"
+    ],
+    "descripcion": "Descuento en cafés de especialidad y postres de la carta.",
+    "pasos": [
+      "Genera el cupón para reservar",
+      "Acércate al local con tu DNI en físico.",
+      "Presenta el cupón",
+      "¡Disfruta!"
+    ],
+    "especificaciones": [
+      "No acumulable con otras promociones.",
+      "Válido hasta el 31/12/2026.",
+      "Aplica solo con tarjeta BanBif.",
+      "Válido para consumo en local y para llevar."
+    ],
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones. Aplica solo con tarjeta BanBif.",
+    "tipo": "cupon"
+  },
+  {
+    "id": "b34",
+    "marca": "Cinnabon",
+    "marcaUrl": "",
+    "nombre": "2x1 en rolls clásicos",
+    "descuento": "2x1",
+    "categoria": "Cafetería",
+    "categoriaSlug": "cafeterias",
+    "imagen": "img/b-rolls.jpg",
+    "galeria": [
+      "img/b-rolls.jpg"
+    ],
+    "descripcion": "Dos rolls clásicos al precio de uno.",
+    "pasos": [
+      "Genera el cupón para reservar",
+      "Acércate al local con tu DNI en físico.",
+      "Presenta el cupón",
+      "¡Disfruta!"
+    ],
+    "especificaciones": [
+      "No acumulable con otras promociones.",
+      "Válido hasta el 31/12/2026.",
+      "Aplica solo con tarjeta BanBif.",
+      "Válido para consumo en local y para llevar."
+    ],
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones. Aplica solo con tarjeta BanBif.",
+    "tipo": "cupon"
   }
 ] as Beneficio[];

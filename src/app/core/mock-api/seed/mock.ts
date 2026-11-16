@@ -37,6 +37,10 @@ export type Slide = {
   imagenMovil?: string | undefined;
   alt: string;
   to?: string;
+  /** Banner de un beneficio: el sitio compone la foto del beneficio con su marca, nombre y botón. */
+  beneficio?: { marca: string; nombre: string; descuento: string; logo: string } | undefined;
+  /** Banner de un evento: foto del evento con su categoría, nombre, fecha corta y lugar (sin logo). */
+  evento?: { nombre: string; categoria: string; fecha: string; lugar: string } | undefined;
 };
 
 export const slides: Slide[] = slidesClubHola;

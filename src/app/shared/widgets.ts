@@ -212,7 +212,7 @@ export class SearchFilterBarComponent {
             <div class="min-w-0 flex-1">
               <p class="text-base font-extrabold text-ink">
                 {{ n.nombre }}
-                @if (esActual(n)) { <span class="ml-2 text-sm font-bold text-primary">Tu nivel actual</span> }
+                @if (esActual(n)) { <span class="ml-2 align-middle"><span class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground"><app-icon name="Check" class="h-3.5 w-3.5" /> Tu nivel actual</span></span> }
               </p>
               <ul class="mt-2 space-y-1 text-sm text-muted-foreground">
                 @for (b of n.beneficios; track b) { <li class="flex gap-2"><span aria-hidden="true" class="text-primary">•</span>{{ b }}</li> }
@@ -402,7 +402,7 @@ export class BenefitsSectionComponent {
             <div class="flex flex-wrap items-center justify-between gap-4">
               <h2 class="flex items-center gap-2 text-2xl font-extrabold text-ink">
                 <app-icon name="Gem" class="h-6 w-6" [style.color]="n.color" /> Nivel {{ n.nombre }}
-                @if (sesion.logged() && esMio(n)) { <span class="text-sm font-semibold text-primary">Tu nivel</span> }
+                @if (sesion.logged() && esMio(n)) { <span class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground"><app-icon name="Check" class="h-3.5 w-3.5" /> Tu nivel</span> }
               </h2>
               <div class="flex shrink-0 gap-2">
                 <button type="button" [attr.aria-label]="'Beneficios anteriores de ' + n.nombre" (click)="scroll(carril, n.id, -1)"

@@ -1,5 +1,6 @@
-import { user, beneficios, categoriasBeneficio, direccionesIniciales, slides, slidesBeneficios } from "./seed/mock";
+import { user, beneficios, categoriasBeneficio, direccionesIniciales } from "./seed/mock";
 import { compras } from "./seed/historial";
+import { LOGO_POR_MARCA } from "./seed/logos";
 import { codigosIniciales, premiosIniciales } from "./seed/juegos";
 import { eventosIniciales, preinscripcionesIniciales } from "./seed/eventos";
 import { localesIniciales, LOCALES_POR_BENEFICIO } from "./seed/locales";
@@ -50,31 +51,39 @@ export const adminSeed = () => {
   });
 
   const HOY = "2026-10-28";
-  const banners = [...slides, ...slidesBeneficios].map((s, i) => ({
-    ...s,
-    key: s.id + i,
-    canal: i % 2 ? "App" : "Web",
-    ubicacion: i < slides.length ? "Home" : "Beneficios",
-    activo: true,
-    inicio: i % 5 === 3 ? "2026-11-20" : "2026-10-01",
-    fin: i % 7 === 6 ? "2026-10-15" : "2026-12-31",
-  }));
+  // Los banners de Home y Beneficios son beneficios del catálogo: el sitio arma el banner con su foto, marca y nombre.
+  const deBeneficio = (ids: string[], ubicacion: string, canal: string) =>
+    ids.map((beneficioId, i) => ({
+      key: `bb-${ubicacion.toLowerCase()}-${canal.toLowerCase()}-${beneficioId}`,
+      beneficioId,
+      imagen: "",
+      alt: "",
+      canal,
+      ubicacion,
+      activo: true,
+      inicio: i === 4 && canal === "Web" ? "2026-11-20" : "2026-10-01",
+      fin: "2026-12-31",
+    }));
+  const banners = [
+    ...deBeneficio(["b29", "b31", "b27", "b30", "b33", "b34"], "Home", "Web"),
+    ...deBeneficio(["b29", "b31", "b28", "b32", "b4"], "Beneficios", "Web"),
+    ...deBeneficio(["b29", "b31", "b27"], "Home", "App"),
+  ];
 
   // Banners dirigidos: el mismo carrusel muestra promociones distintas según el nivel (segmento) o el interés de cada persona.
   const dirigidos = [
-    { id: "seg-top-sushi", imagen: "img/hero-sushi.jpg", alt: "EDO SUSHI BAR · Cena aspiracional con promoción subvencionada (Oro y Diamante)", to: "/beneficios", segmentos: ["Oro", "Diamante"] },
-    { id: "seg-top-hotel", imagen: "img/b-hotel.jpg", alt: "CASA ANDINA · Noche de hotel con beneficio exclusivo (Diamante)", to: "/beneficios", segmentos: ["Diamante"] },
-    { id: "seg-masivo-polleria", imagen: "img/b-polleria.jpg", alt: "POLLERÍA · Promoción de consumo masivo (Clásico y Plata)", to: "/beneficios", segmentos: ["Clásico", "Plata"] },
-    { id: "int-cine", imagen: "img/b-cine.jpg", alt: "CINE · Para quienes disfrutan del entretenimiento", to: "/beneficios", intereses: ["Entretenimiento"] },
-    { id: "int-cafe", imagen: "img/b-cafe.jpg", alt: "CAFÉ · Para quienes disfrutan de una buena cafetería", to: "/beneficios", intereses: ["Cafetería"] },
-  ].map((s) => ({ ...s, key: s.id, canal: "Web", ubicacion: "Home", activo: true, inicio: "2026-10-01", fin: "2027-06-30" }));
+    { id: "seg-top-bembos", beneficioId: "b29", segmentos: ["Oro", "Diamante"] },
+    { id: "seg-top-sushi", beneficioId: "b9", segmentos: ["Diamante"] },
+    { id: "seg-top-hotel", beneficioId: "b6", segmentos: ["Diamante"] },
+    { id: "seg-masivo-polleria", beneficioId: "b1", segmentos: ["Clásico", "Plata"] },
+    { id: "int-cine", beneficioId: "b7", intereses: ["Entretenimiento"] },
+    { id: "int-cafe", beneficioId: "b2", intereses: ["Cafetería"] },
+  ].map((s) => ({ ...s, imagen: "", alt: "", key: s.id, canal: "Web", ubicacion: "Home", activo: true, inicio: "2026-10-01", fin: "2027-06-30" }));
 
   // Banners de la sección Eventos (el carrusel de la parte de arriba de /eventos).
-  const deEventos = [
-    { id: "ev-hero", imagen: "img/e-hero.jpg", alt: "Eventos exclusivos para clientes BanBif", to: "/eventos" },
-    { id: "ev-cena", imagen: "img/e-cena.jpg", alt: "Cenas exclusivas con chefs invitados", to: "/eventos" },
-    { id: "ev-lanzamiento", imagen: "img/e-lanzamiento.jpg", alt: "Lanzamientos de marcas solo para ti", to: "/eventos" },
-  ].map((s) => ({ ...s, key: s.id, canal: "Web", ubicacion: "Eventos", activo: true, inicio: "2026-10-01", fin: "2027-06-30" }));
+  const deEventos = ["ev1", "ev3", "ev6", "ev4", "ev7"].map((eventoId) => ({
+    key: `be-${eventoId}`, eventoId, imagen: "", alt: "", canal: "Web", ubicacion: "Eventos", activo: true, inicio: "2026-10-01", fin: "2027-06-30",
+  }));
 
   return {
     /** Pedidos creados por la API pública (checkout) se agregan aquí con `unshift`. */
@@ -102,7 +111,7 @@ export const adminSeed = () => {
     marcas: [...new Set([...beneficios.map((b) => b.marca)])].sort().map((nombre) => ({
       id: nombre.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
       nombre,
-      logo: "",
+      logo: LOGO_POR_MARCA[nombre] ?? "",
       web: "",
       descripcion: "",
       activo: true,

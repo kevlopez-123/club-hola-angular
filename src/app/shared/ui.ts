@@ -9,6 +9,7 @@ import { BrandService } from "../core/brand.service";
 import { formatUSD } from "../core/format";
 import { claseEtiqueta } from "../core/promo";
 import type { Beneficio, Slide } from "../core/models";
+import { BannerDestacadoComponent } from "./banner-destacado";
 
 /* ------------------------------------------------------------------ */
 /* Logo                                                                */
@@ -101,12 +102,12 @@ export class SectionTitleComponent {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-hero-slider",
-  imports: [RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent, BannerDestacadoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (items().length) {
       <section aria-label="Promociones destacadas" class="relative w-full overflow-hidden bg-surface" (mouseenter)="encima.set(true)" (mouseleave)="encima.set(false)" (focusin)="encima.set(true)" (focusout)="encima.set(false)">
-        <div [class]="'relative w-full sm:aspect-[21/8] lg:aspect-[3/1] ' + (hayMovil() ? 'aspect-square' : 'aspect-[16/9]')">
+        <div [class]="'relative w-full sm:aspect-[21/8] lg:aspect-[3/1] ' + (hayBeneficios() ? 'aspect-[4/3]' : hayMovil() ? 'aspect-square' : 'aspect-[16/9]')">
           @for (slide of items(); track slide.id; let i = $index) {
             <div
               class="absolute inset-0 transition-opacity duration-700"
@@ -115,7 +116,11 @@ export class SectionTitleComponent {
               [class.pointer-events-none]="i !== index()"
               [class.opacity-0]="i !== index()"
             >
-              @if (slide.to) {
+              @if (slide.beneficio || slide.evento) {
+                <a [routerLink]="slide.to" [attr.aria-label]="slide.alt" class="block h-full w-full">
+                  <app-banner-destacado [slide]="slide" [prioridad]="i === 0" />
+                </a>
+              } @else if (slide.to) {
                 <a [routerLink]="slide.to" class="block h-full w-full">
                   <picture>
                     @if (slide.imagenMovil) { <source media="(max-width: 639px)" [srcset]="slide.imagenMovil" /> }
@@ -133,14 +138,14 @@ export class SectionTitleComponent {
 
           @if (items().length > 1) {
             <button type="button" aria-label="Anterior" (click)="go(-1)"
-              class="absolute left-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-background/80 text-ink shadow transition-colors hover:bg-background">
+              [class]="'absolute left-3 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-background/80 text-ink shadow transition-colors hover:bg-background sm:top-1/2 ' + (hayBeneficios() ? 'top-[34%]' : 'top-1/2')">
               <app-icon name="ChevronLeft" class="h-5 w-5" />
             </button>
             <button type="button" aria-label="Siguiente" (click)="go(1)"
-              class="absolute right-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-background/80 text-ink shadow transition-colors hover:bg-background">
+              [class]="'absolute right-3 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-background/80 text-ink shadow transition-colors hover:bg-background sm:top-1/2 ' + (hayBeneficios() ? 'top-[34%]' : 'top-1/2')">
               <app-icon name="ChevronRight" class="h-5 w-5" />
             </button>
-            <div class="absolute bottom-1 left-1/2 flex -translate-x-1/2">
+            <div [class]="'absolute left-1/2 flex -translate-x-1/2 sm:bottom-1 sm:top-auto ' + (hayBeneficios() ? 'top-0' : 'bottom-1')">
               @for (s of items(); track s.id; let i = $index) {
                 <button type="button" data-compact [attr.aria-label]="'Ir al banner ' + (i + 1)" [attr.aria-current]="i === index() ? 'true' : null" (click)="index.set(i)" class="grid h-8 w-8 place-items-center">
                   <span [class]="'h-2.5 w-2.5 rounded-full transition-colors ' + (i === index() ? 'bg-primary' : 'bg-background/70')"></span>
@@ -157,6 +162,8 @@ export class HeroSliderComponent {
   readonly items = input<Slide[]>([]);
   /** Si algún banner trae versión para móvil, en celular la caja pasa de 16:9 a cuadrada para aprovecharla. */
   protected readonly hayMovil = computed(() => this.items().some((s) => !!s.imagenMovil));
+  /** Banners de beneficios o eventos: en celular la caja es 4:3 (foto con franja debajo). */
+  protected readonly hayBeneficios = computed(() => this.items().some((s) => !!s.beneficio || !!s.evento));
   protected readonly index = signal(0);
   /** El carrusel no avanza solo si la persona pidió menos movimiento. */
   private readonly sinMovimiento = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
