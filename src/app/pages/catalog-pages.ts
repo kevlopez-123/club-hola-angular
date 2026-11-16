@@ -29,6 +29,7 @@ import {
 } from "../shared/widgets";
 import { Countdown } from "../shared/countdown";
 import { GuestGateDirective } from "../shared/guest-gate";
+import { MapaLocalesComponent } from "../shared/mapa-locales";
 
 /* ------------------------------------------------------------------ */
 /* Inicio                                                              */
@@ -171,7 +172,7 @@ export class BeneficiosPage {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-beneficio-detalle-page",
-  imports: [RouterLink, IconComponent, ModalComponent, AddedToCartModalComponent, Countdown],
+  imports: [RouterLink, IconComponent, ModalComponent, AddedToCartModalComponent, Countdown, MapaLocalesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (beneficio(); as beneficio) {
@@ -319,20 +320,23 @@ export class BeneficiosPage {
 
           @if (locales().length) {
             <section class="mt-6 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] lg:p-8" data-testid="donde-canjearlo">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <h2 class="text-lg font-bold text-ink">Dónde canjearlo</h2>
-                <a [routerLink]="['/mapa']" [queryParams]="{ marca: beneficio.marca }" class="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"><app-icon name="MapPin" class="h-4 w-4" /> Ver en el mapa</a>
+              <h2 class="text-lg font-bold text-ink">Dónde canjearlo</h2>
+              <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+                <ul class="order-2 max-h-80 space-y-3 overflow-y-auto pr-1 lg:order-1" aria-label="Locales donde se canjea">
+                  @for (l of locales(); track l.id) {
+                    <li>
+                      <button type="button" (click)="localSel.set(l.id)" [attr.aria-pressed]="localSel() === l.id"
+                        [class]="'w-full rounded-2xl border p-4 text-left text-sm transition-colors hover:border-primary ' + (localSel() === l.id ? 'border-primary bg-secondary/50 ring-2 ring-primary/30' : 'border-border')">
+                        <span class="block font-bold text-ink">{{ l.nombre }}</span>
+                        <span class="mt-1 block text-ink">{{ l.direccion }}, {{ l.distrito }}</span>
+                        @if (l.horario) { <span class="mt-1 block text-muted-foreground">{{ l.horario }}</span> }
+                        @if (l.telefono) { <span class="block text-muted-foreground">{{ l.telefono }}</span> }
+                      </button>
+                    </li>
+                  }
+                </ul>
+                <app-mapa-locales [locales]="locales()" [(seleccionado)]="localSel" class="order-1 h-64 lg:order-2 lg:h-80" />
               </div>
-              <ul class="mt-4 grid gap-3 sm:grid-cols-2">
-                @for (l of locales(); track l.id) {
-                  <li class="rounded-2xl border border-border p-4 text-sm">
-                    <p class="font-bold text-ink">{{ l.nombre }}</p>
-                    <p class="mt-1 text-ink">{{ l.direccion }}, {{ l.distrito }}</p>
-                    @if (l.horario) { <p class="mt-1 text-muted-foreground">{{ l.horario }}</p> }
-                    @if (l.telefono) { <p class="text-muted-foreground">{{ l.telefono }}</p> }
-                  </li>
-                }
-              </ul>
             </section>
           }
 
@@ -458,6 +462,8 @@ export class BeneficioDetallePage {
   protected readonly cupon = computed(() => this.store.cupones()[this.id()]);
   /** El QR se muestra mientras el cupón no haya vencido; vencido, vuelve el botón o el motivo del bloqueo. */
   protected readonly cuponActivo = computed(() => { const c = this.cupon(); return c && c.expira > Date.now() ? c : null; });
+  /** Local elegido en «Dónde canjearlo» (se resalta en la lista y en el mapa). */
+  protected readonly localSel = signal<string | null>(null);
   /** Locales de la marca donde se puede canjear (los que están publicados). */
   protected readonly locales = computed(() => { const b = this.beneficio(); return b ? this.catalog.localesDeBeneficio(b) : []; });
   /** El QR se dibuja en el navegador: el código del cupón no sale a ningún servicio externo. */
