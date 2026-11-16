@@ -68,8 +68,9 @@ function cargarCssDeLeaflet() {
                     <span class="font-bold text-ink">{{ l.nombre }}</span>
                     @if (l.distancia !== null) { <span class="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-primary">{{ texto(l.distancia) }}</span> }
                   </span>
-                  <span class="mt-1 block text-sm text-ink">{{ l.direccion }}, {{ l.distrito }}</span>
-                  @if (l.horario) { <span class="mt-1 block text-xs text-muted-foreground">{{ l.horario }}</span> }
+                  <span class="mt-2 flex items-start gap-2 text-sm text-ink"><app-icon name="MapPin" class="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{{ l.direccion }}, {{ l.distrito }}</span></span>
+                  @if (l.horario) { <span class="mt-1 flex items-start gap-2 text-xs text-muted-foreground"><app-icon name="Clock" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" /><span>{{ l.horario }}</span></span> }
+                  @if (l.telefono) { <span class="mt-1 flex items-start gap-2 text-xs text-muted-foreground"><app-icon name="Phone" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" /><span>{{ l.telefono }}</span></span> }
                 </button>
               </li>
             } @empty {

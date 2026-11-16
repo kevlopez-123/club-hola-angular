@@ -1,5 +1,4 @@
 import type { DatosCupon } from "./cupon-datos";
-import { pdfDeJpeg } from "./pdf-imagen";
 
 const FUENTE = "Manrope, Arial, Helvetica, sans-serif";
 const MORADO = "#924ff5";
@@ -165,11 +164,4 @@ const aBlob = (c: HTMLCanvasElement, tipo: string, calidad?: number) =>
 /** El cupón como imagen PNG (para guardarla en el celular o compartirla con el comercio). */
 export async function cuponComoPng(d: DatosCupon): Promise<Blob> {
   return aBlob(await dibujarCupon(d), "image/png");
-}
-
-/** El cupón como PDF de una página (A4), listo para descargar con un nombre de archivo propio. */
-export async function cuponComoPdf(d: DatosCupon): Promise<Blob> {
-  const c = await dibujarCupon(d);
-  const jpeg = new Uint8Array(await (await aBlob(c, "image/jpeg", 0.95)).arrayBuffer());
-  return pdfDeJpeg(jpeg, c.width, c.height, `Cupón ${d.codigo} - ${d.beneficio}`);
 }
