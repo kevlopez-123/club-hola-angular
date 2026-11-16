@@ -22,6 +22,8 @@ export type TextosIngreso = {
   placeholderDocumento: string;
   notaLegal: string;
   tituloCodigo: string;
+  tituloCanal: string;
+  subtituloCanal: string;
 };
 export const TEXTOS_INGRESO: TextosIngreso = {
   tituloLateral: "Tu tarjeta vale más: disfruta beneficios, premios y descuentos exclusivos.",
@@ -29,8 +31,10 @@ export const TEXTOS_INGRESO: TextosIngreso = {
   tituloFormulario: "Ingresa a tu cuenta",
   subtituloFormulario: "Selecciona tu tipo de documento e ingresa tu número para continuar.",
   placeholderDocumento: "Ingresa tu número",
-  notaLegal: "Al ingresar aceptas los [Términos y Condiciones](#terminos) y la [Política de Privacidad](#privacidad).",
+  notaLegal: "Al ingresar aceptas los [Términos de uso](#terminos) y la [Política de Privacidad](#privacidad).",
   tituloCodigo: "Ingresa tu código",
+  tituloCanal: "Verifica tu identidad",
+  subtituloCanal: "¿Dónde quieres recibir tu código de validación de 6 dígitos?",
 };
 
 /** Textos de las secciones de la portada. El título y la palabra destacada (en un recuadro de color) van por separado. */
@@ -53,7 +57,7 @@ export const TEXTOS_HOME: TextosHome = {
 export type EnlacePie = { label: string; to: string };
 export const PIE_INFORMACION: EnlacePie[] = [
   { label: "Preguntas frecuentes", to: "/preguntas-frecuentes" },
-  { label: "Términos y condiciones", to: "/terminos" },
+  { label: "Términos de uso", to: "/terminos" },
   { label: "Política de privacidad", to: "/privacidad" },
 ];
 export const PIE_ATENCION: EnlacePie[] = [

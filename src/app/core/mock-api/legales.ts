@@ -73,6 +73,37 @@ export function exigirLegalesAlDia(id: string) {
   if (p.length) throw new ApiError(403, `Antes de continuar debes aceptar ${p.map((x) => `${x.nombre} (versión ${x.version})`).join(" y ")}.`);
 }
 
+/* ---------------- Ingreso por documento ---------------- */
+const porDocumento = () => ((db as any).aceptacionesIngreso ??= {}) as Record<string, Partial<Record<TipoLegal, AceptacionLegal>>>;
+export const claveDocumento = (tipo: unknown, documento: unknown) => `${String(tipo)}:${String(documento).trim().toUpperCase()}`;
+
+/**
+ * Textos que ese documento todavía debe aceptar. Un documento desconocido y uno nuevo se ven igual (pendientes), para que la consulta
+ * no revele quiénes son clientes. El documento de la participante de demo usa su propio registro.
+ */
+export function pendientesPorDocumento(clave: string): TipoLegal[] {
+  const propio = `${String((db as any).perfil.tipoDocumento).toLowerCase()}:${(db as any).perfil.codigoParticipante}`;
+  const acs = (clave === propio ? aceptaciones()["p1"] : porDocumento()[clave]) ?? {};
+  const hoy = hoyISO();
+  return TIPOS_LEGALES.filter((t) => debeAceptar(versionEnVigor(legales()[t], hoy), acs[t]));
+}
+
+/**
+ * Registra la aceptación hecha en el ingreso, con su evidencia (documento ofuscado y dispositivo). La demo siempre entra como la
+ * misma participante, así que la aceptación también queda en su ficha del panel.
+ */
+export function registrarAceptacionIngreso(clave: string, documento: string, dispositivo: string, tipos: readonly TipoLegal[] = TIPOS_LEGALES) {
+  const hoy = hoyISO();
+  const fecha = new Date().toISOString();
+  const nuevo: Partial<Record<TipoLegal, AceptacionLegal>> = {};
+  for (const t of tipos) {
+    const v = versionEnVigor(legales()[t], hoy);
+    if (v) nuevo[t] = { version: v.version, fecha, canal: "Web", documento, dispositivo };
+  }
+  porDocumento()[clave] = { ...porDocumento()[clave], ...nuevo };
+  Object.assign((aceptaciones()["p1"] ??= {}), nuevo);
+}
+
 /* ---------------- Panel ---------------- */
 export function resumen(tipo: TipoLegal): ResumenLegal {
   const doc = legales()[tipo];

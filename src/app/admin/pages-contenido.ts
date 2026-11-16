@@ -195,7 +195,7 @@ type SeccionHome = { s: string; on: boolean };
               </div>
             </a-panel>
           } @else {
-            <a-panel [title]="textoTab() === 'terminos' ? 'Términos y condiciones' : 'Política de privacidad'">
+            <a-panel [title]="textoTab() === 'terminos' ? 'Términos de uso' : 'Política de privacidad'">
               <p class="text-sm text-muted-foreground">
                 Los textos legales ahora tienen control de versiones: cada cambio se publica como una versión nueva, con su historial, y puede
                 pedir a los participantes que la acepten de nuevo. Se editan en su propia sección.
@@ -284,7 +284,7 @@ export class ContenidoPage {
   protected readonly input = INPUT_CLS;
   protected readonly textosTabs = [
     { k: 'faq', l: 'Preguntas frecuentes' },
-    { k: 'terminos', l: 'Términos y condiciones' },
+    { k: 'terminos', l: 'Términos de uso' },
     { k: 'privacidad', l: 'Política de privacidad' },
   ] as const;
   protected readonly textoTab = signal<'faq' | 'terminos' | 'privacidad'>('faq');

@@ -1,12 +1,12 @@
 /**
- * Textos legales con control de versiones: Términos y condiciones y Política de privacidad.
+ * Textos legales con control de versiones: Términos de uso y Política de privacidad.
  * Cada publicación crea una versión nueva (nunca se edita una publicada). Los participantes aceptan Términos y Política de privacidad
  * (uso y tratamiento de datos) UNA SOLA VEZ, en su primer ingreso: hasta que lo hacen ven un aviso que bloquea el sitio. Publicar una versión
  * nueva no les pide aceptar de nuevo ni les avisa; la versión que aceptaron queda registrada con su fecha y canal.
  */
 export type TipoLegal = "terminos" | "privacidad";
 export const TIPOS_LEGALES: TipoLegal[] = ["terminos", "privacidad"];
-export const NOMBRE_LEGAL: Record<TipoLegal, string> = { terminos: "Términos y condiciones", privacidad: "Política de privacidad" };
+export const NOMBRE_LEGAL: Record<TipoLegal, string> = { terminos: "Términos de uso", privacidad: "Política de privacidad" };
 export const RUTA_LEGAL: Record<TipoLegal, string> = { terminos: "/terminos", privacidad: "/privacidad" };
 
 export interface VersionLegal {
@@ -45,6 +45,10 @@ export interface AceptacionLegal {
   /** ISO con zona horaria. */
   fecha: string;
   canal: string;
+  /** Documento ofuscado con el que se aceptó en el ingreso («DNI ****4567»). */
+  documento?: string | undefined;
+  /** Dispositivo desde el que se aceptó («Chrome en Windows»). */
+  dispositivo?: string | undefined;
 }
 
 /** Versión que rige hoy: la más nueva cuya fecha de vigencia ya llegó. */

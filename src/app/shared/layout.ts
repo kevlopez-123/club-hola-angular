@@ -486,12 +486,12 @@ export class LegalesGateComponent {
   protected declaracion(tipo: string) {
     return tipo === "privacidad"
       ? "He leído y acepto la Política de privacidad y autorizo el uso y tratamiento de mis datos personales."
-      : "He leído y acepto los Términos y condiciones de uso.";
+      : "He leído y acepto los Términos de uso.";
   }
   private readonly caja = viewChild<ElementRef<HTMLElement>>("caja");
   /** Solo aparece en el primer ingreso: una vez aceptado, no vuelve a salir. */
   protected readonly titulo = "Antes de continuar";
-  protected readonly subtitulo = "Es tu primer ingreso: para usar tu cuenta necesitamos que aceptes los Términos y condiciones y la Política de privacidad (uso y tratamiento de tus datos). Solo te lo pediremos esta vez.";
+  protected readonly subtitulo = "Es tu primer ingreso: para usar tu cuenta necesitamos que aceptes los Términos de uso y la Política de privacidad (uso y tratamiento de tus datos). Solo te lo pediremos esta vez.";
   protected fecha = (iso: string) => (iso ? iso.split("-").reverse().join("/") : "");
 
   constructor() {

@@ -21,13 +21,16 @@ import { registrarDesdeDb as registrarRolesDesdeDb } from "./roles";
 import { capturar, registrar, registrarAcceso } from "./auditoria";
 import { registrarEvento } from "./analitica";
 import { contexto } from "./contexto";
-import { aceptar, estadoParticipante, exigirLegalesAlDia, metaLegales, sincronizarContenido } from "./legales";
+import { aceptar, claveDocumento, estadoParticipante, exigirLegalesAlDia, metaLegales, pendientesPorDocumento, registrarAceptacionIngreso, sincronizarContenido } from "./legales";
+import { limitar } from "./limite";
 import { cambiarNovedades, darDeBaja, estadoBaja, recibeNovedades, volverAlta } from "./novedades";
 import { asegurarVersiones, comprobarVersion, subirVersion } from "./versiones";
 import type { RolAdmin } from "../models";
 import { lunesDe } from "../juegos";
 import { esPasado, ocupaCupo } from "../eventos";
 import { ofuscarCorreo, ofuscarTelefono } from "../ofuscar-contacto";
+import { emitirOtp, verificarOtp } from "./otp";
+import { cerrarSesion, cerrarTodasLasSesiones, nuevaSesion, usarSesion } from "./sesiones";
 import { validarNumeroDocumento } from "../documento";
 import { ajustarCupos, codigoEvento } from "./eventos-api";
 import { tieneAcceso } from "./seed/niveles";
@@ -152,6 +155,12 @@ const registrarJuego = (premio: any, origen: "ruleta" | "codigo") => {
   if (premio.tipo !== "nada") enviarCorreo("premio-ganado", db.perfil.correo, { premio: premio.label, detalle: premio.detalle }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: premio.label });
 };
 
+/** «DNI ****4567»: el documento ofuscado, para dejarlo como evidencia de la aceptación. */
+function etiquetaDocumento(body: any): string {
+  const tipos = ((db.config as any).tenant?.pais?.documentos ?? []) as { value: string; label: string }[];
+  return `${tipos.find((t) => t.value === body?.tipo)?.label ?? "Documento"} ${ofuscarDocumento(String(body?.documento ?? ""))}`;
+}
+
 /** El número de documento se valida igual que en el formulario: según el tipo, con su largo. */
 function validarDocumentoDeIngreso(body: any) {
   const tipos = ((db.config as any).tenant?.pais?.documentos ?? []) as { value: string; label: string; digitos: number; numerico: boolean }[];
@@ -161,6 +170,12 @@ function validarDocumentoDeIngreso(body: any) {
 
 const customerRoutes: Route[] = [
   /* ---------- Auth ---------- */
+  /** ¿Falta que este documento acepte los textos legales? Solo responde sí o no, y tiene límite de consultas. */
+  ["POST", "auth/aceptacion", ({ body }) => {
+    validarDocumentoDeIngreso(body);
+    limitar("auth/aceptacion");
+    return { requiere: pendientesPorDocumento(claveDocumento(body.tipo, body.documento)).length > 0 };
+  }],
   /** Valida el documento (tipo y largo) y dice por qué canales se puede recibir el código, con los datos ya ofuscados. */
   ["POST", "auth/canales", ({ body }) => {
     validarDocumentoDeIngreso(body);
@@ -171,10 +186,21 @@ const customerRoutes: Route[] = [
   ["POST", "auth/otp", ({ body }) => {
     validarDocumentoDeIngreso(body);
     exigirCuentaActiva();
+    const claveDoc = claveDocumento(body.tipo, body.documento);
+    const pendientes = pendientesPorDocumento(claveDoc);
+    if (pendientes.length) {
+      // Cada texto se acepta por separado: faltar uno impide continuar.
+      const aceptados: unknown[] = Array.isArray(body?.aceptaciones) ? body.aceptaciones : [];
+      const faltan = pendientes.filter((t) => !aceptados.includes(t));
+      if (faltan.length) throw new ApiError(422, `Debes aceptar ${faltan.map((t) => (t === "terminos" ? "los Términos de uso" : "la Política de privacidad")).join(" y ")} para continuar.`);
+      registrarAceptacionIngreso(claveDoc, etiquetaDocumento(body), String(body?.dispositivo ?? "").slice(0, 60), pendientes);
+    }
     const canal = body?.canal === "sms" ? "sms" : "correo";
     if (canal === "sms" && !db.perfil.telefono) throw new ApiError(422, "No tenemos un celular registrado para enviarte el código.");
-    if (canal === "correo") enviarCorreo("otp", db.perfil.correo, { codigo: String(Math.floor(100000 + Math.random() * 900000)), minutos: 10 }, { destinatario: nombreParticipante(), participanteId: "p1" });
-    return { enviado: true, canal, destino: canal === "sms" ? ofuscarTelefono(db.perfil.telefono) : ofuscarCorreo(db.perfil.correo) };
+    const codigo = emitirOtp();
+    if (canal === "correo") enviarCorreo("otp", db.perfil.correo, { codigo, minutos: 10 }, { destinatario: nombreParticipante(), participanteId: "p1" });
+    // `demo` solo existe en la MockAPI: deja ver el código de prueba en pantalla. Un backend real no lo devuelve.
+    return { enviado: true, canal, destino: canal === "sms" ? ofuscarTelefono(db.perfil.telefono) : ofuscarCorreo(db.perfil.correo), demo: codigo };
   }],
   /** Ingreso al panel: correo + contraseña de un usuario activo; devuelve su nombre y rol. */
   ["POST", "auth/admin/login", ({ body }) => {
@@ -196,8 +222,26 @@ const customerRoutes: Route[] = [
     if (!Array.isArray(body?.codigo) || body.codigo.some((c: string) => !c)) {
       throw new ApiError(422, "Ingresa los 6 dígitos del código.");
     }
-    // Token simulado de la participante (un backend real emite un JWT con su id).
-    return { token: "mock.participante.p1", usuario: db.usuario };
+    verificarOtp(body.codigo.join(""));
+    // Una sesión por dispositivo: se renueva al usarse y vence tras 30 días sin usarse. El token simulado lleva su id.
+    const sesion = nuevaSesion(db.sesiones, String(body?.dispositivo ?? ""));
+    return { token: `mock.participante.${sesion.id}`, usuario: db.usuario };
+  }],
+  /** Cierra la sesión de este dispositivo. */
+  ["POST", "auth/logout", () => {
+    if (contexto.sesionId) cerrarSesion(db.sesiones, contexto.sesionId);
+    return { ok: true };
+  }],
+  /** Dispositivos con sesión iniciada (el actual primero). */
+  ["GET", "me/sesiones", () => ({
+    sesiones: db.sesiones
+      .map((s) => ({ dispositivo: s.dispositivo, creada: new Date(s.creada).toISOString(), ultimoUso: new Date(s.ultimoUso).toISOString(), actual: s.id === contexto.sesionId }))
+      .sort((a, b) => Number(b.actual) - Number(a.actual) || b.ultimoUso.localeCompare(a.ultimoUso)),
+  })],
+  /** Cierra la sesión en todos los dispositivos, incluido este. */
+  ["POST", "me/sesiones/cerrar-todas", () => {
+    cerrarTodasLasSesiones(db.sesiones);
+    return { ok: true };
   }],
 
   /* ---------- Catálogo ---------- */
@@ -531,8 +575,13 @@ const respond = (req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> =
   const path = url.pathname.replace(/^\/api\//, "");
   // Las rutas de cuenta del participante (me/*, canje y consulta) exigen su sesión; el catálogo y los textos son públicos.
   if (path.startsWith("me/") || path === "me" || path === "ordenes" || path === "eventos") {
-    if (!/^Bearer mock\.participante\./.test(req.headers.get("Authorization") ?? "")) {
+    const sid = /^Bearer mock\.participante\.([^.]+)$/.exec(req.headers.get("Authorization") ?? "")?.[1];
+    if (!sid) {
       return throwError(() => new HttpErrorResponse({ status: 401, statusText: "Inicia sesión", error: { message: "Inicia sesión para continuar." }, url: req.url }));
+    }
+    if (!usarSesion(db.sesiones, sid)) {
+      persistDb();
+      return throwError(() => new HttpErrorResponse({ status: 401, statusText: "Sesión vencida", error: { message: "Tu sesión venció. Ingresa de nuevo." }, url: req.url }));
     }
   }
   // Las rutas del panel exigen sesión y permiso por sección y acción (lo mismo que hará el backend real).
@@ -555,6 +604,7 @@ const respond = (req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> =
     try {
       contexto.usuarioPanelId = usuarioDelToken(req);
       contexto.participante = /^Bearer mock\.participante\./.test(req.headers.get("Authorization") ?? "");
+      contexto.sesionId = /^Bearer mock\.participante\.([^.]+)$/.exec(req.headers.get("Authorization") ?? "")?.[1] ?? null;
       const query = new URLSearchParams(url.search);
       for (const k of req.params.keys()) query.set(k, req.params.get(k) ?? "");
       // Registro de cambios automático: foto del estado antes y después de cada cambio hecho desde el panel.

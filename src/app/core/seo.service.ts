@@ -14,7 +14,7 @@ export const esRutaPrivada = (url: string) => {
 
 /** Descripción por página pública. `{programa}` y `{banco}` se reemplazan por la marca. */
 export const DESCRIPCIONES: Record<string, string> = {
-  "/terminos": "Términos y condiciones de uso de {programa}.",
+  "/terminos": "Términos de uso de {programa}.",
   "/privacidad": "Política de privacidad y tratamiento de datos personales de {programa}.",
 };
 

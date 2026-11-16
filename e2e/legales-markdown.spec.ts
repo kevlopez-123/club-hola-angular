@@ -6,8 +6,8 @@ test.describe("Textos legales en markdown", () => {
     await page.goto("/login");
     const nota = page.getByText("Al ingresar aceptas", { exact: false });
     await expect(nota).toBeVisible();
-    await nota.getByRole("link", { name: "Términos y Condiciones" }).click();
-    const modal = page.getByRole("dialog", { name: "Términos y condiciones" });
+    await nota.getByRole("link", { name: "Términos de uso" }).click();
+    const modal = page.getByRole("dialog", { name: "Términos de uso" });
     await expect(modal).toBeVisible();
     await expect(modal.getByRole("heading", { name: "1. Del programa" })).toBeVisible();
     await page.keyboard.press("Escape");
@@ -20,9 +20,9 @@ test.describe("Textos legales en markdown", () => {
 
   test("el modal del login muestra lo que se edite en el panel", async ({ page }) => {
     await entrarAdmin(page);
-    await publicarLegal(page, "Términos y condiciones", { texto: "## Reglas nuevas\n\nSolo esto." });
+    await publicarLegal(page, "Términos de uso", { texto: "## Reglas nuevas\n\nSolo esto." });
     await page.goto("/login");
-    await page.getByRole("link", { name: "Términos y Condiciones" }).click();
+    await page.getByRole("link", { name: "Términos de uso" }).click();
     await expect(page.getByRole("dialog").getByRole("heading", { name: "Reglas nuevas" })).toBeVisible();
   });
 
@@ -49,7 +49,7 @@ test.describe("Textos legales en markdown", () => {
 
   test("el subtítulo de Términos y de Privacidad se edita en el panel", async ({ page }) => {
     await entrarAdmin(page);
-    await publicarLegal(page, "Términos y condiciones", { texto: "## Texto de prueba\n\nUno.", intro: "Vigentes desde enero 2027." });
+    await publicarLegal(page, "Términos de uso", { texto: "## Texto de prueba\n\nUno.", intro: "Vigentes desde enero 2027." });
     await publicarLegal(page, "Política de privacidad", { texto: "## Texto de prueba\n\nDos.", intro: "Cumplimos la ley de datos personales." });
     await page.goto("/terminos");
     await expect(page.getByText("Vigentes desde enero 2027.")).toBeVisible();

@@ -7,7 +7,7 @@ test.describe("Textos legales: versiones y aceptación solo en el primer ingreso
     await page.goto("/admin/legales");
     await expect(page.getByRole("heading", { name: "Textos legales" })).toBeVisible();
     await expect(page.getByText("v2", { exact: true })).toBeVisible();
-    await expect(page.getByRole("table", { name: "Historial de Términos y condiciones" }).getByRole("row")).toHaveCount(3); // encabezado + 2 versiones
+    await expect(page.getByRole("table", { name: "Historial de Términos de uso" }).getByRole("row")).toHaveCount(3); // encabezado + 2 versiones
     await page.getByRole("tab", { name: "Política de privacidad" }).click();
     await expect(page.getByRole("table", { name: "Historial de Política de privacidad" }).getByRole("row")).toHaveCount(2);
   });
@@ -15,14 +15,14 @@ test.describe("Textos legales: versiones y aceptación solo en el primer ingreso
   test("publicar exige explicar qué cambió y no admite un texto idéntico", async ({ page }) => {
     await entrarAdmin(page);
     await page.goto("/admin/legales");
-    await page.getByLabel("Texto de Términos y condiciones").fill("Texto distinto.");
+    await page.getByLabel("Texto de Términos de uso").fill("Texto distinto.");
     await page.getByRole("button", { name: "Publicar versión" }).click();
     await expect(page.getByRole("alert").filter({ hasText: "mínimo 10 caracteres" })).toBeVisible();
   });
 
   test("publicar una versión nueva NO pide aceptar de nuevo a quien ya aceptó (la aceptación es solo en el primer ingreso)", async ({ page }) => {
     await entrarAdmin(page);
-    await publicarLegal(page, "Términos y condiciones", { texto: "## Vigencia\n\nLos puntos duran 36 meses.", notas: "Se amplía la vigencia a 36 meses." });
+    await publicarLegal(page, "Términos de uso", { texto: "## Vigencia\n\nLos puntos duran 36 meses.", notas: "Se amplía la vigencia a 36 meses." });
     await page.goto("/");
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await page.goto("/mis-puntos/compra");
@@ -40,12 +40,12 @@ test.describe("Textos legales: versiones y aceptación solo en el primer ingreso
     const aviso = page.getByRole("alertdialog");
     await expect(aviso).toBeVisible();
     await expect(aviso).toContainText("Es tu primer ingreso");
-    await expect(aviso).toContainText("Términos y condiciones");
+    await expect(aviso).toContainText("Términos de uso");
     await expect(aviso).toContainText("Política de privacidad");
     const aceptar = aviso.getByRole("button", { name: "Aceptar y continuar" });
     await expect(aviso.getByRole("checkbox")).toHaveCount(2);
     await expect(aceptar).toBeDisabled();
-    await aviso.getByRole("checkbox", { name: /Términos y condiciones/ }).check();
+    await aviso.getByRole("checkbox", { name: /Términos de uso/ }).check();
     await expect(aceptar).toBeDisabled(); // falta la política de privacidad
     await aviso.getByRole("checkbox", { name: /Política de privacidad/ }).check();
     await expect(aceptar).toBeEnabled();

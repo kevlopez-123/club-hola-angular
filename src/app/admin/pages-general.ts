@@ -267,6 +267,8 @@ export class ConfiguracionPage {
     { k: "tituloFormulario", l: "Título del formulario" },
     { k: "subtituloFormulario", l: "Subtítulo del formulario", largo: true },
     { k: "placeholderDocumento", l: "Texto de ayuda del número de documento" },
+    { k: "tituloCanal", l: "Título del paso para elegir dónde recibir el código" },
+    { k: "subtituloCanal", l: "Subtítulo de ese paso", largo: true },
     { k: "tituloCodigo", l: "Título del paso del código" },
     { k: "notaLegal", l: "Nota legal bajo el botón", largo: true },
   ];

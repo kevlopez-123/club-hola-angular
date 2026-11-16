@@ -70,7 +70,7 @@ const legalTemplate = `
 
 @Component({ selector: "app-terminos-page", imports: [MarkdownComponent], changeDetection: ChangeDetectionStrategy.OnPush, template: legalTemplate })
 export class TerminosPage {
-  protected readonly titulo = "Términos y condiciones";
+  protected readonly titulo = "Términos de uso";
   private readonly catalog = inject(CatalogService);
   private readonly brand = inject(BrandService);
   /** Subtítulo editable en Admin → Contenido → FAQ y legales. */

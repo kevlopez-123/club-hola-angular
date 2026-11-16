@@ -25,7 +25,7 @@ test.describe("Sitio cerrado: sin iniciar sesión no se puede navegar", () => {
       await expect(page).toHaveURL(new RegExp(ruta));
     }
     await page.goto("/terminos");
-    await expect(page.getByRole("heading", { name: /Términos y condiciones/ }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Términos de uso/ }).first()).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Buscar productos o beneficios" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Canjea tus puntos" })).toHaveCount(0);
   });

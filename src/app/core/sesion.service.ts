@@ -1,5 +1,7 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
+import { catchError, of, timeout } from "rxjs";
+import { ApiService } from "./api.service";
 import { TokenService } from "./token.service";
 
 /**
@@ -10,6 +12,7 @@ import { TokenService } from "./token.service";
 export class SesionService {
   private readonly tokens = inject(TokenService);
   private readonly router = inject(Router);
+  private readonly api = inject(ApiService);
   private readonly _logged = signal(!!this.tokens.get("participante"));
   readonly logged = computed(() => this._logged());
 
@@ -19,6 +22,14 @@ export class SesionService {
   }
   /** Cierra la sesión y recarga en /login para limpiar el estado en memoria (puntos, perfil, avisos). */
   salir() {
+    // Avisa al servidor para que cierre la sesión de este dispositivo; si no responde, igual se sale.
+    this.api.post("auth/logout").pipe(timeout(2000), catchError(() => of(null))).subscribe({ complete: () => this.terminar() });
+  }
+  /** Cierra la sesión en todos los dispositivos (también en este). */
+  salirDeTodos() {
+    this.api.post("me/sesiones/cerrar-todas").pipe(timeout(2000), catchError(() => of(null))).subscribe({ complete: () => this.terminar() });
+  }
+  private terminar() {
     this.tokens.set(null, "participante");
     this._logged.set(false);
     location.assign("/login");

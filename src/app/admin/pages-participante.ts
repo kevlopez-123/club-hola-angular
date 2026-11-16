@@ -102,7 +102,7 @@ type TabK = (typeof TABS)[number]['k'];
                     @for (t of tiposLegales; track t.k) {
                       <li class="flex flex-wrap items-center justify-between gap-2 py-2">
                         <span>{{ t.l }}<span class="block text-xs text-muted-foreground">
-                          @if (lg.aceptadas[t.k]; as a) { Aceptó la versión {{ a.version }} el {{ a.fecha.slice(0, 10).split('-').reverse().join('/') }} · {{ a.canal }} } @else { Todavía no ha aceptado ningún texto }
+                          @if (lg.aceptadas[t.k]; as a) { Aceptó la versión {{ a.version }} el {{ a.fecha.slice(0, 10).split('-').reverse().join('/') }} · {{ a.canal }}@if (a.documento) { · {{ a.documento }} }@if (a.dispositivo) { · {{ a.dispositivo }} } } @else { Todavía no ha aceptado ningún texto }
                         </span></span>
                         @if (pendienteLegal(t.k)) { <a-pill tone="warn">Pendiente: versión {{ lg.vigentes[t.k].version }}</a-pill> } @else { <a-pill tone="ok">Al día</a-pill> }
                       </li>

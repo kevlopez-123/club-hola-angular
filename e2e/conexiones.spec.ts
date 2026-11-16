@@ -81,7 +81,7 @@ test.describe("Portada, textos y menú", () => {
     await page.getByLabel("Respuesta").first().fill("De lunes a viernes de 9h a 18h.");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
-    await publicarLegal(page, "Términos y condiciones", { texto: "## 1. Condiciones generales\n\nTexto **importante** con [enlace](https://example.com).\n\n- Primer punto\n- Segundo punto" });
+    await publicarLegal(page, "Términos de uso", { texto: "## 1. Condiciones generales\n\nTexto **importante** con [enlace](https://example.com).\n\n- Primer punto\n- Segundo punto" });
     await page.goto("/preguntas-frecuentes");
     await expect(page.getByRole("button", { name: "¿Cuál es el horario de atención?" })).toBeVisible();
     await expect(page.getByText("De lunes a viernes de 9h a 18h.")).toBeVisible();

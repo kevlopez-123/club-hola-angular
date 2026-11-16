@@ -18,7 +18,7 @@ const fechaCorta = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse()
   imports: [PageHeaderComponent, PanelComponent, BtnDirective, FieldComponent, PillComponent, IconComponent, AdminModalComponent, ConfirmComponent, MarkdownComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a-header title="Textos legales" desc="Términos y condiciones y Política de privacidad, con historial de versiones. Los participantes los aceptan una sola vez, en su primer ingreso." />
+    <a-header title="Textos legales" desc="Términos de uso y Política de privacidad, con historial de versiones. Los participantes los aceptan una sola vez, en su primer ingreso." />
 
     <div role="tablist" aria-label="Texto legal" class="mb-5 inline-flex rounded-xl border border-border p-0.5">
       @for (t of tipos; track t) {

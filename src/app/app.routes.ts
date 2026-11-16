@@ -104,7 +104,7 @@ export const routes: Routes = [
 
 
       { path: "preguntas-frecuentes", title: "Preguntas frecuentes | Banco Solidario Puntos", loadComponent: () => info().then((m) => m.FaqPage) },
-      { path: "terminos", title: "Términos y condiciones | Banco Solidario Puntos", loadComponent: () => info().then((m) => m.TerminosPage) },
+      { path: "terminos", title: "Términos de uso | Banco Solidario Puntos", loadComponent: () => info().then((m) => m.TerminosPage) },
       { path: "privacidad", title: "Política de privacidad | Banco Solidario Puntos", loadComponent: () => info().then((m) => m.PrivacidadPage) },
 
       { path: "baja", title: "Novedades por correo | Banco Solidario Puntos", loadComponent: () => info().then((m) => m.BajaPage) },

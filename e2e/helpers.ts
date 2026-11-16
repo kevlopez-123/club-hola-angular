@@ -58,7 +58,7 @@ export async function entrarAdmin(page: Page, rol = "Administrador") {
 /** Publica una versión nueva de Términos o de Privacidad desde Admin → Textos legales (hay que haber entrado al panel). No pide aceptar de nuevo: la aceptación es solo en el primer ingreso. */
 export async function publicarLegal(
   page: Page,
-  documento: "Términos y condiciones" | "Política de privacidad",
+  documento: "Términos de uso" | "Política de privacidad",
   o: { texto: string; intro?: string; notas?: string },
 ) {
   await page.goto("/admin/legales");

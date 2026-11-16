@@ -12,6 +12,9 @@ import { ComboboxComponent } from "../shared/combobox";
 import { ciudadesDe, hayCiudadesFijas, sugerenciasDe } from "../core/ubicaciones";
 import { limitesNacimiento } from "../core/validaciones";
 import { limpiarNumeroDocumento, validarNumeroDocumento } from "../core/documento";
+import { nombreDispositivo } from "../core/dispositivo";
+import { haceTiempo } from "../core/tiempo";
+import { environment } from "../../environments/environment";
 import { agruparCampos, claveExtra, erroresPerfil } from "../core/validar-perfil";
 import { DireccionFormComponent } from "../shared/direccion-form";
 import { erroresDireccion } from "../core/validar-direccion";
@@ -195,7 +198,7 @@ const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "
                 </div>
               </form>
             }
-          } @else {
+          } @else if (tab() === "direcciones") {
             <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]">
               <div class="flex flex-wrap items-center justify-between gap-4">
                 <h2 class="text-lg font-extrabold text-ink">Mis direcciones</h2>
@@ -251,6 +254,46 @@ const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "
                 }
               </app-modal>
             </section>
+          } @else {
+            <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="seg-titulo">
+              <h2 id="seg-titulo" class="text-lg font-extrabold text-ink">Dispositivos con sesión iniciada</h2>
+              <p class="mt-2 text-base text-muted-foreground">Tu sesión se mantiene en cada dispositivo y se renueva cada vez que entras; vence si pasan 30 días sin usarla. Si no reconoces alguno, cierra todas las sesiones.</p>
+
+              @if (errorSesiones()) {
+                <p role="alert" class="mt-5 rounded-2xl bg-aviso-fondo px-5 py-4 text-base font-semibold text-aviso">No pudimos cargar tus dispositivos. Inténtalo de nuevo más tarde.</p>
+              } @else if (sesiones(); as lista) {
+                <ul class="mt-5 grid gap-3">
+                  @for (s of lista; track $index) {
+                    <li class="flex items-center gap-4 rounded-2xl border border-border p-4">
+                      <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"><app-icon [name]="iconoDispositivo(s.dispositivo)" class="h-5 w-5" /></span>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-base font-bold text-ink">{{ s.dispositivo }}
+                          @if (s.actual) { <span class="ml-2 inline-flex items-center rounded-full bg-primary px-3 py-0.5 align-middle text-xs font-bold uppercase tracking-wide text-primary-foreground">Este dispositivo</span> }
+                        </p>
+                        <p class="text-sm text-muted-foreground">Último uso {{ tiempo(s.ultimoUso) }}</p>
+                      </div>
+                    </li>
+                  } @empty {
+                    <li class="rounded-2xl bg-surface p-6 text-center text-base text-muted-foreground">No hay sesiones activas.</li>
+                  }
+                </ul>
+              }
+
+              <button type="button" (click)="cerrarTodas.set(true)"
+                class="mt-6 min-h-12 rounded-full border border-destructive px-6 text-base font-bold text-destructive transition-colors hover:bg-destructive/10 lg:min-h-14">
+                Cerrar sesión en todos los dispositivos
+              </button>
+
+              <app-modal [open]="cerrarTodas()" title="Cerrar todas las sesiones" (closed)="cerrarTodas.set(false)">
+                <p class="text-base text-ink">Se cerrará tu sesión en todos tus dispositivos, incluido este. Para volver a entrar tendrás que validar tu documento y un código.</p>
+                <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                  <button type="button" (click)="cerrarTodas.set(false)"
+                    class="min-h-12 rounded-full border border-border bg-card text-base font-bold uppercase tracking-wide text-ink transition-colors hover:border-primary hover:text-primary lg:min-h-14">Cancelar</button>
+                  <button type="button" (click)="cerrarEnTodos()"
+                    class="min-h-12 rounded-full bg-destructive text-base font-bold uppercase tracking-wide text-destructive-foreground transition-transform hover:scale-[1.02] lg:min-h-14">Sí, cerrar todas</button>
+                </div>
+              </app-modal>
+            </section>
           }
         </div>
       </div>
@@ -265,9 +308,31 @@ export class PerfilPage {
   protected readonly tabs = [
     { value: "datos", label: "Datos personales" },
     { value: "direcciones", label: "Direcciones de envío" },
+    { value: "seguridad", label: "Seguridad" },
   ] as const;
 
-  protected readonly tab = signal<"datos" | "direcciones">("datos");
+  protected readonly tab = signal<"datos" | "direcciones" | "seguridad">("datos");
+
+  /* ---- Seguridad: dispositivos con sesión iniciada ---- */
+  private readonly sesionApp = inject(SesionService);
+  protected readonly tiempo = haceTiempo;
+  protected readonly sesiones = signal<{ dispositivo: string; creada: string; ultimoUso: string; actual: boolean }[] | null>(null);
+  protected readonly errorSesiones = signal(false);
+  protected readonly cerrarTodas = signal(false);
+  private readonly cargaSesiones = effect(() => {
+    if (this.tab() !== "seguridad") return;
+    this.errorSesiones.set(false);
+    this.api.get<{ sesiones: { dispositivo: string; creada: string; ultimoUso: string; actual: boolean }[] }>("me/sesiones").subscribe({
+      next: (r) => this.sesiones.set(r.sesiones),
+      error: () => this.errorSesiones.set(true),
+    });
+  });
+  protected iconoDispositivo(d: string) {
+    return /iPhone|iPad|Android/.test(d) ? "Smartphone" : "Monitor";
+  }
+  protected cerrarEnTodos() {
+    this.sesionApp.salirDeTodos();
+  }
   protected readonly perfil = this.store.perfil;
   protected readonly guardado = signal(false);
   private readonly catalog = inject(CatalogService);
@@ -644,21 +709,37 @@ export class ContactoPage {
 
                 <label for="num-doc" class="mt-5 block text-base font-semibold text-ink">Número de documento</label>
                 <input id="num-doc" [value]="documento()" (input)="onDocumento($event)" autocomplete="off"
-                  [attr.inputmode]="tipoActual()?.numerico ? 'numeric' : 'text'" [placeholder]="txt().placeholderDocumento"
+                  (blur)="alSalirDelDocumento()" [attr.inputmode]="tipoActual()?.numerico ? 'numeric' : 'text'" [placeholder]="txt().placeholderDocumento"
                   [attr.aria-invalid]="error() ? true : null"
                   [class]="'mt-2 h-14 w-full rounded-2xl border bg-surface px-4 text-base text-ink outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/60 ' + (error() ? 'border-destructive' : 'border-border')" />
 
+                @if (consultando()) { <p role="status" class="mt-2 text-sm text-muted-foreground">Verificando…</p> }
+                @if (requiere()) {
+                  <div role="group" aria-labelledby="aceptacion-titulo" class="animate-fade-up mt-4 rounded-2xl border border-border bg-surface p-4">
+                    <p id="aceptacion-titulo" class="text-base font-bold text-ink">Antes de continuar</p>
+                    <p class="mt-1 text-base text-muted-foreground">Es la primera vez que ingresas con este documento. Para continuar, confirma lo siguiente:</p>
+                    <label class="mt-3 flex cursor-pointer items-start gap-3 text-base leading-6 text-ink">
+                      <input type="checkbox" [checked]="aceptaTerminos()" (change)="aceptaTerminos.set($any($event.target).checked); error.set('')" class="mt-1 h-5 w-5 shrink-0 accent-[var(--color-primary)]" />
+                      <span>He leído y acepto los <a href="#" (click)="$event.preventDefault(); abrirLegal('terminos')" class="font-semibold text-primary underline underline-offset-2">Términos de uso</a>.</span>
+                    </label>
+                    <label class="mt-2 flex cursor-pointer items-start gap-3 text-base leading-6 text-ink">
+                      <input type="checkbox" [checked]="aceptaPrivacidad()" (change)="aceptaPrivacidad.set($any($event.target).checked); error.set('')" class="mt-1 h-5 w-5 shrink-0 accent-[var(--color-primary)]" />
+                      <span>Autorizo el tratamiento de mis datos personales de acuerdo con la <a href="#" (click)="$event.preventDefault(); abrirLegal('privacidad')" class="font-semibold text-primary underline underline-offset-2">Política de privacidad</a>.</span>
+                    </label>
+                  </div>
+                }
+
                 @if (error()) { <p role="alert" class="mt-3 text-base text-destructive">{{ error() }}</p> }
 
-                <button type="submit" [disabled]="enviando()" class="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-70">
+                <button type="submit" [disabled]="enviando() || consultando() || (requiere() && !aceptaTodo())" class="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-70">
                   @if (enviando()) { <app-icon name="Loader2" class="h-5 w-5 animate-spin" /> Enviando… } @else { Continuar }
                 </button>
-                @if (txt().notaLegal) { <app-markdown [enLinea]="true" clase="md-corto" [texto]="txt().notaLegal" (ancla)="abrirLegal($event)" /> }
+                @if (txt().notaLegal && !requiere()) { <app-markdown [enLinea]="true" clase="md-corto" [texto]="txt().notaLegal" (ancla)="abrirLegal($event)" /> }
               </form>
             } @else if (paso() === 2) {
               <div>
-                <h1 class="text-2xl font-extrabold text-ink">Verifica tu identidad</h1>
-                <p class="mt-2 text-base text-muted-foreground">¿Dónde quieres recibir tu código de validación de 6 dígitos?</p>
+                <h1 class="text-2xl font-extrabold text-ink">{{ txt().tituloCanal }}</h1>
+                <p class="mt-2 text-base text-muted-foreground">{{ txt().subtituloCanal }}</p>
 
                 <div class="mt-6 space-y-3">
                   <button type="button" (click)="elegirCanal('correo')" [disabled]="enviando()"
@@ -692,11 +773,16 @@ export class ContactoPage {
 
                 <div class="mt-6 flex justify-between gap-2">
                   @for (d of codigo(); track $index; let i = $index) {
-                    <input #digito [value]="d" (input)="onDigito(i, $event)" (keydown)="onKey(i, $event)" inputmode="numeric" [attr.aria-label]="'Dígito ' + (i + 1)"
+                    <input #digito [value]="d" (input)="onDigito(i, $event)" (keydown)="onKey(i, $event)" (paste)="alPegar($event)" inputmode="numeric" [attr.aria-label]="'Dígito ' + (i + 1)"
                       [class]="'h-14 w-full min-w-0 rounded-2xl border border-border bg-surface text-center text-xl font-bold text-ink outline-none focus:ring-2 focus:ring-primary/60 ' + (d ? 'border-primary' : '')" />
                   }
                 </div>
 
+                @if (demo() && usarMock) {
+                  <p class="mt-3 text-sm text-muted-foreground">Código de prueba (solo demo):
+                    <button type="button" (click)="usarDemo()" class="font-mono font-bold text-primary underline">{{ demo() }}</button>
+                  </p>
+                }
                 @if (aviso()) { <p role="status" class="mt-3 text-base text-ink">{{ aviso() }}</p> }
                 @if (error()) { <p role="alert" class="mt-3 text-base text-destructive">{{ error() }}</p> }
 
@@ -713,7 +799,7 @@ export class ContactoPage {
         </div>
       </main>
 
-      <app-modal [open]="!!legal()" [title]="legal() === 'privacidad' ? 'Política de privacidad' : 'Términos y condiciones'" maxWidth="max-w-3xl" (closed)="legal.set(null)">
+      <app-modal [open]="!!legal()" [title]="legal() === 'privacidad' ? 'Política de privacidad' : 'Términos de uso'" maxWidth="max-w-3xl" (closed)="legal.set(null)">
         <app-markdown [texto]="textoLegal()" />
       </app-modal>
     </div>
@@ -768,6 +854,18 @@ export class LoginPage {
   protected readonly canal = signal<"correo" | "sms">("correo");
   /** Correo o celular ofuscado al que se envió el código. */
   protected readonly destino = signal("");
+  /** Código de prueba que devuelve la MockAPI (un backend real no lo envía). */
+  protected readonly demo = signal("");
+  /** Primer ingreso de este documento: hay que aceptar los textos legales antes de recibir el código. */
+  protected readonly requiere = signal(false);
+  protected readonly aceptaTerminos = signal(false);
+  protected readonly aceptaPrivacidad = signal(false);
+  protected readonly aceptaTodo = computed(() => this.aceptaTerminos() && this.aceptaPrivacidad());
+  protected readonly consultando = signal(false);
+  /** Documento ya consultado («tipo:número»). */
+  private consultado = "";
+  private esperaConsulta: ReturnType<typeof setTimeout> | undefined;
+  protected readonly usarMock = environment.usarMock;
   /** Segundos que faltan para poder pedir otro código. */
   protected readonly espera = signal(0);
   private temporizador: ReturnType<typeof setInterval> | undefined;
@@ -777,13 +875,56 @@ export class LoginPage {
     effect(() => {
       if (this.paso() === 3) queueMicrotask(() => this.digitos()[0]?.nativeElement.focus());
     });
-    inject(DestroyRef).onDestroy(() => clearInterval(this.temporizador));
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(this.temporizador);
+      clearTimeout(this.esperaConsulta);
+    });
   }
 
   protected cambiarTipo(valor: string) {
     this.tipo.set(valor);
     this.documento.set("");
     this.error.set("");
+    this.reiniciarAceptacion();
+  }
+  private reiniciarAceptacion() {
+    clearTimeout(this.esperaConsulta);
+    this.requiere.set(false);
+    this.aceptaTerminos.set(false);
+    this.aceptaPrivacidad.set(false);
+    this.consultando.set(false);
+    this.consultado = "";
+  }
+  private claveDocumento() {
+    return `${this.tipoVal()}:${this.documento()}`;
+  }
+  /**
+   * Consulta si este documento debe aceptar los textos legales. Si la consulta falla (o llega el límite de consultas) se pide la
+   * aceptación igual: ante la duda nunca se omite.
+   */
+  private consultarAceptacion(luego?: () => void) {
+    if (validarNumeroDocumento(this.tipoActual(), this.documento())) return;
+    const clave = this.claveDocumento();
+    if (this.consultado === clave) {
+      luego?.();
+      return;
+    }
+    this.consultando.set(true);
+    const terminar = (requiere: boolean) => {
+      if (clave !== this.claveDocumento()) return; // el documento cambió mientras tanto
+      this.consultando.set(false);
+      this.consultado = clave;
+      this.requiere.set(requiere);
+      luego?.();
+    };
+    this.api.post<{ requiere: boolean }>("auth/aceptacion", { tipo: this.tipoVal(), documento: this.documento() }).subscribe({
+      next: (r) => terminar(r.requiere),
+      error: () => terminar(true),
+    });
+  }
+  /** En DNI y RUC la consulta sale sola al completar el largo; en los demás tipos, al salir del campo. */
+  protected alSalirDelDocumento() {
+    if (!this.tipoActual()?.numerico) this.consultarAceptacion();
   }
   /** Solo se escribe lo que cabe en el tipo elegido: dígitos en DNI y RUC, letras y números en los demás, sin pasar de su largo. */
   protected onDocumento(e: Event) {
@@ -792,6 +933,10 @@ export class LoginPage {
     input.value = limpio;
     this.documento.set(limpio);
     this.error.set("");
+    this.reiniciarAceptacion();
+    const tipo = this.tipoActual();
+    // Largo exacto (DNI, RUC): al completarlo se consulta solo, tras una pausa corta.
+    if (tipo?.numerico && limpio.length === tipo.digitos) this.esperaConsulta = setTimeout(() => this.consultarAceptacion(), 300);
   }
 
   protected continuar(e: Event) {
@@ -799,6 +944,18 @@ export class LoginPage {
     const mensaje = validarNumeroDocumento(this.tipoActual(), this.documento());
     if (mensaje) {
       this.error.set(mensaje);
+      return;
+    }
+    // Sin haber consultado todavía (otro tipo de documento, o se pulsó muy rápido), se consulta y luego se sigue.
+    if (this.consultado !== this.claveDocumento()) {
+      clearTimeout(this.esperaConsulta);
+      this.consultarAceptacion(() => this.continuar(e));
+      return;
+    }
+    if (this.requiere() && !this.aceptaTodo()) {
+      this.error.set(
+        !this.aceptaTerminos() && !this.aceptaPrivacidad() ? "Marca las dos casillas para continuar." : !this.aceptaTerminos() ? "Marca la casilla de los Términos de uso." : "Marca la casilla de la Política de privacidad.",
+      );
       return;
     }
     this.enviando.set(true);
@@ -828,11 +985,12 @@ export class LoginPage {
   private enviar(canal: "correo" | "sms", reenvio = false) {
     this.enviando.set(true);
     this.error.set("");
-    this.api.post<{ destino: string }>("auth/otp", { tipo: this.tipoVal(), documento: this.documento(), canal }).subscribe({
+    this.api.post<{ destino: string; demo?: string }>("auth/otp", { tipo: this.tipoVal(), documento: this.documento(), canal, aceptaciones: this.requiere() ? [...(this.aceptaTerminos() ? ["terminos"] : []), ...(this.aceptaPrivacidad() ? ["privacidad"] : [])] : [], dispositivo: nombreDispositivo(navigator.userAgent) }).subscribe({
       next: (r) => {
         this.enviando.set(false);
         this.canal.set(canal);
         this.destino.set(r.destino);
+        this.demo.set(r.demo ?? "");
         this.codigo.set(["", "", "", "", "", ""]);
         this.aviso.set(reenvio ? "Te enviamos un código nuevo." : "");
         this.paso.set(3);
@@ -867,6 +1025,18 @@ export class LoginPage {
     this.codigo.update((prev) => prev.map((x, idx) => (idx === i ? d : x)));
     if (d && i < 5) this.digitos()[i + 1]?.nativeElement.focus();
   }
+  /** Pegar el código completo (p. ej. desde el correo) llena las seis casillas. */
+  protected alPegar(e: ClipboardEvent) {
+    const d = (e.clipboardData?.getData("text") ?? "").replace(/\D/g, "").slice(0, 6);
+    if (!d) return;
+    e.preventDefault();
+    this.codigo.set(Array.from({ length: 6 }, (_, i) => d[i] ?? ""));
+    queueMicrotask(() => this.digitos()[Math.min(d.length, 5)]?.nativeElement.focus());
+  }
+  protected usarDemo() {
+    this.codigo.set(this.demo().split("").slice(0, 6));
+    queueMicrotask(() => this.digitos()[5]?.nativeElement.focus());
+  }
   protected onKey(i: number, e: KeyboardEvent) {
     if (e.key === "Backspace" && !this.codigo()[i] && i > 0) this.digitos()[i - 1]?.nativeElement.focus();
   }
@@ -874,7 +1044,7 @@ export class LoginPage {
   protected validar(e: Event) {
     e.preventDefault();
     this.cargando.set(true);
-    this.api.post<{ token: string }>("auth/verificar", { codigo: this.codigo() }).subscribe({
+    this.api.post<{ token: string }>("auth/verificar", { codigo: this.codigo(), dispositivo: nombreDispositivo(navigator.userAgent) }).subscribe({
       next: (r) => {
         // El servidor emite el token; desde aquí las peticiones de cuenta lo llevan y las rutas privadas se abren.
         this.sesion.entrar(r.token);
@@ -885,6 +1055,9 @@ export class LoginPage {
       error: (err) => {
         this.cargando.set(false);
         this.error.set(err.error?.message ?? "Código inválido.");
+        // Se vacían las casillas para volver a escribir.
+        this.codigo.set(["", "", "", "", "", ""]);
+        queueMicrotask(() => this.digitos()[0]?.nativeElement.focus());
       },
     });
   }
