@@ -422,6 +422,8 @@ const customerRoutes: Route[] = [
     registrarJuego(premio, "ruleta");
     return { premio: { id: premio.id, label: premio.label, tipo: premio.tipo, detalle: premio.detalle }, estado: estadoRuleta() };
   }],
+  /** Solo para la demo: los códigos de prueba que todavía no se usaron. */
+  ["GET", "juegos/codigo/demo", () => (db.admin.codigosPromo as any[]).filter((c) => !c.usado).map((c) => ({ codigo: c.codigo, premio: c.premio }))],
   ["POST", "juegos/codigo", ({ body }) => {
     exigirCuentaActiva();
     exigirLegalesAlDia("p1");

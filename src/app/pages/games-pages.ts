@@ -4,6 +4,7 @@ import { StoreService } from "../core/store.service";
 import { normalizarCodigo, type EstadoRuleta, type Premio, type ResultadoJuego } from "../core/juegos";
 import { IconComponent } from "../shared/icon.component";
 import { ModalComponent } from "../shared/ui";
+import { environment } from "../../environments/environment";
 
 type PremioGanado = ResultadoJuego["premio"];
 
@@ -171,6 +172,24 @@ export class SpinWinPage {
               class="mt-6 min-h-12 w-full rounded-full bg-primary text-base font-bold text-primary-foreground transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-14">
               {{ validando() ? "Validando…" : "Validar mi código" }}
             </button>
+
+            @if (demo().length) {
+              <section class="mt-6 rounded-2xl border border-dashed border-border bg-surface p-4 text-left" aria-labelledby="demo-codigos">
+                <h3 id="demo-codigos" class="text-sm font-extrabold text-ink">Códigos de prueba (solo demo)</h3>
+                <p class="mt-1 text-xs text-muted-foreground">Estos códigos funcionan en esta demo. Pulsa uno para escribirlo en el campo; cada código se puede usar una sola vez.</p>
+                <ul class="mt-3 grid gap-2">
+                  @for (c of demo(); track c.codigo) {
+                    <li>
+                      <button type="button" (click)="usarDemo(c.codigo)"
+                        class="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-card px-4 py-2.5 text-left transition-colors hover:bg-secondary">
+                        <code class="font-mono text-sm font-bold tracking-wide text-ink">{{ c.codigo }}</code>
+                        <span class="text-xs font-semibold text-primary">{{ c.premio }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
           </form>
         </div>
       </div>
@@ -187,6 +206,19 @@ export class LuckyCodePage {
   protected readonly validando = signal(false);
   protected readonly premio = signal<PremioGanado | null>(null);
 
+  /** Códigos de prueba que aún no se usaron. Solo existen con la MockAPI: un backend real no los expone. */
+  protected readonly demo = signal<{ codigo: string; premio: string }[]>([]);
+  constructor() {
+    this.cargarDemo();
+  }
+  private cargarDemo() {
+    if (!environment.usarMock) return;
+    this.api.get<{ codigo: string; premio: string }[]>("juegos/codigo/demo").subscribe({ next: (r) => this.demo.set(r), error: () => this.demo.set([]) });
+  }
+  protected usarDemo(codigo: string) {
+    this.codigo.set(normalizarCodigo(codigo).slice(0, 19));
+  }
+
   protected alEscribir(v: string) {
     this.codigo.set(normalizarCodigo(v).slice(0, 19));
   }
@@ -201,6 +233,7 @@ export class LuckyCodePage {
         this.premio.set(r.premio);
         this.codigo.set("");
         this.robot.set(false);
+        this.cargarDemo();
       },
       error: (e) => {
         this.validando.set(false);
