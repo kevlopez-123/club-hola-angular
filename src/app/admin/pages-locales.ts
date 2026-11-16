@@ -62,8 +62,8 @@ const vacio = (): Fila => ({ id: `loc-${Date.now().toString(36)}`, marca: "", no
               <td>{{ l.horario || '—' }}</td>
               <td><a-toggle label="Publicado" [on]="l.activo" (onChange)="alternar(l, $event)" /></td>
               <td class="whitespace-nowrap">
-                <button aBtn variant="ghost" [attr.aria-label]="'Editar ' + l.nombre" (click)="edit.set({ ...l })">Editar</button>
-                <button aBtn variant="peligro-ghost" [attr.aria-label]="'Eliminar ' + l.nombre" (click)="borrar.set(l)">Eliminar</button>
+                <button aBtn variant="ghost" [attr.aria-label]="'Editar ' + l.nombre" (click)="edit.set({ ...l })"><app-icon name="Pencil" class="h-4 w-4" /> Editar</button>
+                <button aBtn variant="peligro-ghost" [attr.aria-label]="'Eliminar ' + l.nombre" (click)="borrar.set(l)"><app-icon name="Trash2" class="h-4 w-4" /> Eliminar</button>
               </td>
             </tr>
           } @empty {

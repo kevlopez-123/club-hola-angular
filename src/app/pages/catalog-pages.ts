@@ -328,9 +328,9 @@ export class BeneficiosPage {
                       <button type="button" (click)="localSel.set(l.id)" [attr.aria-pressed]="localSel() === l.id"
                         [class]="'w-full rounded-2xl border p-4 text-left text-sm transition-colors hover:border-primary ' + (localSel() === l.id ? 'border-primary bg-secondary/50 ring-2 ring-primary/30' : 'border-border')">
                         <span class="block font-bold text-ink">{{ l.nombre }}</span>
-                        <span class="mt-1 block text-ink">{{ l.direccion }}, {{ l.distrito }}</span>
-                        @if (l.horario) { <span class="mt-1 block text-muted-foreground">{{ l.horario }}</span> }
-                        @if (l.telefono) { <span class="block text-muted-foreground">{{ l.telefono }}</span> }
+                        <span class="mt-2 flex items-start gap-2 text-ink"><app-icon name="MapPin" class="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{{ l.direccion }}, {{ l.distrito }}</span></span>
+                        @if (l.horario) { <span class="mt-1 flex items-start gap-2 text-muted-foreground"><app-icon name="Clock" class="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{{ l.horario }}</span></span> }
+                        @if (l.telefono) { <span class="mt-1 flex items-start gap-2 text-muted-foreground"><app-icon name="Phone" class="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{{ l.telefono }}</span></span> }
                       </button>
                     </li>
                   }
