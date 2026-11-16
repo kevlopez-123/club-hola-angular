@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild } from "@angular/core";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import type * as Leaflet from "leaflet";
+import { cargarLeaflet } from "../shared/leaflet";
 import { BrandService } from "../core/brand.service";
 import { CatalogService } from "../core/catalog.service";
 import { distanciaKm, textoDistancia } from "../core/geo";
@@ -155,7 +156,7 @@ export class MapaPage implements OnDestroy {
 
   private async iniciar() {
     cargarCssDeLeaflet();
-    this.L = await import("leaflet");
+    this.L = await cargarLeaflet();
     const c = this.brand.pais().centro;
     this.mapa = this.L.map(this.contenedor().nativeElement).setView([c.lat, c.lng], c.zoom);
     this.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -169,7 +170,7 @@ export class MapaPage implements OnDestroy {
 
   private popup(l: Local): string {
     const beneficios = this.catalog.beneficios().filter((b) => aplicaEnLocal(b, l, this.catalog.locales())).slice(0, 5);
-    const lista = beneficios.map((b) => `<li><a href="/beneficios/${encodeURIComponent(b.id)}" style="color:var(--primary);font-weight:700">${esc(b.nombre)}</a></li>`).join("");
+    const lista = beneficios.map((b) => `<li><a href="beneficios/${encodeURIComponent(b.id)}" style="color:var(--primary);font-weight:700">${esc(b.nombre)}</a></li>`).join("");
     return `<div style="min-width:180px"><strong>${esc(l.nombre)}</strong><br>${esc(l.direccion)}, ${esc(l.distrito)}${l.horario ? `<br><small>${esc(l.horario)}</small>` : ""}${lista ? `<ul style="margin:.5rem 0 0;padding-left:1rem">${lista}</ul>` : ""}</div>`;
   }
 

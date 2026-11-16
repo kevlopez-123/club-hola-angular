@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRender, effect, inject, input, model, signal, viewChild } from "@angular/core";
 import type * as Leaflet from "leaflet";
+import { cargarLeaflet } from "./leaflet";
 import { BrandService } from "../core/brand.service";
 import type { Local } from "../core/mock-api/seed/locales";
 
@@ -51,7 +52,7 @@ export class MapaLocalesComponent implements OnDestroy {
 
   private async iniciar() {
     cargarCssDeLeaflet();
-    this.L = await import("leaflet");
+    this.L = await cargarLeaflet();
     const c = this.brand.pais().centro;
     this.mapa = this.L.map(this.contenedor().nativeElement, { scrollWheelZoom: false }).setView([c.lat, c.lng], c.zoom);
     this.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {

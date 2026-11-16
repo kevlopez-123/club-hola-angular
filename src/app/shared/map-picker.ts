@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRender, effect, inject, input, output, signal, untracked, viewChild } from "@angular/core";
 import type * as Leaflet from "leaflet";
+import { cargarLeaflet } from "./leaflet";
 import { BrandService } from "../core/brand.service";
 
 export type Ubicacion = { lat: number; lng: number };
@@ -107,7 +108,7 @@ export class MapPickerComponent implements OnDestroy {
 
   private async iniciar() {
     cargarCssDeLeaflet();
-    const L = (this.L = await import("leaflet"));
+    const L = (this.L = await cargarLeaflet());
     const c = this.brand.pais().centro;
     const lat = this.lat();
     const lng = this.lng();
