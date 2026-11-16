@@ -25,7 +25,7 @@ export const PAISES: Record<string, Pais> = {
     codigo: "PE", nombre: "Perú", locale: "es-PE", telefonoPrefijo: "+51", telefonoDigitos: 9,
     moneda: { codigo: "PEN", simbolo: "S/ " },
     centro: { lat: -12.0464, lng: -77.0428, zoom: 12 },
-    documentos: [doc("dni", "DNI", 8), doc("ruc", "RUC", 11), doc("ce", "Carné de Extranjería", 12, false), pasaporte],
+    documentos: [doc("dni", "DNI", 8), pasaporte, doc("ce", "Carné de Extranjería", 12, false), doc("colaborador", "Código de colaborador", 10, false), doc("ruc", "RUC", 11), doc("otro", "Otro documento", 15, false)],
     provincias: prov("Amazonas", "Áncash", "Apurímac", "Arequipa", "Ayacucho", "Cajamarca", "Callao", "Cusco", "Huancavelica", "Huánuco", "Ica", "Junín", "La Libertad", "Lambayeque", "Lima", "Loreto", "Madre de Dios", "Moquegua", "Pasco", "Piura", "Puno", "San Martín", "Tacna", "Tumbes", "Ucayali"),
   },
   CO: {

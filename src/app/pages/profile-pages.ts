@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from "@angular/common";
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChildren } from "@angular/core";
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChildren } from "@angular/core";
 import { Router, RouterLink, ActivatedRoute } from "@angular/router";
 import { ApiService } from "../core/api.service";
 import { CatalogService, TEXTOS_INGRESO, type TextosIngreso } from "../core/catalog.service";
@@ -11,6 +11,7 @@ import { IconComponent } from "../shared/icon.component";
 import { ComboboxComponent } from "../shared/combobox";
 import { ciudadesDe, hayCiudadesFijas, sugerenciasDe } from "../core/ubicaciones";
 import { limitesNacimiento } from "../core/validaciones";
+import { limpiarNumeroDocumento, validarNumeroDocumento } from "../core/documento";
 import { agruparCampos, claveExtra, erroresPerfil } from "../core/validar-perfil";
 import { DireccionFormComponent } from "../shared/direccion-form";
 import { erroresDireccion } from "../core/validar-direccion";
@@ -598,7 +599,7 @@ export class ContactoPage {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-login-page",
-  imports: [IconComponent, LogoComponent, ModalComponent, MarkdownComponent],
+  imports: [IconComponent, LogoComponent, ModalComponent, MarkdownComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="grid min-h-screen bg-surface font-sans lg:grid-cols-2">
@@ -614,45 +615,79 @@ export class ContactoPage {
       </aside>
 
       <!-- Formulario -->
-      <main class="flex items-center justify-center px-4 py-10 sm:px-8">
+      <main class="relative flex items-center justify-center px-4 py-10 sm:px-8">
+        <a routerLink="/" aria-label="Cerrar y volver al inicio"
+          class="fixed right-4 top-4 z-50 grid h-11 w-11 place-items-center rounded-full bg-card text-ink shadow-sm ring-1 ring-border transition-colors hover:bg-muted">
+          <app-icon name="X" class="h-5 w-5" />
+        </a>
         <div class="w-full max-w-md">
           <div class="flex justify-center px-6 py-2 lg:hidden"><app-logo variant="light" class="h-9" /></div>
           <div class="hidden justify-center lg:flex"><app-logo variant="light" class="h-10" /></div>
 
           <div class="mt-8 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] sm:p-8">
             @if (paso() > 1) {
-              <button type="button" (click)="error.set(''); paso.set(1)" class="mb-4 flex min-h-11 items-center gap-2 text-base font-semibold text-primary">
+              <button type="button" (click)="atras()" class="mb-4 flex min-h-11 items-center gap-2 text-base font-semibold text-primary">
                 <app-icon name="ArrowLeft" class="h-5 w-5" /> Volver
               </button>
             }
 
             @if (paso() === 1) {
-              <form (submit)="continuar($event)">
+              <form (submit)="continuar($event)" novalidate>
                 <h1 class="text-2xl font-extrabold text-ink">{{ txt().tituloFormulario }}</h1>
                 <p class="mt-2 text-base text-muted-foreground">{{ txt().subtituloFormulario }}</p>
 
                 <label for="tipo-doc" class="mt-6 block text-base font-semibold text-ink">Tipo de documento</label>
-                <select id="tipo-doc" [value]="tipoVal()" (change)="tipo.set($any($event.target).value); documento.set('')"
+                <select id="tipo-doc" [value]="tipoVal()" (change)="cambiarTipo($any($event.target).value)"
                   class="select-field mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-ink outline-none focus:ring-2 focus:ring-primary/60">
                   @for (t of tipos(); track t.value) { <option [value]="t.value" [selected]="t.value === tipoVal()">{{ t.label }}</option> }
                 </select>
 
                 <label for="num-doc" class="mt-5 block text-base font-semibold text-ink">Número de documento</label>
-                <input id="num-doc" [value]="documento()" (input)="onDocumento($event)" [attr.inputmode]="tipoActual()?.numerico ? 'numeric' : 'text'"
-                  [placeholder]="txt().placeholderDocumento"
-                  class="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-ink outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/60" />
+                <input id="num-doc" [value]="documento()" (input)="onDocumento($event)" autocomplete="off"
+                  [attr.inputmode]="tipoActual()?.numerico ? 'numeric' : 'text'" [placeholder]="txt().placeholderDocumento"
+                  [attr.aria-invalid]="error() ? true : null"
+                  [class]="'mt-2 h-14 w-full rounded-2xl border bg-surface px-4 text-base text-ink outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/60 ' + (error() ? 'border-destructive' : 'border-border')" />
 
-                @if (error()) { <p class="mt-3 text-base text-destructive">{{ error() }}</p> }
+                @if (error()) { <p role="alert" class="mt-3 text-base text-destructive">{{ error() }}</p> }
 
-                <button type="submit" class="mt-6 flex min-h-14 w-full items-center justify-center rounded-full bg-primary px-6 text-base font-bold text-primary-foreground transition-opacity hover:opacity-90">Continuar</button>
+                <button type="submit" [disabled]="enviando()" class="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-70">
+                  @if (enviando()) { <app-icon name="Loader2" class="h-5 w-5 animate-spin" /> Enviando… } @else { Continuar }
+                </button>
                 @if (txt().notaLegal) { <app-markdown [enLinea]="true" clase="md-corto" [texto]="txt().notaLegal" (ancla)="abrirLegal($event)" /> }
               </form>
+            } @else if (paso() === 2) {
+              <div>
+                <h1 class="text-2xl font-extrabold text-ink">Verifica tu identidad</h1>
+                <p class="mt-2 text-base text-muted-foreground">¿Dónde quieres recibir tu código de validación de 6 dígitos?</p>
+
+                <div class="mt-6 space-y-3">
+                  <button type="button" (click)="elegirCanal('correo')" [disabled]="enviando()"
+                    class="flex min-h-16 w-full items-center gap-4 rounded-2xl border border-border bg-surface px-4 py-3 text-left transition-colors hover:border-primary hover:bg-muted disabled:opacity-70">
+                    <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-celeste/15 text-celeste"><app-icon name="Mail" class="h-6 w-6" /></span>
+                    <span class="min-w-0">
+                      <span class="block text-base font-semibold text-ink">Correo electrónico</span>
+                      <span class="block truncate text-base text-muted-foreground">{{ canales()?.correo }}</span>
+                    </span>
+                  </button>
+                  @if (canales()?.telefono; as tel) {
+                    <button type="button" (click)="elegirCanal('sms')" [disabled]="enviando()"
+                      class="flex min-h-16 w-full items-center gap-4 rounded-2xl border border-border bg-surface px-4 py-3 text-left transition-colors hover:border-primary hover:bg-muted disabled:opacity-70">
+                      <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"><app-icon name="MessageSquare" class="h-6 w-6" /></span>
+                      <span class="min-w-0">
+                        <span class="block text-base font-semibold text-ink">Mensaje de texto (SMS)</span>
+                        <span class="block truncate text-base text-muted-foreground">{{ tel }}</span>
+                      </span>
+                    </button>
+                  }
+                </div>
+                @if (error()) { <p role="alert" class="mt-4 text-base text-destructive">{{ error() }}</p> }
+              </div>
             } @else {
               <form (submit)="validar($event)">
                 <h1 class="text-2xl font-extrabold text-ink">{{ txt().tituloCodigo }}</h1>
                 <div class="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
-                  <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-celeste/15 text-celeste"><app-icon name="Mail" class="h-5 w-5" /></span>
-                  <p class="min-w-0 text-base text-muted-foreground">Enviamos un código de 6 dígitos a tu correo <strong class="text-ink">{{ correoOfuscado() }}</strong>.</p>
+                  <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-celeste/15 text-celeste"><app-icon [name]="canal() === 'sms' ? 'MessageSquare' : 'Mail'" class="h-5 w-5" /></span>
+                  <p class="min-w-0 text-base text-muted-foreground">Enviamos un código de 6 dígitos a tu {{ canal() === 'sms' ? 'celular' : 'correo' }} <strong class="text-ink">{{ destino() }}</strong>.</p>
                 </div>
 
                 <div class="mt-6 flex justify-between gap-2">
@@ -662,13 +697,16 @@ export class ContactoPage {
                   }
                 </div>
 
-                @if (error()) { <p class="mt-3 text-base text-destructive">{{ error() }}</p> }
+                @if (aviso()) { <p role="status" class="mt-3 text-base text-ink">{{ aviso() }}</p> }
+                @if (error()) { <p role="alert" class="mt-3 text-base text-destructive">{{ error() }}</p> }
 
                 <button type="submit" [disabled]="cargando()"
                   class="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-70">
                   @if (cargando()) { <app-icon name="Loader2" class="h-5 w-5 animate-spin" /> Validando… } @else { <app-icon name="Check" class="h-5 w-5" /> Validar e ingresar }
                 </button>
-                <button type="button" class="mt-3 flex min-h-11 w-full items-center justify-center text-base font-semibold text-primary">Reenviar código</button>
+                <button type="button" (click)="reenviar()" [disabled]="espera() > 0 || enviando()" class="mt-3 flex min-h-11 w-full items-center justify-center text-base font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">
+                  {{ enviando() ? 'Enviando…' : espera() > 0 ? 'Reenviar código en ' + espera() + ' s' : 'Reenviar código' }}
+                </button>
               </form>
             }
           </div>
@@ -713,44 +751,113 @@ export class LoginPage {
     if (ancla === "terminos" || ancla === "privacidad") this.legal.set(ancla);
   }
 
-  protected readonly paso = signal<1 | 2>(1);
+  /** 1 documento · 2 canal del código (solo si hay celular) · 3 código. */
+  protected readonly paso = signal<1 | 2 | 3>(1);
   protected readonly tipo = signal<string | null>(null);
   protected readonly tipoVal = computed(() => this.tipo() ?? this.tipos()[0]?.value ?? "");
   protected readonly tipoActual = computed(() => this.tipos().find((t) => t.value === this.tipoVal()));
   protected readonly documento = signal("");
   protected readonly codigo = signal(["", "", "", "", "", ""]);
   protected readonly error = signal("");
+  protected readonly aviso = signal("");
+  /** Validando el código. */
   protected readonly cargando = signal(false);
-  private readonly correo = signal("");
+  /** Consultando los canales o enviando el código. */
+  protected readonly enviando = signal(false);
+  protected readonly canales = signal<{ correo: string; telefono: string | null } | null>(null);
+  protected readonly canal = signal<"correo" | "sms">("correo");
+  /** Correo o celular ofuscado al que se envió el código. */
+  protected readonly destino = signal("");
+  /** Segundos que faltan para poder pedir otro código. */
+  protected readonly espera = signal(0);
+  private temporizador: ReturnType<typeof setInterval> | undefined;
   private readonly digitos = viewChildren<ElementRef<HTMLInputElement>>("digito");
-
-  protected readonly correoOfuscado = computed(() => {
-    const [nombre = "", dominio = ""] = (this.correo() || this.store.perfil()?.correo || "").split("@");
-    return `${nombre.slice(0, 2)}${"*".repeat(Math.max(3, nombre.length - 2))}@${dominio}`;
-  });
 
   constructor() {
     effect(() => {
-      if (this.paso() === 2) queueMicrotask(() => this.digitos()[0]?.nativeElement.focus());
+      if (this.paso() === 3) queueMicrotask(() => this.digitos()[0]?.nativeElement.focus());
     });
+    inject(DestroyRef).onDestroy(() => clearInterval(this.temporizador));
   }
 
+  protected cambiarTipo(valor: string) {
+    this.tipo.set(valor);
+    this.documento.set("");
+    this.error.set("");
+  }
+  /** Solo se escribe lo que cabe en el tipo elegido: dígitos en DNI y RUC, letras y números en los demás, sin pasar de su largo. */
   protected onDocumento(e: Event) {
-    const max = this.tipoActual()?.digitos ?? 12;
-    this.documento.set((e.target as HTMLInputElement).value.slice(0, max));
+    const input = e.target as HTMLInputElement;
+    const limpio = limpiarNumeroDocumento(this.tipoActual(), input.value);
+    input.value = limpio;
+    this.documento.set(limpio);
+    this.error.set("");
   }
 
   protected continuar(e: Event) {
     e.preventDefault();
-    this.api.post<{ correo: string }>("auth/otp", { tipo: this.tipoVal(), documento: this.documento() }).subscribe({
-      next: (r) => {
+    const mensaje = validarNumeroDocumento(this.tipoActual(), this.documento());
+    if (mensaje) {
+      this.error.set(mensaje);
+      return;
+    }
+    this.enviando.set(true);
+    this.api.post<{ correo: string; telefono: string | null }>("auth/canales", { tipo: this.tipoVal(), documento: this.documento() }).subscribe({
+      next: (c) => {
+        this.enviando.set(false);
         this.error.set("");
-        this.correo.set(r.correo);
-        this.codigo.set(["", "", "", "", "", ""]);
-        this.paso.set(2);
+        this.canales.set(c);
+        // Sin celular registrado no hay nada que elegir: el código va al correo.
+        if (c.telefono) this.paso.set(2);
+        else this.enviar("correo");
       },
-      error: (err) => this.error.set(err.error?.message ?? "No pudimos validar tu documento."),
+      error: (err) => {
+        this.enviando.set(false);
+        this.error.set(err.error?.message ?? "No pudimos validar tu documento.");
+      },
     });
+  }
+
+  protected elegirCanal(canal: "correo" | "sms") {
+    this.enviar(canal);
+  }
+  protected reenviar() {
+    if (this.espera() > 0 || this.enviando()) return;
+    this.enviar(this.canal(), true);
+  }
+  private enviar(canal: "correo" | "sms", reenvio = false) {
+    this.enviando.set(true);
+    this.error.set("");
+    this.api.post<{ destino: string }>("auth/otp", { tipo: this.tipoVal(), documento: this.documento(), canal }).subscribe({
+      next: (r) => {
+        this.enviando.set(false);
+        this.canal.set(canal);
+        this.destino.set(r.destino);
+        this.codigo.set(["", "", "", "", "", ""]);
+        this.aviso.set(reenvio ? "Te enviamos un código nuevo." : "");
+        this.paso.set(3);
+        this.iniciarEspera();
+        if (reenvio) queueMicrotask(() => this.digitos()[0]?.nativeElement.focus());
+      },
+      error: (err) => {
+        this.enviando.set(false);
+        this.error.set(err.error?.message ?? "No pudimos enviar el código. Inténtalo de nuevo.");
+      },
+    });
+  }
+  /** Hay que esperar 30 s antes de pedir otro código. */
+  private iniciarEspera() {
+    clearInterval(this.temporizador);
+    this.espera.set(30);
+    this.temporizador = setInterval(() => {
+      this.espera.update((n) => Math.max(0, n - 1));
+      if (this.espera() === 0) clearInterval(this.temporizador);
+    }, 1000);
+  }
+  protected atras() {
+    this.error.set("");
+    this.aviso.set("");
+    this.paso.update((p) => (p === 3 && this.canales()?.telefono ? 2 : 1));
   }
 
   protected onDigito(i: number, e: Event) {

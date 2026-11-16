@@ -27,6 +27,8 @@ import { asegurarVersiones, comprobarVersion, subirVersion } from "./versiones";
 import type { RolAdmin } from "../models";
 import { lunesDe } from "../juegos";
 import { esPasado, ocupaCupo } from "../eventos";
+import { ofuscarCorreo, ofuscarTelefono } from "../ofuscar-contacto";
+import { validarNumeroDocumento } from "../documento";
 import { ajustarCupos, codigoEvento } from "./eventos-api";
 import { tieneAcceso } from "./seed/niveles";
 
@@ -150,15 +152,29 @@ const registrarJuego = (premio: any, origen: "ruleta" | "codigo") => {
   if (premio.tipo !== "nada") enviarCorreo("premio-ganado", db.perfil.correo, { premio: premio.label, detalle: premio.detalle }, { destinatario: nombreParticipante(), participanteId: "p1", referencia: premio.label });
 };
 
+/** El número de documento se valida igual que en el formulario: según el tipo, con su largo. */
+function validarDocumentoDeIngreso(body: any) {
+  const tipos = ((db.config as any).tenant?.pais?.documentos ?? []) as { value: string; label: string; digitos: number; numerico: boolean }[];
+  const msg = validarNumeroDocumento(tipos.find((t) => t.value === body?.tipo), String(body?.documento ?? ""));
+  if (msg) throw new ApiError(422, msg);
+}
+
 const customerRoutes: Route[] = [
   /* ---------- Auth ---------- */
-  ["POST", "auth/otp", ({ body }) => {
-    if (!body?.documento || String(body.documento).trim().length < 6) {
-      throw new ApiError(422, "Ingresa un número de documento válido.");
-    }
+  /** Valida el documento (tipo y largo) y dice por qué canales se puede recibir el código, con los datos ya ofuscados. */
+  ["POST", "auth/canales", ({ body }) => {
+    validarDocumentoDeIngreso(body);
     exigirCuentaActiva();
-    enviarCorreo("otp", db.perfil.correo, { codigo: String(Math.floor(100000 + Math.random() * 900000)), minutos: 10 }, { destinatario: nombreParticipante(), participanteId: "p1" });
-    return { enviado: true, correo: db.perfil.correo };
+    return { correo: ofuscarCorreo(db.perfil.correo), telefono: db.perfil.telefono ? ofuscarTelefono(db.perfil.telefono) : null };
+  }],
+  /** Envía (o reenvía) el código de 6 dígitos por el canal elegido: correo o SMS. */
+  ["POST", "auth/otp", ({ body }) => {
+    validarDocumentoDeIngreso(body);
+    exigirCuentaActiva();
+    const canal = body?.canal === "sms" ? "sms" : "correo";
+    if (canal === "sms" && !db.perfil.telefono) throw new ApiError(422, "No tenemos un celular registrado para enviarte el código.");
+    if (canal === "correo") enviarCorreo("otp", db.perfil.correo, { codigo: String(Math.floor(100000 + Math.random() * 900000)), minutos: 10 }, { destinatario: nombreParticipante(), participanteId: "p1" });
+    return { enviado: true, canal, destino: canal === "sms" ? ofuscarTelefono(db.perfil.telefono) : ofuscarCorreo(db.perfil.correo) };
   }],
   /** Ingreso al panel: correo + contraseña de un usuario activo; devuelve su nombre y rol. */
   ["POST", "auth/admin/login", ({ body }) => {
