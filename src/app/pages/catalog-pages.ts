@@ -3,7 +3,9 @@ import { ApiService } from "../core/api.service";
 import { fechaLarga, listaTexto } from "../core/cupones";
 import { SesionService } from "../core/sesion.service";
 import { ofuscarDocumento } from "../core/documento";
-import { htmlCuponImpreso, imprimirDocumento } from "../core/cupon-impreso";
+import { htmlCuponImpreso, imprimirDocumento, type DatosCuponImpreso } from "../core/cupon-impreso";
+import { cuponComoPng } from "../core/cupon-imagen";
+import { descargarBlob } from "../core/pdf-base";
 import { ToastService } from "../shared/toast";
 import { tieneAcceso } from "../core/mock-api/seed/niveles";
 import { RouterLink } from "@angular/router";
@@ -284,8 +286,8 @@ export class BeneficiosPage {
                     </div>
                   </div>
                   <div class="mt-4 flex justify-center gap-3">
-                    <button type="button" aria-label="Descargar cupón" title="Descargar (guardar como PDF)" (click)="exportarCupon(true)" class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><app-icon name="Download" class="h-4 w-4" /></button>
-                    <button type="button" aria-label="Imprimir cupón" title="Imprimir" (click)="exportarCupon(false)" class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><app-icon name="Printer" class="h-4 w-4" /></button>
+                    <button type="button" aria-label="Descargar cupón" title="Descargar como imagen" (click)="descargarCupon()" class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><app-icon name="Download" class="h-4 w-4" /></button>
+                    <button type="button" aria-label="Imprimir cupón" title="Imprimir o guardar como PDF" (click)="imprimirCupon()" class="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><app-icon name="Printer" class="h-4 w-4" /></button>
                   </div>
                   <p class="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-ink">
                     <app-icon name="CheckCircle2" class="h-4 w-4 text-primary" /> Cupón generado. Este beneficio queda bloqueado hasta que expire.
@@ -463,13 +465,13 @@ export class BeneficioDetallePage {
   /** Tipo de documento de quien tiene la sesión (DNI, CE…). */
   protected readonly etiquetaDocumento = computed(() => this.store.perfil()?.tipoDocumento || this.brand.pais().documentos[0]?.label || "Documento");
   private readonly toast = inject(ToastService);
-  /** Imprime el cupón o lo guarda como PDF (desde el cuadro de impresión). Lleva el código, el QR y el documento ofuscado. */
-  protected exportarCupon(comoPdf: boolean) {
+  /** Datos del cupón para imprimirlo o guardarlo como imagen: código, QR, documento ofuscado, vencimiento y locales. */
+  private datosCupon(): DatosCuponImpreso | null {
     const b = this.beneficio();
     const c = this.cuponActivo();
-    if (!b || !c) return;
+    if (!b || !c) return null;
     const logo = this.brand.marca().logoOscuro;
-    imprimirDocumento(htmlCuponImpreso({
+    return {
       programa: this.brand.programa(),
       banco: this.brand.marca().nombre,
       logo: logo ? new URL(logo, document.baseURI).href : undefined,
@@ -484,8 +486,23 @@ export class BeneficioDetallePage {
       vigenciaHasta: b.hasta ? fechaLarga(b.hasta) : undefined,
       locales: this.locales().map((l) => ({ nombre: l.nombre, direccion: l.direccion, distrito: l.distrito, horario: l.horario })),
       terminos: b.terminos,
-    }));
-    if (comoPdf) this.toast.show("En el cuadro de impresión elige «Guardar como PDF».");
+    };
+  }
+  /** Imprimir: abre el cuadro de impresión (desde ahí también se puede guardar como PDF). */
+  protected imprimirCupon() {
+    const d = this.datosCupon();
+    if (d) imprimirDocumento(htmlCuponImpreso(d));
+  }
+  /** Descargar: guarda el cupón como imagen PNG. */
+  protected async descargarCupon() {
+    const d = this.datosCupon();
+    if (!d) return;
+    try {
+      descargarBlob(await cuponComoPng(d), `cupon-${d.codigo}.png`);
+      this.toast.show("Cupón descargado como imagen");
+    } catch {
+      this.toast.error("No pudimos generar la imagen. Prueba con Imprimir.");
+    }
   }
   /** Documento ofuscado (solo los 4 últimos): el del cupón o, si es un cupón anterior que no lo guardó, el del participante con sesión. */
   protected readonly documentoCupon = computed(() => this.cuponActivo()?.documento || ofuscarDocumento(this.store.perfil()?.codigoParticipante));
