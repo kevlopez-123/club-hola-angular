@@ -20,7 +20,7 @@ export class SesionService {
     this.tokens.set(token, "participante");
     this._logged.set(true);
   }
-  /** Cierra la sesión y recarga en /login para limpiar el estado en memoria (puntos, perfil, avisos). */
+  /** Cierra la sesión y recarga en la página principal para limpiar el estado en memoria (puntos, perfil, avisos). */
   salir() {
     // Avisa al servidor para que cierre la sesión de este dispositivo; si no responde, igual se sale.
     this.api.post("auth/logout").pipe(timeout(2000), catchError(() => of(null))).subscribe({ complete: () => this.terminar() });
@@ -32,7 +32,8 @@ export class SesionService {
   private terminar() {
     this.tokens.set(null, "participante");
     this._logged.set(false);
-    location.assign("/login");
+    // A la página principal pública (sin ingreso). Se usa la base del sitio y no «/»: en GitHub Pages la app vive en /club-hola-angular/.
+    location.assign(document.baseURI);
   }
   /** Lleva al ingreso recordando a dónde volver. */
   irAIngresar(volver?: string) {

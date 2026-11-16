@@ -45,7 +45,7 @@ export class SeoService {
   }
   private absoluta(url: string) {
     try {
-      return new URL(url, this.doc.location.origin).href;
+      return new URL(url, this.doc.baseURI).href;
     } catch {
       return url;
     }
@@ -56,7 +56,8 @@ export class SeoService {
     const privada = extra.noindex ?? esRutaPrivada(url);
     const descripcion = this.llenar(extra.descripcion ?? DESCRIPCIONES[ruta] ?? "{programa}: beneficios y canje de puntos de {banco}.");
     const imagen = extra.imagen ? this.absoluta(extra.imagen) : this.absoluta(this.brand.marca().logoClaro || "");
-    const canonica = this.doc.location.origin + (ruta === "/" ? "/" : ruta);
+    // La base del sitio puede tener un prefijo (en GitHub Pages, /club-hola-angular/): la URL canónica lo incluye.
+    const canonica = this.doc.baseURI.replace(/\/$/, "") + (ruta === "/" ? "/" : ruta);
 
     this.meta.updateTag({ name: "description", content: descripcion });
     this.meta.updateTag({ name: "robots", content: privada ? "noindex, nofollow" : "index, follow" });

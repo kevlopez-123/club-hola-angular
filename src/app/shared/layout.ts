@@ -279,7 +279,7 @@ export class SiteHeaderComponent {
   private readonly router = inject(Router);
   /** Al ingresar desde el encabezado se vuelve a la página actual. */
   protected readonly volver = () => (this.router.url && this.router.url !== "/" && !this.router.url.startsWith("/login") ? { volver: this.router.url } : {});
-  /** "Cerrar sesión" borra el token y recarga en /login (no es una navegación normal). */
+  /** "Cerrar sesión" borra el token y recarga en la página principal (no es una navegación normal). */
   protected salirSi(salir: boolean, e: Event) {
     if (!salir) return;
     e.preventDefault();

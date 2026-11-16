@@ -1,17 +1,9 @@
+# Solo los textos legales se pueden indexar; el resto del sitio (ingreso, cuenta, beneficios, panel) queda fuera.
+# Las rutas llevan el prefijo /club-hola-angular/ porque así se publica en GitHub Pages. Los buscadores solo leen este archivo
+# cuando está en la raíz del dominio; si el sitio pasa a su propio dominio, se quita el prefijo.
 User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /login
-Disallow: /carrito
-Disallow: /gracias
-Disallow: /favoritos
-Disallow: /mi-nivel
-Disallow: /notificaciones
-Disallow: /mis-beneficios
-Disallow: /mis-compras
-Disallow: /mis-puntos
-Disallow: /perfil
-Disallow: /contacto
-Disallow: /buscar
+Allow: /club-hola-angular/terminos
+Allow: /club-hola-angular/privacidad
+Disallow: /
 
-Sitemap: http://localhost:4200/sitemap.xml
+Sitemap: https://kevlopez-123.github.io/club-hola-angular/sitemap.xml
