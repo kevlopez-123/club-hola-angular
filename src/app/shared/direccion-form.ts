@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from "@angular/core";
 import { BrandService } from "../core/brand.service";
 import type { Direccion } from "../core/models";
-import { ciudadCoincidente, ciudadesDe, hayCiudadesFijas } from "../core/ubicaciones";
+import { ComboboxComponent } from "./combobox";
+import { ciudadCoincidente, ciudadesDe, hayCiudadesFijas, nivelesDe, sugerenciasDe } from "../core/ubicaciones";
 import { erroresDireccion } from "../core/validar-direccion";
 import { MapPickerComponent, type ZonaMapa } from "./map-picker";
 import { TelefonoInputComponent } from "./telefono-input";
@@ -15,7 +16,7 @@ export type DatosDireccion = Omit<Direccion, "id">;
  */
 @Component({
   selector: "app-direccion-form",
-  imports: [TelefonoInputComponent, MapPickerComponent],
+  imports: [TelefonoInputComponent, MapPickerComponent, ComboboxComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="'grid gap-4 ' + (compacto() ? 'text-sm' : 'text-base')">
@@ -43,22 +44,25 @@ export type DatosDireccion = Omit<Direccion, "id">;
         @if (ver('direccion'); as m) { <p role="alert" class="mt-1 text-sm font-semibold text-destructive">{{ m }}</p> }
       </div>
       <div>
-        <label class="font-semibold text-ink" [attr.for]="id('provincia')">Provincia</label>
+        <label class="font-semibold text-ink" [attr.for]="id('provincia')">{{ niveles().region }}</label>
         <select [id]="id('provincia')" [attr.aria-invalid]="!!ver('provincia')" (change)="elegirProvincia($any($event.target).value)" (blur)="tocar('provincia')" [class]="campo('provincia') + ' select-field'">
-          <option value="">Selecciona una provincia</option>
+          <option value="">Selecciona {{ niveles().elRegion === "el departamento" ? "un departamento" : "una provincia" }}</option>
           @for (p of provincias(); track p) { <option [value]="p" [selected]="p === valor().provincia">{{ p }}</option> }
         </select>
         @if (ver('provincia'); as m) { <p role="alert" class="mt-1 text-sm font-semibold text-destructive">{{ m }}</p> }
       </div>
       <div>
-        <label class="font-semibold text-ink" [attr.for]="id('distrito')">Ciudad</label>
+        <label class="font-semibold text-ink" [attr.for]="id('distrito')">{{ niveles().local }}</label>
         @if (ciudadFija()) {
           <select [id]="id('distrito')" [disabled]="!valor().provincia" [attr.aria-invalid]="!!ver('distrito')" (change)="cambiar({ distrito: $any($event.target).value })" (blur)="tocar('distrito')" [class]="campo('distrito') + ' select-field'">
-            <option value="" [selected]="!valor().distrito">{{ valor().provincia ? "Selecciona tu ciudad" : "Elige primero la provincia" }}</option>
+            <option value="" [selected]="!valor().distrito">{{ valor().provincia ? "Selecciona tu " + niveles().local.toLowerCase() : "Elige primero " + niveles().elRegion }}</option>
             @for (c of ciudades(); track c) { <option [value]="c" [selected]="c === valor().distrito">{{ c }}</option> }
           </select>
         } @else {
-          <input [id]="id('distrito')" maxlength="80" [value]="valor().distrito" (input)="cambiar({ distrito: $any($event.target).value })" (blur)="tocar('distrito')" [attr.aria-invalid]="!!ver('distrito')" [class]="campo('distrito')" />
+          <div class="mt-1">
+            <app-combobox [libre]="true" [opciones]="sugerencias()" [inputId]="id('distrito')" [maxlength]="80" [invalido]="!!ver('distrito')"
+              [claseInput]="campo('distrito').replace('mt-1 ', '') + ' pr-11'" [value]="valor().distrito" (valueChange)="cambiar({ distrito: $event })" (tocado)="tocar('distrito')" />
+          </div>
         }
         @if (ver('distrito'); as m) { <p role="alert" class="mt-1 text-sm font-semibold text-destructive">{{ m }}</p> }
       </div>
@@ -83,6 +87,9 @@ export class DireccionFormComponent {
   private readonly tocados = signal<ReadonlySet<string>>(new Set());
   protected readonly errores = computed(() => erroresDireccion(this.valor(), this.brand.pais(), this.brand.provinciasEnvio()));
   protected readonly ciudadFija = computed(() => hayCiudadesFijas(this.brand.pais().codigo));
+  protected readonly niveles = computed(() => nivelesDe(this.brand.pais().codigo));
+  /** Distritos que se sugieren al escribir (Lima y Callao); se puede escribir otro. */
+  protected readonly sugerencias = computed(() => sugerenciasDe(this.brand.pais().codigo, this.valor().provincia ?? ""));
   protected readonly ciudades = computed(() => ciudadesDe(this.brand.pais().codigo, this.valor().provincia ?? ""));
   /** Provincias con envío; si la guardada ya no lo tiene, se muestra para poder cambiarla. */
   protected readonly provincias = computed(() => {

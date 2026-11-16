@@ -154,7 +154,7 @@ export const camposIniciales: CampoForm[] = [
   { id: "f4", tipo: "telefono", etiqueta: "N.º de celular", obligatorio: true, mapeo: "celular", ancho: "media" },
   { id: "f5", tipo: "fecha", etiqueta: "Fecha de nacimiento", obligatorio: false, mapeo: "fecha_nacimiento", ancho: "media" },
   { id: "f6", tipo: "select", etiqueta: "Género", obligatorio: true, opciones: ["Femenino", "Masculino", "Prefiero no decir"], mapeo: "genero", ancho: "media" },
-  { id: "f7", tipo: "select", etiqueta: "Provincia", obligatorio: false, opciones: provincias, mapeo: "provincia", ancho: "media" },
-  { id: "f8", tipo: "select", etiqueta: "Ciudad", obligatorio: false, opciones: ["Quito", "Guayaquil", "Cuenca"], mapeo: "ciudad", ancho: "media" },
+  { id: "f7", tipo: "select", etiqueta: "Departamento", obligatorio: false, opciones: provincias, mapeo: "provincia", ancho: "media" },
+  { id: "f8", tipo: "texto", etiqueta: "Distrito", obligatorio: false, mapeo: "ciudad", ancho: "media" },
 
 ];

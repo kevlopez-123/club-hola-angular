@@ -33,6 +33,25 @@ const ECUADOR: Record<string, string[]> = {
 
 const POR_PAIS: Record<string, Record<string, string[]>> = { EC: ECUADOR };
 
+/**
+ * Perú: Departamento → Provincia → Distrito. El formulario pide solo departamento y distrito (el envío y los locales se ordenan así).
+ * Para Lima y Callao se sugieren los distritos; el resto del país (y Lima fuera de la capital) se escribe a mano.
+ */
+const DISTRITOS_PE: Record<string, string[]> = {
+  Lima: lista("Ancón|Ate|Barranco|Breña|Carabayllo|Cercado de Lima|Chaclacayo|Chorrillos|Cieneguilla|Comas|El Agustino|Independencia|Jesús María|La Molina|La Victoria|Lince|Los Olivos|Lurigancho-Chosica|Lurín|Magdalena del Mar|Miraflores|Pachacámac|Pucusana|Pueblo Libre|Puente Piedra|Punta Hermosa|Punta Negra|Rímac|San Bartolo|San Borja|San Isidro|San Juan de Lurigancho|San Juan de Miraflores|San Luis|San Martín de Porres|San Miguel|Santa Anita|Santa María del Mar|Santa Rosa|Santiago de Surco|Surquillo|Villa El Salvador|Villa María del Triunfo"),
+  Callao: lista("Bellavista|Callao|Carmen de la Legua Reynoso|La Perla|La Punta|Mi Perú|Ventanilla"),
+};
+const SUGERENCIAS: Record<string, Record<string, string[]>> = { PE: DISTRITOS_PE };
+
+/** Distritos que se sugieren (sin obligar) al escribir el distrito de un departamento; vacío si no hay lista. */
+export const sugerenciasDe = (pais: string, departamento: string): string[] => SUGERENCIAS[pais]?.[departamento] ?? [];
+
+/** Nombre de los dos niveles de ubicación según el país (en Perú son departamento y distrito). */
+export const nivelesDe = (pais: string) =>
+  pais === "PE"
+    ? { region: "Departamento", elRegion: "el departamento", local: "Distrito", elLocal: "el distrito", ElLocal: "El distrito" }
+    : { region: "Provincia", elRegion: "la provincia", local: "Ciudad", elLocal: "la ciudad", ElLocal: "La ciudad" };
+
 /** Ciudades de una provincia; vacío si no hay lista cargada para ese país o provincia. */
 export const ciudadesDe = (pais: string, provincia: string): string[] => POR_PAIS[pais]?.[provincia] ?? [];
 /** ¿Hay ciudades como lista fija para este país? (si no, la ciudad se escribe). */

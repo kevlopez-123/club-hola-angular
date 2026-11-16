@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from "@angular/core";
-import { leer } from "../core/leer";
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from "@angular/core";
+import { leerEstado } from "../core/leer";
+import { estadoRealCupon, vencimientoMs } from "../core/cupon-estado";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../core/api.service";
 import { CatalogService } from "../core/catalog.service";
@@ -13,6 +14,9 @@ import { descargarBlob } from "../core/pdf-base";
 import { ToastService } from "../shared/toast";
 import { ICONO_NOTIFICACION } from "../shared/notificaciones";
 import { IconComponent } from "../shared/icon.component";
+import { Countdown } from "../shared/countdown";
+import { EstadoErrorComponent } from "../shared/estado-error";
+import { EsqueletoListaComponent } from "../shared/esqueleto";
 import { LimpiarFiltrosComponent } from "../shared/limpiar-filtros";
 import { NivelResumenCardComponent } from "../shared/widgets";
 
@@ -55,7 +59,7 @@ import { NivelResumenCardComponent } from "../shared/widgets";
                 }
               </ul>
               @if (n.id === actual()?.id) {
-                <p class="mt-4 text-base font-bold" [style.color]="n.color">Tu nivel actual</p>
+                <p class="mt-4"><span class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground"><app-icon name="Check" class="h-3.5 w-3.5" /> Tu nivel actual</span></p>
               }
             </article>
           }
@@ -80,7 +84,7 @@ export class MiNivelPage {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-mis-beneficios-page",
-  imports: [RouterLink, IconComponent, LimpiarFiltrosComponent],
+  imports: [RouterLink, IconComponent, LimpiarFiltrosComponent, Countdown, EstadoErrorComponent, EsqueletoListaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-surface py-10 lg:py-14">
@@ -109,7 +113,13 @@ export class MiNivelPage {
           </div>
         </div>
 
-        <div class="mt-6 grid gap-4">
+        @if (error()) {
+          <app-estado-error titulo="No pudimos cargar tus beneficios" (reintentar)="reintentar()" />
+        } @else if (cargando()) {
+          <app-esqueleto-lista [cantidad]="3" etiqueta="Cargando tus beneficios" />
+        } @else {
+        <p class="mt-5 text-sm text-muted-foreground" aria-live="polite">{{ lista().length === todos().length ? todos().length : lista().length + " de " + todos().length }} {{ todos().length === 1 ? "cupón" : "cupones" }}</p>
+        <div class="mt-3 grid gap-4">
           @for (x of lista(); track x.mb.id) {
             <article class="grid gap-4 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] sm:grid-cols-[96px_minmax(0,1fr)_auto] sm:items-center">
               <img [src]="x.b.imagen" [alt]="x.b.marca" class="h-24 w-full rounded-xl object-cover sm:h-24 sm:w-24" loading="lazy" />
@@ -117,25 +127,36 @@ export class MiNivelPage {
                 <p class="text-sm uppercase tracking-wide text-muted-foreground">{{ x.b.marca }}</p>
                 <h2 class="text-base font-extrabold text-ink">{{ x.b.nombre }}</h2>
                 <p class="mt-1 text-base text-muted-foreground">Código {{ x.mb.codigo }} · Generado el {{ x.mb.fecha }}</p>
-                <p class="text-base text-muted-foreground">Vence: {{ x.mb.vence }}</p>
+                <p class="text-base text-muted-foreground">{{ x.estadoReal === "vencido" ? "Venció" : "Vence" }}: {{ x.mb.vence }}</p>
+                @if (x.estadoReal === "activo") {
+                  <p class="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><app-icon name="Clock" class="h-4 w-4 text-primary" /> Te quedan <app-countdown [expira]="x.expira" [compacto]="true" /></p>
+                }
               </div>
               <div class="flex flex-col items-start gap-3 sm:items-end">
-                <span [class]="'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold ' + estadoClase[x.mb.estado]">
+                <span [class]="'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold ' + estadoClase[x.estadoReal]">
                   <app-icon name="Ticket" class="h-4 w-4" />
-                  {{ estadoLabels[x.mb.estado] }}
+                  {{ estadoLabels[x.estadoReal] }}
                 </span>
                 <a [routerLink]="['/beneficios', x.b.id]"
-                  class="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-6 text-base font-bold text-primary-foreground lg:min-h-14">
+                  [class]="'inline-flex min-h-11 items-center gap-2 rounded-full px-6 text-base font-bold lg:min-h-14 ' + (x.estadoReal === 'activo' ? 'bg-primary text-primary-foreground' : 'border border-border text-ink hover:border-primary hover:text-primary')">
                   <app-icon name="QrCode" class="h-4 w-4" />
-                  Ver detalles
+                  {{ x.estadoReal === "activo" ? "Ver cupón" : "Ver detalles" }}
                 </a>
               </div>
             </article>
           }
           @if (lista().length === 0) {
-            <p class="rounded-2xl bg-card p-8 text-center text-base text-muted-foreground shadow-[var(--shadow-card)]">No hay beneficios con ese criterio.</p>
+            <div class="rounded-2xl bg-card p-8 text-center shadow-[var(--shadow-card)]">
+              @if (todos().length === 0) {
+                <p class="text-base text-muted-foreground">Aún no has generado cupones.</p>
+                <a routerLink="/beneficios" class="mt-4 inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-base font-bold text-primary-foreground">Explorar beneficios</a>
+              } @else {
+                <p class="text-base text-muted-foreground">No hay beneficios con ese criterio.</p>
+              }
+            </div>
           }
         </div>
+        }
       </div>
     </div>
   `,
@@ -143,7 +164,25 @@ export class MiNivelPage {
 export class MisBeneficiosPage {
   private readonly api = inject(ApiService);
   private readonly catalog = inject(CatalogService);
-  private readonly mis = leer(this.api.get<BeneficioUsuario[]>("me/beneficios"), [] as BeneficioUsuario[]);
+  private readonly carga = leerEstado(() => this.api.get<BeneficioUsuario[]>("me/beneficios"));
+  /** Falló la lectura de los cupones o la del catálogo (sin él no se pueden mostrar las marcas). */
+  protected readonly error = computed(() => this.carga.error() || (this.catalog.errorCarga() && !this.catalog.cargado()));
+  protected readonly cargando = computed(() => this.carga.datos() === undefined || !this.catalog.cargado());
+  protected reintentar() {
+    this.carga.recargar();
+    this.catalog.reintentar();
+  }
+
+  /** «Ahora» de la pantalla: se avanza justo cuando vence el próximo cupón activo, así el estado cambia solo sin recargar. */
+  private readonly ahora = signal(Date.now());
+  constructor() {
+    effect((limpiar) => {
+      const proximo = this.todos().filter((x) => x.estadoReal === "activo").reduce((m, x) => Math.min(m, x.expira), Infinity);
+      if (!Number.isFinite(proximo)) return;
+      const t = setTimeout(() => this.ahora.set(Date.now()), Math.min(Math.max(proximo - Date.now(), 0) + 250, 2 ** 31 - 1));
+      limpiar(() => clearTimeout(t));
+    });
+  }
 
   protected readonly estadoLabels = estadoLabels;
   protected readonly estadoClase: Record<EstadoBeneficio, string> = {
@@ -161,16 +200,21 @@ export class MisBeneficiosPage {
   protected readonly q = signal("");
   protected readonly estado = signal<EstadoBeneficio | "todos">("todos");
 
+  /** Cada cupón con su estado real a esta hora. Primero los que se pueden usar (el que vence antes, arriba) y luego el resto, del más reciente al más antiguo. */
+  protected readonly todos = computed(() => {
+    const ahora = this.ahora();
+    return (this.carga.datos() ?? [])
+      .map((mb) => ({ mb, b: this.catalog.beneficioPorId(mb.beneficioId), expira: vencimientoMs(mb.vence), estadoReal: estadoRealCupon(mb.estado, mb.vence, ahora) }))
+      .filter((x): x is typeof x & { b: NonNullable<typeof x.b> } => !!x.b)
+      .sort((p, q) => {
+        const pa = p.estadoReal === "activo";
+        return pa !== (q.estadoReal === "activo") ? (pa ? -1 : 1) : pa ? p.expira - q.expira : q.expira - p.expira;
+      });
+  });
   protected readonly lista = computed(() => {
     const t = this.q().trim().toLowerCase();
     const estado = this.estado();
-    return this.mis()
-      .map((mb) => ({ mb, b: this.catalog.beneficioPorId(mb.beneficioId) }))
-      .filter((x): x is { mb: BeneficioUsuario; b: NonNullable<typeof x.b> } => {
-        if (!x.b) return false;
-        if (estado !== "todos" && x.mb.estado !== estado) return false;
-        return !t || `${x.b.nombre} ${x.b.marca} ${x.mb.codigo}`.toLowerCase().includes(t);
-      });
+    return this.todos().filter((x) => (estado === "todos" || x.estadoReal === estado) && (!t || `${x.b.nombre} ${x.b.marca} ${x.mb.codigo}`.toLowerCase().includes(t)));
   });
 }
 
@@ -179,7 +223,7 @@ export class MisBeneficiosPage {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-mis-compras-page",
-  imports: [RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent, EstadoErrorComponent, EsqueletoListaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-surface py-10 lg:py-14">
@@ -194,6 +238,11 @@ export class MisBeneficiosPage {
           <app-icon name="Search" class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink" />
         </div>
 
+        @if (error()) {
+          <app-estado-error titulo="No pudimos cargar tus compras" (reintentar)="recargar()" />
+        } @else if (!compras()) {
+          <app-esqueleto-lista [cantidad]="3" etiqueta="Cargando tus compras" />
+        } @else {
         <div class="mt-6 grid gap-4">
           @for (c of lista(); track c.codigo) {
             <article class="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
@@ -215,15 +264,19 @@ export class MisBeneficiosPage {
             </article>
           }
           @if (lista().length === 0) {
-            <p class="rounded-2xl bg-card p-8 text-center text-base text-muted-foreground shadow-[var(--shadow-card)]">No encontramos compras con ese criterio.</p>
+            <p class="rounded-2xl bg-card p-8 text-center text-base text-muted-foreground shadow-[var(--shadow-card)]">{{ compras()?.length ? "No encontramos compras con ese criterio." : "Aún no tienes compras." }}</p>
           }
         </div>
+        }
       </div>
     </div>
   `,
 })
 export class MisComprasPage {
-  private readonly compras = leer(inject(ApiService).get<Compra[]>("me/compras"), [] as Compra[]);
+  private readonly carga = leerEstado(() => inject(ApiService).get<Compra[]>("me/compras"));
+  protected readonly compras = this.carga.datos;
+  protected readonly error = this.carga.error;
+  protected readonly recargar = this.carga.recargar;
   protected readonly usd = formatUSD;
   protected readonly q = signal("");
 
@@ -232,14 +285,15 @@ export class MisComprasPage {
   }
   protected readonly lista = computed(() => {
     const t = this.q().trim().toLowerCase();
-    if (!t) return this.compras();
-    return this.compras().filter((c) => c.codigo.toLowerCase().includes(t) || c.items.some((i) => `${i.nombre} ${i.marca}`.toLowerCase().includes(t)));
+    const todas = this.compras() ?? [];
+    if (!t) return todas;
+    return todas.filter((c) => c.codigo.toLowerCase().includes(t) || c.items.some((i) => `${i.nombre} ${i.marca}`.toLowerCase().includes(t)));
   });
 }
 
 @Component({
   selector: "app-detalle-compra-page",
-  imports: [RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent, EstadoErrorComponent, EsqueletoListaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-surface py-10 lg:py-14">
@@ -276,8 +330,12 @@ export class MisComprasPage {
               <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Pagado con tarjeta</dt><dd class="font-semibold text-ink">{{ usd(compra.montoUSD) }}</dd></div>
             </dl>
           </div>
+        } @else if (error()) {
+          <app-estado-error titulo="No pudimos cargar la compra" (reintentar)="recargar()" />
         } @else if (compras()) {
           <p class="mt-6 rounded-2xl bg-card p-8 text-center text-base text-muted-foreground shadow-[var(--shadow-card)]">No encontramos esa compra.</p>
+        } @else {
+          <app-esqueleto-lista [cantidad]="1" etiqueta="Cargando la compra" />
         }
       </div>
     </div>
@@ -285,7 +343,10 @@ export class MisComprasPage {
 })
 export class DetalleCompraPage {
   readonly codigo = input.required<string>();
-  protected readonly compras = leer(inject(ApiService).get<Compra[] | undefined>("me/compras"), undefined);
+  private readonly carga = leerEstado(() => inject(ApiService).get<Compra[]>("me/compras"));
+  protected readonly compras = this.carga.datos;
+  protected readonly error = this.carga.error;
+  protected readonly recargar = this.carga.recargar;
   protected readonly compra = computed(() => this.compras()?.find((c) => c.codigo === this.codigo()));
   protected readonly usd = formatUSD;
 }

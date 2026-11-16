@@ -342,7 +342,7 @@ export class SiteHeaderComponent {
             <h3 class="text-sm font-bold uppercase tracking-wide">Contáctanos</h3>
             <p class="mt-4 flex gap-2 text-sm text-white/80"><app-icon name="Mail" class="mt-0.5 h-4 w-4 shrink-0" /><span class="min-w-0 break-words">{{ sitio()?.correoSoporte }}</span></p>
             <p class="mt-3 flex gap-2 text-sm text-white/80"><app-icon name="Phone" class="mt-0.5 h-4 w-4 shrink-0" /><span>{{ sitio()?.telefonoPie }}</span></p>
-            @if (sitio()?.ciudadesPie ?? "Quito · Guayaquil · Cuenca"; as ciudades) {
+            @if (sitio()?.ciudadesPie; as ciudades) {
               <p class="mt-3 flex gap-2 text-sm text-white/80"><app-icon name="MapPin" class="mt-0.5 h-4 w-4 shrink-0" /><span>{{ ciudades }}</span></p>
             }
           </div>

@@ -5,18 +5,24 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input
   selector: "app-countdown",
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex items-start justify-center gap-2">
-      @for (b of cajas(); track b.l) {
-        <div class="text-center">
-          <span class="grid h-11 w-11 place-items-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">{{ b.v }}</span>
-          <span class="mt-1 block text-[11px] text-muted-foreground">{{ b.l }}</span>
-        </div>
-      }
-    </div>
+    @if (compacto()) {
+      <span class="font-bold tabular-nums text-primary">{{ texto() }}</span>
+    } @else {
+      <div class="flex items-start justify-center gap-2">
+        @for (b of cajas(); track b.l) {
+          <div class="text-center">
+            <span class="grid h-11 w-11 place-items-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">{{ b.v }}</span>
+            <span class="mt-1 block text-[11px] text-muted-foreground">{{ b.l }}</span>
+          </div>
+        }
+      </div>
+    }
   `,
 })
 export class Countdown {
   readonly expira = input.required<number>();
+  /** Una sola línea («2 h 14 min 05 s») para tarjetas de lista. */
+  readonly compacto = input(false);
   private readonly ahora = signal(Date.now());
 
   constructor() {
@@ -32,5 +38,9 @@ export class Countdown {
       { v: pad(Math.floor((restante % 3600000) / 60000)), l: "Min" },
       { v: pad(Math.floor((restante % 60000) / 1000)), l: "Seg" },
     ];
+  });
+  protected readonly texto = computed(() => {
+    const [h, m, s] = this.cajas().map((c) => c.v);
+    return `${Number(h)} h ${m} min ${s} s`;
   });
 }

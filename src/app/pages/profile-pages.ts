@@ -8,7 +8,8 @@ import { StoreService } from "../core/store.service";
 import { SesionService } from "../core/sesion.service";
 import type { Direccion } from "../core/models";
 import { IconComponent } from "../shared/icon.component";
-import { ciudadesDe, hayCiudadesFijas } from "../core/ubicaciones";
+import { ComboboxComponent } from "../shared/combobox";
+import { ciudadesDe, hayCiudadesFijas, sugerenciasDe } from "../core/ubicaciones";
 import { limitesNacimiento } from "../core/validaciones";
 import { agruparCampos, claveExtra, erroresPerfil } from "../core/validar-perfil";
 import { DireccionFormComponent } from "../shared/direccion-form";
@@ -27,8 +28,9 @@ const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-perfil-page",
-  imports: [IconComponent, ModalComponent, DireccionFormComponent, TelefonoInputComponent, NgTemplateOutlet],
+  imports: [IconComponent, ModalComponent, DireccionFormComponent, TelefonoInputComponent, NgTemplateOutlet, ComboboxComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { "(window:beforeunload)": "antesDeCerrar($event)" },
   template: `
     <div class="bg-surface py-10 lg:py-14">
       <div class="page-container">
@@ -141,7 +143,8 @@ const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "
               @default {
                 <label class="text-base font-semibold text-ink">{{ etiqueta(c) }}
                   @if (c.mapeo === "ciudad") {
-                    <input maxlength="80" [class]="input + (ver(clave(c.id)) ? ' ring-2 ring-destructive/70' : '')" [attr.aria-invalid]="!!ver(clave(c.id))" [value]="valor(c.id) || ''" (input)="setExtra(c.id, $any($event.target).value)" (blur)="tocar(clave(c.id))" />
+                    <span class="mt-1 block"><app-combobox [libre]="true" [opciones]="sugerenciasDistrito()" [inputId]="'pf-' + c.id" [maxlength]="80" [invalido]="!!ver(clave(c.id))"
+                      [claseInput]="input.replace('mt-1 ', '') + ' pr-11' + (ver(clave(c.id)) ? ' ring-2 ring-destructive/70' : '')" [value]="textoDe(c.id)" (valueChange)="setExtra(c.id, $event)" (tocado)="tocar(clave(c.id))" /></span>
                   } @else if ($any(c).tipo === "telefono") {
                     <span class="mt-1 block"><app-telefono-input [inputId]="'pf-' + c.id" [valor]="textoDe(c.id)" [invalido]="!!ver(clave(c.id))" (valorChange)="setExtra(c.id, $event)" (tocado)="tocar(clave(c.id))" /></span>
                   } @else if (c.mapeo === "fecha_nacimiento") {
@@ -172,11 +175,23 @@ const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "
                 @if (errorForm()) {
                   <p role="alert" class="rounded-2xl bg-aviso-fondo px-5 py-4 text-base font-semibold text-aviso">{{ errorForm() }}</p>
                 }
-                @if (guardado()) {
-                  <p role="status" class="rounded-2xl bg-lima/20 px-5 py-4 text-base text-ink">Tus cambios se guardaron correctamente.</p>
-                }
 
-                <button type="submit" class="min-h-12 rounded-full bg-primary px-8 text-base font-bold uppercase tracking-wide text-primary-foreground lg:min-h-14">Guardar cambios</button>
+                <!-- Barra de guardado: queda a la vista al final de la pantalla aunque el formulario sea largo -->
+                <div class="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">
+                  <p role="status" aria-live="polite" class="min-w-0 px-2 text-base">
+                    @if (sucio()) {
+                      <span class="font-semibold text-ink">Tienes cambios sin guardar</span>
+                    } @else if (guardado()) {
+                      <span class="inline-flex items-center gap-2 text-ink"><app-icon name="Check" class="h-5 w-5 text-primary" /> Tus cambios se guardaron correctamente.</span>
+                    }
+                  </p>
+                  <div class="ml-auto flex flex-wrap gap-2">
+                    @if (sucio()) {
+                      <button type="button" (click)="descartar()" class="min-h-12 rounded-full border border-border px-6 text-base font-bold text-ink transition-colors hover:border-primary hover:text-primary lg:min-h-14">Descartar</button>
+                    }
+                    <button type="submit" class="min-h-12 rounded-full bg-primary px-8 text-base font-bold uppercase tracking-wide text-primary-foreground lg:min-h-14">Guardar cambios</button>
+                  </div>
+                </div>
               </form>
             }
           } @else {
@@ -301,9 +316,41 @@ export class PerfilPage {
   protected readonly grupos = computed(() => agruparCampos(this.camposExtra()));
   protected setTelefono(v: string) {
     this.edits.update((x) => ({ ...x, telefono: v }));
+    this.marcarSucio();
   }
   protected setExtra(id: string, v: string | boolean) {
     this.extraEditado.update((x) => ({ ...x, [id]: v }));
+    this.marcarSucio();
+  }
+
+  /** Hay cambios que todavía no se guardaron (la barra de guardado y el aviso al salir dependen de esto). */
+  readonly sucio = signal(false);
+  private avisoGuardado: ReturnType<typeof setTimeout> | undefined;
+  private marcarSucio() {
+    clearTimeout(this.avisoGuardado);
+    this.guardado.set(false);
+    this.sucio.set(true);
+  }
+  /** Vuelve a lo que está guardado. */
+  protected descartar() {
+    this.edits.set({});
+    this.extraEditado.set({});
+    this.tocados.set(new Set());
+    this.intentoGuardar.set(false);
+    this.errorForm.set("");
+    this.sucio.set(false);
+  }
+  protected antesDeCerrar(e: Event) {
+    if (this.sucio()) e.preventDefault();
+  }
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  /** Lleva la vista y el foco al primer campo con error. */
+  private irAlPrimerError() {
+    setTimeout(() => {
+      const el = this.host.nativeElement.querySelector<HTMLElement>('[aria-invalid="true"]');
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.focus({ preventScroll: true });
+    });
   }
 
   /* ---- Validación en vivo: el error aparece al salir del campo o al intentar guardar ---- */
@@ -335,6 +382,8 @@ export class PerfilPage {
   private readonly campoCiudad = computed(() => this.camposExtra().find((c) => c.mapeo === "ciudad"));
   protected readonly provinciaElegida = computed(() => String(this.extraActual()[this.campoProvincia()?.id ?? ""] ?? ""));
   protected readonly ciudadesElegidas = computed(() => ciudadesDe(this.brand.pais().codigo, this.provinciaElegida()));
+  /** Distritos que se sugieren al escribir (Lima y Callao); se puede escribir otro. */
+  protected readonly sugerenciasDistrito = computed(() => sugerenciasDe(this.brand.pais().codigo, this.provinciaElegida()));
   /** Al cambiar la provincia, la ciudad elegida deja de valer y se borra. */
   protected cambiarSelect(c: { id: string; mapeo?: string | undefined }, v: string) {
     const antes = String(this.valor(c.id) ?? "");
@@ -360,6 +409,7 @@ export class PerfilPage {
 
   protected setDato(k: "nombres" | "apellidos" | "telefono", e: Event) {
     this.edits.update((x) => ({ ...x, [k]: (e.target as HTMLInputElement).value }));
+    this.marcarSucio();
   }
   protected guardarDatos(e: Event) {
     e.preventDefault();
@@ -368,6 +418,7 @@ export class PerfilPage {
     if (n) {
       this.guardado.set(false);
       this.errorForm.set(`Revisa ${n === 1 ? "el campo marcado" : `los ${n} campos marcados`} antes de guardar.`);
+      this.irAlPrimerError();
       return;
     }
     this.errorForm.set("");
@@ -377,7 +428,10 @@ export class PerfilPage {
     this.api.put("me/perfil", { ...datos, extra }).subscribe({
       next: () => {
         this.store.perfil.update((p) => (p ? { ...p, ...datos, extra } : p));
+        this.sucio.set(false);
         this.guardado.set(true);
+        clearTimeout(this.avisoGuardado);
+        this.avisoGuardado = setTimeout(() => this.guardado.set(false), 5000);
       },
       error: (er) => { this.guardado.set(false); this.errorForm.set(er?.error?.message ?? "No pudimos guardar tus datos. Inténtalo de nuevo."); },
     });

@@ -1,4 +1,4 @@
-import { ciudadesDe, hayCiudadesFijas } from "./ubicaciones";
+import { ciudadesDe, hayCiudadesFijas, nivelesDe } from "./ubicaciones";
 import { validarNombrePersona, validarOpcion, validarTelefono, validarTexto } from "./validaciones";
 
 export type DireccionValidable = { alias: string; recibe: string; telefono: string; direccion: string; distrito: string; provincia?: string | undefined };
@@ -15,10 +15,11 @@ export function erroresDireccion(d: DireccionValidable, pais: PaisDireccion, pro
   poner("recibe", validarNombrePersona(d.recibe, "Quién recibe"));
   poner("telefono", validarTelefono(d.telefono, pais.telefonoDigitos, pais.telefonoPrefijo, true));
   poner("direccion", validarTexto(d.direccion, "La dirección", 150, true, 5));
-  poner("provincia", validarOpcion(d.provincia ?? "", "la provincia de entrega", provinciasConEnvio, true));
+  const n = nivelesDe(pais.codigo);
+  poner("provincia", validarOpcion(d.provincia ?? "", `${n.elRegion} de entrega`, provinciasConEnvio, true));
   if (hayCiudadesFijas(pais.codigo)) {
-    if (!d.provincia) e["distrito"] = "Elige primero la provincia.";
-    else poner("distrito", validarOpcion(d.distrito, "la ciudad", ciudadesDe(pais.codigo, d.provincia), true));
-  } else poner("distrito", validarTexto(d.distrito, "La ciudad", 80, true, 2));
+    if (!d.provincia) e["distrito"] = `Elige primero ${n.elRegion}.`;
+    else poner("distrito", validarOpcion(d.distrito, n.elLocal, ciudadesDe(pais.codigo, d.provincia), true));
+  } else poner("distrito", validarTexto(d.distrito, n.ElLocal, 80, true, 2));
   return e;
 }
