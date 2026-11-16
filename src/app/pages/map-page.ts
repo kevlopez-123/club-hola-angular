@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { ActivatedRoute, RouterLink } from "@angular/router";
 import type * as Leaflet from "leaflet";
 import { BrandService } from "../core/brand.service";
 import { CatalogService } from "../core/catalog.service";
@@ -7,6 +7,7 @@ import { distanciaKm, textoDistancia } from "../core/geo";
 import { aplicaEnLocal } from "../core/locales-beneficio";
 import type { Local } from "../core/mock-api/seed/locales";
 import { IconComponent } from "../shared/icon.component";
+import { ComboboxComponent } from "../shared/combobox";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -24,7 +25,7 @@ function cargarCssDeLeaflet() {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-mapa-page",
-  imports: [IconComponent],
+  imports: [IconComponent, ComboboxComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="bg-surface py-10">
@@ -44,11 +45,7 @@ function cargarCssDeLeaflet() {
         <div class="mt-5 grid gap-3 sm:grid-cols-3">
           <input type="search" aria-label="Buscar establecimiento" placeholder="Busca por marca, local o distrito" [value]="q()" (input)="q.set($any($event.target).value)"
             class="h-11 rounded-full border border-border bg-card px-4 text-sm text-ink outline-none focus:ring-2 focus:ring-primary/50" />
-          <select aria-label="Marca" (change)="marca.set($any($event.target).value)"
-            class="select-field h-11 rounded-full border border-border bg-card px-4 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-primary/50">
-            <option value="" [selected]="!marca()">Todas las marcas</option>
-            @for (m of marcas(); track m) { <option [value]="m" [selected]="m === marca()">{{ m }}</option> }
-          </select>
+          <app-combobox etiqueta="Marca" todas="Todas las marcas" [opciones]="marcas()" [(value)]="marca" />
           <select aria-label="Categoría" (change)="categoria.set($any($event.target).value)"
             class="select-field h-11 rounded-full border border-border bg-card px-4 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-primary/50">
             <option value="" [selected]="!categoria()">Todas las categorías</option>
@@ -62,8 +59,8 @@ function cargarCssDeLeaflet() {
           <div #mapa role="application" aria-label="Mapa de establecimientos aliados" class="relative z-0 h-[26rem] w-full overflow-hidden rounded-2xl border border-border bg-muted lg:h-[34rem]"></div>
           <ul class="max-h-[34rem] space-y-3 overflow-y-auto pr-1" aria-label="Lista de establecimientos">
             @for (l of lista(); track l.id) {
-              <li>
-                <button type="button" (click)="ver(l)" [class]="'w-full rounded-2xl border bg-card p-4 text-left transition-colors hover:border-primary ' + (seleccionado() === l.id ? 'border-primary ring-2 ring-primary/30' : 'border-border')">
+              <li [class]="'rounded-2xl border bg-card transition-colors hover:border-primary ' + (seleccionado() === l.id ? 'border-primary ring-2 ring-primary/30' : 'border-border')">
+                <button type="button" (click)="ver(l)" [attr.aria-expanded]="seleccionado() === l.id" class="w-full rounded-2xl p-4 text-left">
                   <span class="flex items-start justify-between gap-2">
                     <span class="font-bold text-ink">{{ l.nombre }}</span>
                     @if (l.distancia !== null) { <span class="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-primary">{{ texto(l.distancia) }}</span> }
@@ -71,7 +68,22 @@ function cargarCssDeLeaflet() {
                   <span class="mt-2 flex items-start gap-2 text-sm text-ink"><app-icon name="MapPin" class="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{{ l.direccion }}, {{ l.distrito }}</span></span>
                   @if (l.horario) { <span class="mt-1 flex items-start gap-2 text-xs text-muted-foreground"><app-icon name="Clock" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" /><span>{{ l.horario }}</span></span> }
                   @if (l.telefono) { <span class="mt-1 flex items-start gap-2 text-xs text-muted-foreground"><app-icon name="Phone" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" /><span>{{ l.telefono }}</span></span> }
+                  <span class="mt-2 flex items-center gap-2 text-xs font-bold text-primary"><app-icon name="Gift" class="h-3.5 w-3.5 shrink-0" />{{ cuantos(l) }} {{ cuantos(l) === 1 ? 'beneficio disponible' : 'beneficios disponibles' }}<app-icon name="ChevronDown" [class]="'ml-auto h-4 w-4 transition-transform ' + (seleccionado() === l.id ? 'rotate-180' : '')" /></span>
                 </button>
+                @if (seleccionado() === l.id) {
+                  <ul class="space-y-2 border-t border-border px-4 pb-4 pt-3" [attr.aria-label]="'Beneficios disponibles en ' + l.nombre">
+                    @for (b of beneficiosDe(l); track b.id) {
+                      <li>
+                        <a [href]="'beneficios/' + b.id" [routerLink]="['/beneficios', b.id]" class="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 px-3 py-2 text-sm hover:bg-secondary">
+                          <span class="min-w-0 font-semibold text-ink">{{ b.nombre }}</span>
+                          @if (b.descuento) { <span class="shrink-0 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">{{ b.descuento }}</span> }
+                        </a>
+                      </li>
+                    } @empty {
+                      <li class="text-sm text-muted-foreground">Por ahora no hay beneficios disponibles en este local.</li>
+                    }
+                  </ul>
+                }
               </li>
             } @empty {
               <li class="rounded-2xl border border-border p-6 text-center text-sm text-muted-foreground">No encontramos establecimientos con esos filtros.</li>
@@ -96,6 +108,14 @@ export class MapaPage implements OnDestroy {
   protected readonly buscandoPos = signal(false);
   protected readonly avisoPos = signal("");
   protected readonly texto = textoDistancia;
+
+  /** Beneficios vigentes que se canjean en ese local (los elegidos en cada beneficio o, si no eligió, todos los de la marca). */
+  protected beneficiosDe(l: Local) {
+    return this.catalog.beneficios().filter((b) => aplicaEnLocal(b, l, this.catalog.locales()));
+  }
+  protected cuantos(l: Local) {
+    return this.beneficiosDe(l).length;
+  }
 
   /** Categorías de los beneficios de cada marca (para filtrar el mapa por rubro). */
   private readonly categoriasPorMarca = computed(() => {
@@ -148,7 +168,7 @@ export class MapaPage implements OnDestroy {
   }
 
   private popup(l: Local): string {
-    const beneficios = this.catalog.beneficios().filter((b) => aplicaEnLocal(b, l, this.catalog.locales())).slice(0, 3);
+    const beneficios = this.catalog.beneficios().filter((b) => aplicaEnLocal(b, l, this.catalog.locales())).slice(0, 5);
     const lista = beneficios.map((b) => `<li><a href="/beneficios/${encodeURIComponent(b.id)}" style="color:var(--primary);font-weight:700">${esc(b.nombre)}</a></li>`).join("");
     return `<div style="min-width:180px"><strong>${esc(l.nombre)}</strong><br>${esc(l.direccion)}, ${esc(l.distrito)}${l.horario ? `<br><small>${esc(l.horario)}</small>` : ""}${lista ? `<ul style="margin:.5rem 0 0;padding-left:1rem">${lista}</ul>` : ""}</div>`;
   }

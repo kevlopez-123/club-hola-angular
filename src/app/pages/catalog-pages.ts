@@ -73,7 +73,7 @@ export class HomePage {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-beneficios-page",
-  imports: [EstadoErrorComponent, HeroSliderComponent, CategoryStripComponent, BenefitCardComponent, OrdenSelectComponent, SearchFilterBarComponent, SectionTitleComponent],
+  imports: [EstadoErrorComponent, HeroSliderComponent, CategoryStripComponent, BenefitCardComponent, OrdenSelectComponent, SearchFilterBarComponent, SectionTitleComponent, RouterLink, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-hero-slider [items]="catalog.bannersBeneficios()" />
@@ -96,9 +96,15 @@ export class HomePage {
 
     <section class="bg-surface py-10">
       <div class="page-container">
-        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <h1 class="min-w-0 text-xl font-extrabold text-ink sm:text-2xl">Disfruta de grandiosos beneficios</h1>
-          <app-orden-select [(value)]="orden" />
+          <div class="flex items-center justify-between gap-2 sm:justify-end">
+            <a routerLink="/mapa" [queryParams]="marca() ? { marca: marca() } : {}" aria-label="Buscar en el mapa de establecimientos"
+              class="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-4 text-sm font-bold text-primary transition-colors hover:bg-secondary">
+              <app-icon name="MapPin" class="h-4 w-4" /> <span class="hidden sm:inline">Buscar en el mapa</span><span class="sm:hidden">Mapa</span>
+            </a>
+            <app-orden-select [(value)]="orden" />
+          </div>
         </div>
         <div class="mt-5">
           <app-search-filter-bar [(query)]="query" [(marca)]="marca" [marcas]="marcas()" [extrasActivos]="!!provincia()" (limpiado)="provincia.set('')">
