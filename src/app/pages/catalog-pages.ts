@@ -73,7 +73,7 @@ export class HomePage {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-beneficios-page",
-  imports: [EstadoErrorComponent, HeroSliderComponent, CategoryStripComponent, BenefitCardComponent, OrdenSelectComponent, SearchFilterBarComponent, SectionTitleComponent],
+  imports: [EstadoErrorComponent, HeroSliderComponent, CategoryStripComponent, BenefitCardComponent, OrdenSelectComponent, SearchFilterBarComponent, SectionTitleComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-hero-slider [items]="catalog.bannersBeneficios()" />
@@ -98,10 +98,12 @@ export class HomePage {
       <div class="page-container">
         <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:justify-between">
           <h1 class="min-w-0 text-xl font-extrabold text-ink sm:text-2xl">Disfruta de grandiosos beneficios</h1>
-          <app-orden-select [(value)]="orden" />
+          <!-- En celular el orden va dentro de Filtros (abajo); desde tablet se queda junto al título. -->
+          <app-orden-select class="hidden sm:block" [(value)]="orden" />
         </div>
         <div class="mt-5">
-          <app-search-filter-bar [conMapa]="true" [(query)]="query" [(marca)]="marca" [marcas]="marcas()" [extrasActivos]="!!provincia()" (limpiado)="provincia.set('')">
+          <app-search-filter-bar [conMapa]="true" [mostrarLimpiar]="false" [(query)]="query" [(marca)]="marca" [marcas]="marcas()" [extrasActivos]="!!provincia()" (limpiado)="provincia.set('')">
+            <div class="sm:hidden"><app-orden-select [(value)]="orden" /></div>
             @if (provincias().length > 0) {
               <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Provincia
@@ -117,7 +119,14 @@ export class HomePage {
           </app-search-filter-bar>
         </div>
 
-        <p class="mt-5 text-sm text-muted-foreground">{{ lista().length }} beneficios disponibles</p>
+        <div class="mt-5 flex h-7 items-center justify-between gap-3">
+          <p class="text-sm text-muted-foreground">{{ lista().length }} beneficios disponibles</p>
+          @if (hayFiltros()) {
+            <button type="button" data-compact (click)="limpiarFiltros()" class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-sm font-semibold text-primary hover:bg-primary/10">
+              <app-icon name="X" class="h-3.5 w-3.5" /> Limpiar filtros
+            </button>
+          }
+        </div>
 
         <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           @if (!catalog.cargado() && !catalog.errorCarga()) { <p role="status" class="sr-only">Cargando…</p> @for (n of [1, 2, 3, 4, 5, 6, 7, 8]; track n) { <div class="skeleton h-[26rem] rounded-2xl" aria-hidden="true"></div> } }
@@ -140,6 +149,12 @@ export class BeneficiosPage {
   protected readonly marca = signal("");
   /** Provincia elegida en los filtros: muestra lo que está disponible allí (más lo de todo el país). */
   protected readonly provincia = signal("");
+  protected readonly hayFiltros = computed(() => !!this.query() || !!this.marca() || !!this.provincia());
+  protected limpiarFiltros() {
+    this.query.set("");
+    this.marca.set("");
+    this.provincia.set("");
+  }
 
   protected readonly marcas = computed(() => [...new Set(this.catalog.beneficios().map((b) => b.marca))].sort());
   /** Provincias que aparecen en alguno de los beneficios (los que no indican provincia valen para todo el país). */
