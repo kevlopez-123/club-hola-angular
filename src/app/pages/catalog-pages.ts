@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { ApiService } from "../core/api.service";
 import { fechaLarga, listaTexto } from "../core/cupones";
 import { SesionService } from "../core/sesion.service";
+import { ofuscarDocumento } from "../core/documento";
 import { tieneAcceso } from "../core/mock-api/seed/niveles";
 import { RouterLink } from "@angular/router";
 import { CatalogService } from "../core/catalog.service";
@@ -274,8 +275,8 @@ export class BeneficiosPage {
                         }
                       }
                       <p class="mt-2 text-lg font-extrabold text-ink">{{ cupon.codigo }}</p>
-                      @if (cupon.documento) {
-                        <p class="mt-1 text-sm font-semibold text-ink" data-testid="cupon-documento">{{ etiquetaDocumento() }} {{ cupon.documento }}</p>
+                      @if (documentoCupon(); as doc) {
+                        <p class="mt-1 text-base font-bold tracking-wide text-ink" data-testid="cupon-documento">{{ etiquetaDocumento() }} {{ doc }}</p>
                         <p class="mt-3 rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">Cupón personal: solo lo puede usar su titular. El comercio puede pedirte tu documento para comprobarlo.</p>
                       }
                     </div>
@@ -457,7 +458,10 @@ export class BeneficioDetallePage {
   protected readonly locales = computed(() => { const b = this.beneficio(); return b ? this.catalog.localesDeBeneficio(b) : []; });
   /** El QR se dibuja en el navegador: el código del cupón no sale a ningún servicio externo. */
   protected readonly qr = signal("");
-  protected readonly etiquetaDocumento = computed(() => this.brand.pais().documentos[0]?.label ?? "Documento");
+  /** Tipo de documento de quien tiene la sesión (DNI, CE…). */
+  protected readonly etiquetaDocumento = computed(() => this.store.perfil()?.tipoDocumento || this.brand.pais().documentos[0]?.label || "Documento");
+  /** Documento ofuscado (solo los 4 últimos): el del cupón o, si es un cupón anterior que no lo guardó, el del participante con sesión. */
+  protected readonly documentoCupon = computed(() => this.cuponActivo()?.documento || ofuscarDocumento(this.store.perfil()?.codigoParticipante));
   private readonly dibujarQr = effect(() => {
     const codigo = this.cuponActivo()?.codigo;
     if (!codigo) { this.qr.set(""); return; }
