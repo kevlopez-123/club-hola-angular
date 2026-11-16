@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRen
 import type * as Leaflet from "leaflet";
 import { cargarLeaflet } from "./leaflet";
 import { BrandService } from "../core/brand.service";
+import { distanciaKm } from "../core/geo";
 import type { Local } from "../core/mock-api/seed/locales";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -23,11 +24,22 @@ function cargarCssDeLeaflet() {
   selector: "app-mapa-locales",
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: "block" },
-  template: `<div #mapa role="application" [attr.aria-label]="'Mapa de ' + locales().length + (locales().length === 1 ? ' establecimiento' : ' establecimientos')" class="relative z-0 h-full min-h-64 w-full overflow-hidden rounded-2xl border border-border bg-muted"></div>`,
+  template: `
+    <div class="relative h-full min-h-64 w-full">
+      <div #mapa role="application" [attr.aria-label]="'Mapa de ' + locales().length + (locales().length === 1 ? ' establecimiento' : ' establecimientos')" class="relative z-0 h-full min-h-64 w-full overflow-hidden rounded-2xl border border-border bg-muted"></div>
+      @if (avisoMapa()) {
+        <div role="status" class="pointer-events-none absolute inset-0 z-[500] grid place-items-center rounded-2xl bg-ink/45 p-4 text-center text-sm font-semibold text-white">
+          {{ avisoMapa() }}
+        </div>
+      }
+    </div>
+  `,
 })
 export class MapaLocalesComponent implements OnDestroy {
   readonly locales = input.required<readonly Local[]>();
   readonly seleccionado = model<string | null>(null);
+  /** Posición de la persona (si la compartió): se marca en el mapa y se encuadra junto con el local más cercano. */
+  readonly miPos = input<{ lat: number; lng: number } | null>(null);
 
   private readonly brand = inject(BrandService);
   private readonly contenedor = viewChild.required<ElementRef<HTMLElement>>("mapa");
@@ -37,6 +49,14 @@ export class MapaLocalesComponent implements OnDestroy {
   private capa?: Leaflet.LayerGroup;
   private readonly marcadores = new Map<string, Leaflet.Marker>();
   private observador?: ResizeObserver;
+  private miMarcador?: Leaflet.CircleMarker;
+  /** En pantallas táctiles un dedo mueve la página y dos dedos mueven el mapa; con mouse, la rueda sola mueve la página y Ctrl (⌘ en Mac) + rueda hace zoom. */
+  private readonly tactil = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
+  protected readonly teclaZoom = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘" : "Ctrl";
+  /** Aviso breve sobre el mapa cuando se intenta moverlo o hacerle zoom de la forma que no corresponde. */
+  protected readonly avisoMapa = signal("");
+  private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
+  private quitarRueda?: () => void;
 
   constructor() {
     afterNextRender(() => void this.iniciar());
@@ -48,13 +68,21 @@ export class MapaLocalesComponent implements OnDestroy {
       const id = this.seleccionado();
       if (this.listo()) this.enfocar(id);
     });
+    // Va después de enfocar el local elegido: al compartir la ubicación el encuadre final incluye a la persona.
+    effect(() => {
+      const pos = this.miPos();
+      if (this.listo()) this.mostrarMiPos(pos);
+    });
   }
 
   private async iniciar() {
     cargarCssDeLeaflet();
     this.L = await cargarLeaflet();
     const c = this.brand.pais().centro;
-    this.mapa = this.L.map(this.contenedor().nativeElement, { scrollWheelZoom: false }).setView([c.lat, c.lng], c.zoom);
+    // En táctil se desactiva el arrastre de un dedo (así la página puede seguir su scroll); dos dedos mueven el mapa con el gesto de pellizco.
+    this.mapa = this.L.map(this.contenedor().nativeElement, { dragging: !this.tactil }).setView([c.lat, c.lng], c.zoom);
+    this.controlarRueda();
+    this.controlarToque();
     this.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
@@ -64,6 +92,64 @@ export class MapaLocalesComponent implements OnDestroy {
     this.observador = new ResizeObserver(() => this.mapa?.invalidateSize());
     this.observador.observe(this.contenedor().nativeElement);
     this.listo.set(true);
+  }
+
+  /**
+   * En una página larga la rueda no debe quedar atrapada por el mapa: sin Ctrl (⌘) el evento no llega a Leaflet, así la página sigue su
+   * scroll y se avisa cómo hacer zoom; con Ctrl (⌘) o con el gesto de pellizco de un trackpad, el mapa hace zoom.
+   */
+  private controlarRueda() {
+    const envoltorio = this.contenedor().nativeElement.parentElement;
+    if (!envoltorio) return;
+    const alRodar = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        this.avisoMapa.set("");
+        return;
+      }
+      e.stopPropagation();
+      this.mostrarAviso(`Usa ${this.teclaZoom} + rueda del mouse para hacer zoom en el mapa`);
+    };
+    envoltorio.addEventListener("wheel", alRodar, { capture: true, passive: true });
+    this.quitarRueda = () => envoltorio.removeEventListener("wheel", alRodar, true);
+  }
+
+  private mostrarMiPos(pos: { lat: number; lng: number } | null) {
+    const L = this.L;
+    if (!L || !this.mapa) return;
+    this.miMarcador?.remove();
+    this.miMarcador = undefined;
+    if (!pos) return;
+    this.miMarcador = L.circleMarker([pos.lat, pos.lng], { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).bindTooltip("Estás aquí").addTo(this.mapa);
+    const cercano = [...this.locales()].sort((a, b) => distanciaKm(pos, a) - distanciaKm(pos, b))[0];
+    if (!cercano) return;
+    this.mapa.fitBounds(L.latLngBounds([[pos.lat, pos.lng], [cercano.lat, cercano.lng]]), { padding: [50, 50], maxZoom: 15 });
+    // El encuadre mueve el mapa después de abrir el globo del local elegido: se reabre al terminar para que quede a la vista.
+    this.mapa.once("moveend", () => {
+      const id = this.seleccionado();
+      if (id) this.marcadores.get(id)?.openPopup();
+    });
+  }
+
+  private mostrarAviso(texto: string) {
+    this.avisoMapa.set(texto);
+    clearTimeout(this.temporizadorAviso);
+    this.temporizadorAviso = setTimeout(() => this.avisoMapa.set(""), 1500);
+  }
+
+  /** Táctil: si alguien intenta mover el mapa con un solo dedo, se le dice que use dos (con un dedo la página sigue su scroll). */
+  private controlarToque() {
+    const envoltorio = this.contenedor().nativeElement.parentElement;
+    if (!envoltorio || !this.tactil) return;
+    const alMover = (e: TouchEvent) => {
+      if (e.touches.length === 1) this.mostrarAviso("Usa dos dedos para mover el mapa");
+      else this.avisoMapa.set("");
+    };
+    envoltorio.addEventListener("touchmove", alMover, { passive: true });
+    const quitarRueda = this.quitarRueda;
+    this.quitarRueda = () => {
+      quitarRueda?.();
+      envoltorio.removeEventListener("touchmove", alMover);
+    };
   }
 
   private dibujar(filas: readonly Local[]) {
@@ -98,6 +184,8 @@ export class MapaLocalesComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.quitarRueda?.();
+    clearTimeout(this.temporizadorAviso);
     this.observador?.disconnect();
     this.mapa?.remove();
   }

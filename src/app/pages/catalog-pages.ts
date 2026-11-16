@@ -29,6 +29,7 @@ import {
   OrdenSelectComponent, SearchFilterBarComponent, type OrdenCatalogo,
 } from "../shared/widgets";
 import { Countdown } from "../shared/countdown";
+import { distanciaKm, textoDistancia } from "../core/geo";
 import { GuestGateDirective } from "../shared/guest-gate";
 import { MapaLocalesComponent } from "../shared/mapa-locales";
 
@@ -336,14 +337,24 @@ export class BeneficiosPage {
 
           @if (locales().length) {
             <section class="mt-6 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] lg:p-8" data-testid="donde-canjearlo">
-              <h2 class="text-lg font-bold text-ink">Dónde canjearlo</h2>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-lg font-bold text-ink">Dónde canjearlo</h2>
+                <button type="button" (click)="ubicarme()" [disabled]="buscandoPos()"
+                  class="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-4 text-sm font-bold text-primary transition-colors hover:bg-secondary disabled:opacity-60">
+                  <app-icon name="MapPin" class="h-4 w-4" /> {{ miPos() ? 'Actualizar mi ubicación' : 'Ver el más cercano' }}
+                </button>
+              </div>
+              <p class="mt-2 text-sm text-muted-foreground" [attr.role]="avisoPos() ? 'status' : null">{{ avisoPos() || 'Usamos tu ubicación solo en tu dispositivo, para ordenar los locales por cercanía. No la guardamos.' }}</p>
               <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
                 <ul class="order-2 max-h-80 space-y-3 overflow-y-auto pr-1 lg:order-1" aria-label="Locales donde se canjea">
-                  @for (l of locales(); track l.id) {
+                  @for (l of localesOrdenados(); track l.id; let i = $index) {
                     <li>
                       <button type="button" (click)="localSel.set(l.id)" [attr.aria-pressed]="localSel() === l.id"
                         [class]="'w-full rounded-2xl border p-4 text-left text-sm transition-colors hover:border-primary ' + (localSel() === l.id ? 'border-primary bg-secondary/50 ring-2 ring-primary/30' : 'border-border')">
-                        <span class="block font-bold text-ink">{{ l.nombre }}</span>
+                        <span class="flex items-start justify-between gap-2">
+                          <span class="font-bold text-ink">{{ l.nombre }}</span>
+                          @if (l.distancia !== null) { <span class="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-primary">{{ i === 0 ? 'Más cercano · ' : '' }}{{ distancia(l.distancia) }}</span> }
+                        </span>
                         <span class="mt-2 flex items-start gap-2 text-ink"><app-icon name="MapPin" class="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{{ l.direccion }}, {{ l.distrito }}</span></span>
                         @if (l.horario) { <span class="mt-1 flex items-start gap-2 text-muted-foreground"><app-icon name="Clock" class="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{{ l.horario }}</span></span> }
                         @if (l.telefono) { <span class="mt-1 flex items-start gap-2 text-muted-foreground"><app-icon name="Phone" class="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{{ l.telefono }}</span></span> }
@@ -351,7 +362,7 @@ export class BeneficiosPage {
                     </li>
                   }
                 </ul>
-                <app-mapa-locales [locales]="locales()" [(seleccionado)]="localSel" class="order-1 h-64 lg:order-2 lg:h-80" />
+                <app-mapa-locales [locales]="locales()" [miPos]="miPos()" [(seleccionado)]="localSel" class="order-1 h-64 lg:order-2 lg:h-80" />
               </div>
             </section>
           }
@@ -482,6 +493,33 @@ export class BeneficioDetallePage {
   protected readonly localSel = signal<string | null>(null);
   /** Locales de la marca donde se puede canjear (los que están publicados). */
   protected readonly locales = computed(() => { const b = this.beneficio(); return b ? this.catalog.localesDeBeneficio(b) : []; });
+
+  /* ---- Ver el local más cercano (la ubicación se usa solo en el dispositivo, solo si la persona lo pide) ---- */
+  protected readonly miPos = signal<{ lat: number; lng: number } | null>(null);
+  protected readonly buscandoPos = signal(false);
+  protected readonly avisoPos = signal("");
+  protected readonly distancia = textoDistancia;
+  /** Los locales con su distancia a la persona y, si compartió su ubicación, del más cercano al más lejano. */
+  protected readonly localesOrdenados = computed(() => {
+    const pos = this.miPos();
+    const filas = this.locales().map((l) => ({ ...l, distancia: pos ? distanciaKm(pos, l) : (null as number | null) }));
+    return pos ? filas.sort((a, b) => a.distancia! - b.distancia!) : filas;
+  });
+  protected ubicarme() {
+    if (!navigator.geolocation) { this.avisoPos.set("Tu navegador no permite obtener la ubicación."); return; }
+    this.buscandoPos.set(true);
+    this.avisoPos.set("Obteniendo tu ubicación…");
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        this.buscandoPos.set(false);
+        this.miPos.set({ lat: p.coords.latitude, lng: p.coords.longitude });
+        this.avisoPos.set("Ordenados del más cercano al más lejano.");
+        this.localSel.set(this.localesOrdenados()[0]?.id ?? null);
+      },
+      () => { this.buscandoPos.set(false); this.avisoPos.set("No pudimos acceder a tu ubicación. Puedes elegir el local en la lista o en el mapa."); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
   /** El QR se dibuja en el navegador: el código del cupón no sale a ningún servicio externo. */
   protected readonly qr = signal("");
   /** Tipo de documento de quien tiene la sesión (DNI, CE…). */

@@ -30,7 +30,7 @@ export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
         </button>
 
         <!-- Una sola fila. Celular y tablet: categorías más juntas (se asoma la siguiente) y con flechas. Escritorio: si caben todas, centradas y sin flechas. -->
-        <div #scroller [class]="'no-scrollbar flex flex-1 gap-1 overflow-x-auto py-2 lg:gap-2 ' + (desborda() ? '' : 'lg:justify-center')">
+        <div #scroller [class]="'no-scrollbar flex flex-1 gap-1 overflow-x-auto overflow-y-hidden py-2 lg:gap-2 ' + (desborda() ? '' : 'lg:justify-center')">
           @for (c of categorias(); track c.slug) {
             <button type="button" (click)="value.set(value() === c.slug ? null : c.slug); subcategoria.set(null)"
               [class]="'flex w-[92px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-0.5 py-2 text-center transition-colors lg:w-[110px] lg:gap-2 lg:px-3 lg:py-3 ' + (value() === c.slug ? 'bg-secondary text-primary' : 'text-ink hover:bg-secondary/60')">
@@ -49,7 +49,7 @@ export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
       </div>
 
       @if (subs().length > 0 && conSubcategorias()) {
-        <div class="no-scrollbar mt-1 flex gap-2 overflow-x-auto border-t border-border pt-3">
+        <div class="no-scrollbar mt-1 flex gap-2 overflow-x-auto overflow-y-hidden border-t border-border pt-3">
           <button type="button" (click)="subcategoria.set(null)"
             [class]="'shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition-colors ' + (!subcategoria() ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-ink hover:border-primary hover:text-primary')">
             Todo
@@ -357,7 +357,7 @@ export class PaymentGatewayModalComponent {
       <div class="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10">
         <app-section-title [text]="catalog.textosHome().beneficiosTitulo" [highlight]="catalog.textosHome().beneficiosResalte" />
 
-        <div #scroller class="no-scrollbar scroll-gutter mt-6 flex snap-x gap-5 overflow-x-auto">
+        <div #scroller class="no-scrollbar scroll-gutter -mb-8 mt-3 flex snap-x gap-5 overflow-x-auto overflow-y-hidden pb-8 pt-3">
           @for (b of ordenados(); track b.id) {
             <app-benefit-card [beneficio]="b" class="w-[240px] shrink-0 snap-start sm:w-[260px]" />
           }
@@ -411,7 +411,7 @@ export class BenefitsSectionComponent {
                   class="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105"><app-icon name="ChevronRight" class="h-4 w-4" /></button>
               </div>
             </div>
-            <div [attr.data-carril]="n.id" class="no-scrollbar scroll-gutter mt-4 flex snap-x gap-5 overflow-x-auto">
+            <div [attr.data-carril]="n.id" class="no-scrollbar scroll-gutter -mb-8 mt-1 flex snap-x gap-5 overflow-x-auto overflow-y-hidden pb-8 pt-3">
               @for (b of n.lista; track b.id) { <app-benefit-card [beneficio]="b" class="w-[240px] shrink-0 snap-start sm:w-[260px]" /> }
             </div>
           </section>
