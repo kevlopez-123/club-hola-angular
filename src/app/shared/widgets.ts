@@ -128,11 +128,11 @@ export class OrdenSelectComponent {
 
 @Component({
   selector: "app-search-filter-bar",
-  imports: [IconComponent, LimpiarFiltrosComponent],
+  imports: [IconComponent, LimpiarFiltrosComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="rounded-2xl bg-card p-3 shadow-[var(--shadow-card)] sm:p-4">
-      <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+      <div [class]="'grid items-center gap-3 ' + (conMapa() ? 'grid-cols-[minmax(0,1fr)_auto_auto]' : 'grid-cols-[minmax(0,1fr)_auto]')">
         <div class="relative min-w-0">
           <input [value]="query()" (input)="query.set($any($event.target).value)" type="search" placeholder="Buscar aquí" aria-label="Buscar"
             class="h-11 w-full rounded-full bg-muted pl-5 pr-12 text-sm text-ink outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50" />
@@ -143,6 +143,13 @@ export class OrdenSelectComponent {
           <app-icon name="SlidersHorizontal" class="h-4 w-4" />
           <span class="hidden sm:inline">Filtros</span>
         </button>
+        @if (conMapa()) {
+          <a routerLink="/mapa" [queryParams]="marca() ? { marca: marca() } : {}" aria-label="Buscar en el mapa de establecimientos"
+            class="flex h-11 shrink-0 items-center gap-2 rounded-full border border-primary px-4 text-sm font-bold text-primary transition-colors hover:bg-secondary">
+            <app-icon name="MapPin" class="h-4 w-4" />
+            <span class="hidden sm:inline">Mapa</span>
+          </a>
+        }
       </div>
 
       @if (!!query() || !!marca() || extrasActivos()) {
@@ -170,6 +177,8 @@ export class OrdenSelectComponent {
   `,
 })
 export class SearchFilterBarComponent {
+  /** Muestra el botón para buscar en el mapa de establecimientos (lleva la marca elegida). */
+  readonly conMapa = input(false);
   /** La pantalla indica si tiene otros filtros activos (subcategoría, "solo lo que me alcanza"…). */
   readonly extrasActivos = input(false);
   /** Se emite al limpiar para que la pantalla restablezca sus propios filtros. */
