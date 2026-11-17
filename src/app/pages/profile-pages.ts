@@ -23,6 +23,7 @@ import { FlagComponent } from "../shared/flag.component";
 import { LogoComponent, ModalComponent } from "../shared/ui";
 import { MarkdownComponent } from "../shared/markdown.component";
 import { legalAMarkdown } from "../core/markdown";
+import { alternar, type Intereses } from "../core/intereses";
 
 const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-base text-ink focus:ring-2 focus:ring-primary/50";
 const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "", direccion: "", distrito: "" });
@@ -254,6 +255,71 @@ const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "
                 }
               </app-modal>
             </section>
+          } @else if (tab() === "intereses") {
+            <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="int-titulo">
+              <h2 id="int-titulo" class="text-lg font-extrabold text-ink">Mis intereses</h2>
+              <p class="mt-2 text-base text-muted-foreground">Elige qué quieres recibir. Te avisaremos solo de las promociones destacadas de las categorías que marques.</p>
+
+              @if (errorIntereses() && !interesesListos()) {
+                <p role="alert" class="mt-5 rounded-2xl bg-aviso-fondo px-5 py-4 text-base font-semibold text-aviso">{{ errorIntereses() }}</p>
+              } @else {
+                <fieldset class="mt-6">
+                  <legend class="flex items-center gap-2 text-base font-extrabold text-ink"><app-icon name="Gift" class="h-5 w-5 text-primary" /> Beneficios</legend>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    @for (c of catalog.categoriasBeneficio(); track c.slug) {
+                      <button type="button" [attr.aria-pressed]="selBeneficios().includes(c.slug)" (click)="alternarInteres('beneficios', c.slug)" [class]="chipInteres(selBeneficios().includes(c.slug))">
+                        @if (selBeneficios().includes(c.slug)) { <app-icon name="Check" class="h-4 w-4" /> }
+                        {{ c.label }}
+                      </button>
+                    }
+                  </div>
+                </fieldset>
+
+                <fieldset class="mt-6">
+                  <legend class="flex items-center gap-2 text-base font-extrabold text-ink"><app-icon name="Ticket" class="h-5 w-5 text-primary" /> Eventos</legend>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    @for (c of catalog.categoriasEventoVisibles(); track c.slug) {
+                      <button type="button" [attr.aria-pressed]="selEventos().includes(c.slug)" (click)="alternarInteres('eventos', c.slug)" [class]="chipInteres(selEventos().includes(c.slug))">
+                        @if (selEventos().includes(c.slug)) { <app-icon name="Check" class="h-4 w-4" /> }
+                        {{ c.label }}
+                      </button>
+                    }
+                  </div>
+                </fieldset>
+                <p class="mt-4 text-sm text-muted-foreground" aria-live="polite">{{ totalIntereses() === 0 ? "Aún no elegiste ninguna categoría." : totalIntereses() + (totalIntereses() === 1 ? " categoría seleccionada" : " categorías seleccionadas") }}</p>
+
+                <h3 class="mt-8 text-base font-extrabold text-ink">¿Por dónde te avisamos?</h3>
+                <ul class="mt-2 divide-y divide-border border-y border-border">
+                  <li class="flex items-center justify-between gap-4 py-4">
+                    <div>
+                      <p id="can-push" class="text-base font-semibold text-ink">Notificaciones push</p>
+                      <p class="text-sm text-muted-foreground">Avisos en tu navegador o dispositivo.</p>
+                    </div>
+                    <button type="button" role="switch" data-compact [attr.aria-checked]="pushInteres()" aria-labelledby="can-push" (click)="cambiarCanal('push', !pushInteres())"
+                      [class]="'relative h-7 w-12 shrink-0 rounded-full transition-colors ' + (pushInteres() ? 'bg-primary' : 'bg-border')">
+                      <span [class]="'absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ' + (pushInteres() ? 'left-6' : 'left-1')"></span>
+                    </button>
+                  </li>
+                  <li class="flex items-center justify-between gap-4 py-4">
+                    <div>
+                      <p id="can-correo" class="text-base font-semibold text-ink">Correo electrónico</p>
+                      <p class="text-sm text-muted-foreground">Promociones y novedades en tu bandeja. Los avisos de tu cuenta los recibes siempre.</p>
+                    </div>
+                    <button type="button" role="switch" data-compact [attr.aria-checked]="correoInteres()" aria-labelledby="can-correo" (click)="cambiarCanal('correo', !correoInteres())"
+                      [class]="'relative h-7 w-12 shrink-0 rounded-full transition-colors ' + (correoInteres() ? 'bg-primary' : 'bg-border')">
+                      <span [class]="'absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ' + (correoInteres() ? 'left-6' : 'left-1')"></span>
+                    </button>
+                  </li>
+                </ul>
+
+                <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+                  <p class="text-sm text-muted-foreground" [attr.role]="errorIntereses() || interesesGuardados() ? 'status' : null">
+                    {{ errorIntereses() || (interesesGuardados() ? "Preferencias guardadas." : "Puedes cambiarlo cuando quieras.") }}
+                  </p>
+                  <button type="button" (click)="guardarIntereses()" class="min-h-12 rounded-full bg-primary px-8 text-base font-bold uppercase tracking-wide text-primary-foreground lg:min-h-14">Guardar preferencias</button>
+                </div>
+              }
+            </section>
           } @else {
             <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="seg-titulo">
               <h2 id="seg-titulo" class="text-lg font-extrabold text-ink">Dispositivos con sesión iniciada</h2>
@@ -308,10 +374,65 @@ export class PerfilPage {
   protected readonly tabs = [
     { value: "datos", label: "Datos personales" },
     { value: "direcciones", label: "Direcciones de envío" },
+    { value: "intereses", label: "Intereses" },
     { value: "seguridad", label: "Seguridad" },
   ] as const;
 
-  protected readonly tab = signal<"datos" | "direcciones" | "seguridad">("datos");
+  protected readonly tab = signal<"datos" | "direcciones" | "intereses" | "seguridad">("datos");
+
+  /* ---- Intereses: categorías de las que quiere recibir promociones (push y correo) ---- */
+  protected readonly selBeneficios = signal<string[]>([]);
+  protected readonly selEventos = signal<string[]>([]);
+  protected readonly pushInteres = signal(false);
+  /** Lo que se eligió para el correo sin guardar; null = lo que ya está guardado (consentimiento de novedades). */
+  private readonly correoElegido = signal<boolean | null>(null);
+  protected readonly correoInteres = computed(() => this.correoElegido() ?? this.recibeNovedades() ?? false);
+  protected readonly interesesListos = signal(false);
+  protected readonly errorIntereses = signal("");
+  protected readonly interesesGuardados = signal(false);
+  protected readonly totalIntereses = computed(() => this.selBeneficios().length + this.selEventos().length);
+  private readonly cargaIntereses = effect(() => {
+    if (this.tab() !== "intereses" || this.interesesListos()) return;
+    this.errorIntereses.set("");
+    this.api.get<Intereses>("me/intereses").subscribe({
+      next: (r) => {
+        this.selBeneficios.set(r.beneficios);
+        this.selEventos.set(r.eventos);
+        this.pushInteres.set(r.push);
+        this.interesesListos.set(true);
+      },
+      error: () => this.errorIntereses.set("No pudimos cargar tus intereses. Inténtalo de nuevo más tarde."),
+    });
+  });
+  protected alternarInteres(grupo: "beneficios" | "eventos", slug: string) {
+    this.interesesGuardados.set(false);
+    (grupo === "beneficios" ? this.selBeneficios : this.selEventos).update((l) => alternar(l, slug));
+  }
+  protected cambiarCanal(canal: "push" | "correo", valor: boolean) {
+    this.interesesGuardados.set(false);
+    if (canal === "push") this.pushInteres.set(valor);
+    else this.correoElegido.set(valor);
+  }
+  protected guardarIntereses() {
+    if (!this.interesesListos()) return;
+    this.errorIntereses.set("");
+    this.interesesGuardados.set(false);
+    this.api.put<Intereses>("me/intereses", { beneficios: this.selBeneficios(), eventos: this.selEventos(), push: this.pushInteres() }).subscribe({
+      next: (r) => {
+        this.selBeneficios.set(r.beneficios);
+        this.selEventos.set(r.eventos);
+        this.pushInteres.set(r.push);
+        const correo = this.correoElegido();
+        if (correo !== null && correo !== this.recibeNovedades()) this.cambiarNovedades(correo);
+        this.correoElegido.set(null);
+        this.interesesGuardados.set(true);
+      },
+      error: () => this.errorIntereses.set("No pudimos guardar tus preferencias. Inténtalo de nuevo."),
+    });
+  }
+  protected chipInteres(activo: boolean) {
+    return "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-base font-semibold transition-colors " + (activo ? "border-primary bg-secondary text-primary" : "border-border text-ink hover:border-primary hover:text-primary");
+  }
 
   /* ---- Seguridad: dispositivos con sesión iniciada ---- */
   private readonly sesionApp = inject(SesionService);
@@ -335,7 +456,7 @@ export class PerfilPage {
   }
   protected readonly perfil = this.store.perfil;
   protected readonly guardado = signal(false);
-  private readonly catalog = inject(CatalogService);
+  protected readonly catalog = inject(CatalogService);
   /** Campos extra que el admin configura en Admin → Formulario de datos. */
   protected readonly camposExtra = computed(() => this.catalog.config()?.formulario ?? []);
   private readonly extraEditado = signal<Record<string, string | boolean>>({});

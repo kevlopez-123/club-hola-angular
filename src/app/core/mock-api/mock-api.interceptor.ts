@@ -34,6 +34,7 @@ import { cerrarSesion, cerrarTodasLasSesiones, nuevaSesion, usarSesion } from ".
 import { validarNumeroDocumento } from "../documento";
 import { ajustarCupos, codigoEvento } from "./eventos-api";
 import { tieneAcceso } from "./seed/niveles";
+import { sanearIntereses } from "../intereses";
 
 /** Aplica la promoción vigente de un beneficio. */
 function conPromo<T extends { precio?: number | undefined }>(p: T): T {
@@ -420,6 +421,13 @@ const customerRoutes: Route[] = [
   /* ---------- Textos legales: qué debe aceptar la persona y su aceptación ---------- */
   ["GET", "me/legales", () => estadoParticipante("p1")],
   ["POST", "me/legales/aceptar", ({ body }) => aceptar("p1", body)],
+  ["GET", "me/intereses", () => db.intereses],
+  ["PUT", "me/intereses", ({ body }) => {
+    const beneficios = (db.catalogo.categoriasBeneficio as readonly { slug: string }[]).map((c) => c.slug);
+    const eventos = (db.admin.categoriasEvento as { slug: string; activo?: boolean }[]).filter((c) => c.activo !== false).map((c) => c.slug);
+    db.intereses = sanearIntereses(body, beneficios, eventos);
+    return db.intereses;
+  }],
   ["GET", "me/novedades", () => ({ recibe: recibeNovedades(fichaDemo()) })],
   ["PUT", "me/novedades", ({ body }) => cambiarNovedades(fichaDemo(), body?.recibe === true, "participante")],
   /** Enlace de baja de los correos: públicas, se identifican con el token del enlace. */
