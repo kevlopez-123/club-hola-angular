@@ -7,7 +7,7 @@ import { AnaliticaService } from "./analitica.service";
 import { SesionService } from "./sesion.service";
 import { Router } from "@angular/router";
 import { codigoAleatorio, fechaLarga } from "./format";
-import type { CartItem, Cupon, Direccion, Orden, Perfil, Usuario, Notificacion } from "./models";
+import type { CartItem, Cupon, Orden, Perfil, Usuario, Notificacion } from "./models";
 
 const LS_CART = "bs_carrito";
 const LS_FAV = "bs_favoritos";
@@ -53,7 +53,6 @@ export class StoreService {
   readonly items = signal<CartItem[]>(leer<CartItem[]>(LS_CART, []));
   readonly favoritos = signal<string[]>(leer<string[]>(LS_FAV, []));
   readonly cupones = signal<Record<string, Cupon>>({});
-  readonly direcciones = signal<Direccion[]>([]);
   readonly correos = signal<string[]>([]);
   readonly ultimaOrden = signal<Orden | null>(null);
   /** Avisos dentro del sitio (campanita), del más nuevo al más antiguo. */
@@ -68,7 +67,6 @@ export class StoreService {
     if (!this.sesion.logged()) return; // visitante: solo catálogo y páginas públicas
     this.api.get<Usuario>("me").subscribe((u) => this.usuario.set(u));
     this.api.get<Perfil>("me/perfil").subscribe({ next: (p) => this.perfil.set(p), error: this.falla });
-    this.api.get<Direccion[]>("me/direcciones").subscribe({ next: (d) => this.direcciones.set(d), error: this.falla });
     this.api.get<string[]>("me/correos").subscribe({ next: (c) => this.correos.set(c), error: this.falla });
     this.api.get<Record<string, Cupon>>("me/cupones").subscribe({ next: (c) => this.cupones.set(c), error: this.falla });
     this.cargarNotificaciones();
@@ -135,21 +133,7 @@ export class StoreService {
     });
   }
 
-  /* ---------------- Direcciones y correos ---------------- */
-  addDireccion(d: Omit<Direccion, "id">): string {
-    const id = `d${Date.now()}`;
-    this.direcciones.update((prev) => [...prev, { ...d, id }]);
-    this.api.post("me/direcciones", { ...d, id }).subscribe();
-    return id;
-  }
-  updateDireccion(d: Direccion) {
-    this.direcciones.update((prev) => prev.map((x) => (x.id === d.id ? d : x)));
-    this.api.put(`me/direcciones/${d.id}`, d).subscribe();
-  }
-  removeDireccion(id: string) {
-    this.direcciones.update((prev) => prev.filter((x) => x.id !== id));
-    this.api.delete(`me/direcciones/${id}`).subscribe();
-  }
+  /* ---------------- Correos ---------------- */
   addCorreo(correo: string) {
     this.correos.update((prev) => (prev.includes(correo) ? prev : [...prev, correo]));
     this.api.post("me/correos", { correo }).subscribe();

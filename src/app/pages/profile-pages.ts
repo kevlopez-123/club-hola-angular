@@ -6,7 +6,6 @@ import { CatalogService, TEXTOS_INGRESO, type TextosIngreso } from "../core/cata
 import { BrandService } from "../core/brand.service";
 import { StoreService } from "../core/store.service";
 import { SesionService } from "../core/sesion.service";
-import type { Direccion } from "../core/models";
 import { IconComponent } from "../shared/icon.component";
 import { ComboboxComponent } from "../shared/combobox";
 import { ciudadesDe, hayCiudadesFijas, sugerenciasDe } from "../core/ubicaciones";
@@ -16,8 +15,6 @@ import { nombreDispositivo } from "../core/dispositivo";
 import { haceTiempo } from "../core/tiempo";
 import { environment } from "../../environments/environment";
 import { agruparCampos, claveExtra, erroresPerfil } from "../core/validar-perfil";
-import { DireccionFormComponent } from "../shared/direccion-form";
-import { erroresDireccion } from "../core/validar-direccion";
 import { TelefonoInputComponent } from "../shared/telefono-input";
 import { FlagComponent } from "../shared/flag.component";
 import { LogoComponent, ModalComponent } from "../shared/ui";
@@ -26,14 +23,13 @@ import { legalAMarkdown } from "../core/markdown";
 import { alternar, type Intereses } from "../core/intereses";
 
 const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-base text-ink focus:ring-2 focus:ring-primary/50";
-const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "", direccion: "", distrito: "" });
 
 /* ------------------------------------------------------------------ */
 /* Mi perfil                                                           */
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-perfil-page",
-  imports: [IconComponent, ModalComponent, DireccionFormComponent, TelefonoInputComponent, NgTemplateOutlet, ComboboxComponent],
+  imports: [IconComponent, ModalComponent, TelefonoInputComponent, NgTemplateOutlet, ComboboxComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { "(window:beforeunload)": "antesDeCerrar($event)" },
   template: `
@@ -41,10 +37,10 @@ const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "
       <div class="page-container">
         <h1 class="text-center text-2xl font-extrabold text-ink lg:text-3xl">Mi perfil</h1>
 
-        <div class="mx-auto mt-6 flex w-fit gap-2 rounded-full bg-card p-1 shadow-[var(--shadow-card)]" role="tablist">
+        <div class="mx-auto mt-6 flex w-fit max-w-full gap-1 rounded-full bg-card p-1 shadow-[var(--shadow-card)] sm:gap-2" role="tablist">
           @for (t of tabs; track t.value) {
             <button type="button" role="tab" [attr.aria-selected]="tab() === t.value" (click)="tab.set(t.value)"
-              [class]="'min-h-12 rounded-full px-6 text-base font-semibold transition-colors lg:min-h-14 ' + (tab() === t.value ? 'bg-secondary text-primary' : 'text-ink hover:text-primary')">
+              [class]="'min-h-12 rounded-full px-4 text-center text-base font-semibold leading-tight transition-colors sm:px-6 lg:min-h-14 ' + (tab() === t.value ? 'bg-secondary text-primary' : 'text-ink hover:text-primary')">
               {{ t.label }}
             </button>
           }
@@ -199,62 +195,6 @@ const vacia = (): Omit<Direccion, "id"> => ({ alias: "", recibe: "", telefono: "
                 </div>
               </form>
             }
-          } @else if (tab() === "direcciones") {
-            <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]">
-              <div class="flex flex-wrap items-center justify-between gap-4">
-                <h2 class="text-lg font-extrabold text-ink">Mis direcciones</h2>
-                <button type="button" (click)="editando.set(null); nueva.set(vacia())"
-                  class="inline-flex min-h-12 items-center gap-2 rounded-full bg-secondary px-6 text-base font-bold uppercase tracking-wide text-primary lg:min-h-14">
-                  <app-icon name="Plus" class="h-5 w-5" /> Agregar nueva dirección
-                </button>
-              </div>
-
-              <ul class="mt-5 grid gap-4">
-                @for (d of store.direcciones(); track d.id) {
-                  <li class="flex items-center justify-between gap-4 rounded-2xl border border-border p-5">
-                    <div class="min-w-0">
-                      <p class="text-base font-extrabold text-ink">{{ d.alias }}</p>
-                      <p class="text-base text-muted-foreground">{{ d.direccion }} — {{ d.distrito }}</p>
-                      <p class="text-base text-muted-foreground">Recibe: {{ d.recibe }} · {{ d.telefono }}</p>
-                      @if (d.lat != null && d.lng != null) {
-                        <a [href]="'https://www.openstreetmap.org/?mlat=' + d.lat + '&mlon=' + d.lng + '#map=17/' + d.lat + '/' + d.lng" target="_blank" rel="noreferrer" class="mt-1 inline-flex items-center gap-1 text-base font-semibold text-primary underline"><app-icon name="MapPin" class="h-4 w-4" /> Ver en el mapa</a>
-                      }
-                    </div>
-                    <div class="flex shrink-0 gap-2">
-                      <button type="button" [attr.aria-label]="'Editar dirección ' + d.alias" (click)="nueva.set(null); editando.set({ ...d })"
-                        class="grid h-12 w-12 place-items-center rounded-full border border-border text-primary hover:border-primary"><app-icon name="Pencil" class="h-5 w-5" /></button>
-                      <button type="button" [attr.aria-label]="'Eliminar dirección ' + d.alias" (click)="porEliminar.set(d)"
-                        class="grid h-12 w-12 place-items-center rounded-full border border-border text-destructive hover:border-destructive"><app-icon name="Trash2" class="h-5 w-5" /></button>
-                    </div>
-                  </li>
-                }
-                @if (store.direcciones().length === 0) {
-                  <li class="rounded-2xl bg-surface p-6 text-center text-base text-muted-foreground">Aún no tienes direcciones registradas.</li>
-                }
-              </ul>
-
-              <app-modal [open]="!!porEliminar()" title="Eliminar dirección" (closed)="porEliminar.set(null)">
-                @if (porEliminar(); as d) {
-                  <p class="text-base text-ink">¿Seguro que deseas eliminar la dirección <strong>{{ d.alias }}</strong>? Esta acción no se puede deshacer.</p>
-                  <p class="mt-2 text-base text-muted-foreground">{{ d.direccion }} — {{ d.distrito }}</p>
-                  <div class="mt-6 grid gap-3 sm:grid-cols-2">
-                    <button type="button" (click)="porEliminar.set(null)"
-                      class="min-h-12 rounded-full border border-border bg-card text-base font-bold uppercase tracking-wide text-ink transition-colors hover:border-primary hover:text-primary lg:min-h-14">Cancelar</button>
-                    <button type="button" (click)="store.removeDireccion(d.id); porEliminar.set(null)"
-                      class="min-h-12 rounded-full bg-destructive text-base font-bold uppercase tracking-wide text-destructive-foreground transition-transform hover:scale-[1.02] lg:min-h-14">Sí, eliminar</button>
-                  </div>
-                }
-              </app-modal>
-
-              <app-modal [open]="!!form()" [title]="editando() ? 'Editar dirección' : 'Nueva dirección'" (closed)="cerrarForm()">
-                @if (form(); as f) {
-                  <form class="grid gap-4" (submit)="guardarDireccion($event)">
-                    <app-direccion-form [valor]="f" [intento]="intentoDir()" (valorChange)="actualizarForm($event)" />
-                    <button type="submit" class="min-h-12 rounded-full bg-primary text-base font-bold uppercase tracking-wide text-primary-foreground lg:min-h-14">Guardar dirección</button>
-                  </form>
-                }
-              </app-modal>
-            </section>
           } @else if (tab() === "intereses") {
             <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="int-titulo">
               <h2 id="int-titulo" class="text-lg font-extrabold text-ink">Mis intereses</h2>
@@ -370,15 +310,13 @@ export class PerfilPage {
   protected readonly store = inject(StoreService);
   private readonly api = inject(ApiService);
   protected readonly input = INPUT;
-  protected readonly vacia = vacia;
   protected readonly tabs = [
-    { value: "datos", label: "Datos personales" },
-    { value: "direcciones", label: "Direcciones de envío" },
+    { value: "datos", label: "Datos" },
     { value: "intereses", label: "Intereses" },
     { value: "seguridad", label: "Seguridad" },
   ] as const;
 
-  protected readonly tab = signal<"datos" | "direcciones" | "intereses" | "seguridad">("datos");
+  protected readonly tab = signal<"datos" | "intereses" | "seguridad">("datos");
 
   /* ---- Intereses: categorías de las que quiere recibir promociones (push y correo) ---- */
   protected readonly selBeneficios = signal<string[]>([]);
@@ -589,11 +527,6 @@ export class PerfilPage {
     return { nombres: p?.nombres ?? "", apellidos: p?.apellidos ?? "", telefono: p?.telefono ?? "", ...this.edits() };
   });
 
-  protected readonly editando = signal<Direccion | null>(null);
-  protected readonly nueva = signal<Omit<Direccion, "id"> | null>(null);
-  protected readonly porEliminar = signal<Direccion | null>(null);
-  protected readonly form = computed<Omit<Direccion, "id"> | null>(() => this.editando() ?? this.nueva());
-
   protected setDato(k: "nombres" | "apellidos" | "telefono", e: Event) {
     this.edits.update((x) => ({ ...x, [k]: (e.target as HTMLInputElement).value }));
     this.marcarSucio();
@@ -625,28 +558,6 @@ export class PerfilPage {
   }
 
   protected readonly brand = inject(BrandService);
-  protected readonly intentoDir = signal(false);
-  protected actualizarForm(v: Omit<Direccion, "id">) {
-    const ed = this.editando();
-    if (ed) this.editando.set({ ...v, id: ed.id });
-    else this.nueva.set(v);
-  }
-  protected cerrarForm() {
-    this.intentoDir.set(false);
-    this.editando.set(null);
-    this.nueva.set(null);
-  }
-  protected guardarDireccion(e: Event) {
-    e.preventDefault();
-    const ed = this.editando();
-    const nu = this.nueva();
-    const d = ed ?? nu;
-    this.intentoDir.set(true);
-    if (d && Object.keys(erroresDireccion(d, this.brand.pais(), this.brand.provinciasEnvio())).length) return;
-    if (ed) this.store.updateDireccion(ed);
-    else if (nu) this.store.addDireccion(nu);
-    this.cerrarForm();
-  }
 }
 
 /* ------------------------------------------------------------------ */

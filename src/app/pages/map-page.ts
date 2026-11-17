@@ -173,11 +173,10 @@ export class MapaPage implements OnDestroy {
 
   constructor() {
     afterNextRender(() => void this.iniciar());
-    // Con sesión, el mapa abre en el departamento de su perfil (o de sus direcciones) si ahí hay establecimientos.
+    // Con sesión, el mapa abre en el departamento de su perfil si ahí hay establecimientos.
     effect(() => {
       const locales = this.catalog.locales();
       const perfil = this.store.perfil();
-      const direcciones = this.store.direcciones();
       const campos = this.catalog.config()?.formulario ?? [];
       if (this.regionResuelta || this.regionTocada || !this.sesion.logged() || !locales.length || !perfil) return;
       this.regionResuelta = true;
@@ -186,7 +185,7 @@ export class MapaPage implements OnDestroy {
       // Si llegaron desde un enlace con una marca, solo cuenta el departamento donde esa marca tiene locales.
       const marca = this.marca();
       const disponibles = [...new Set(locales.filter((l) => !marca || l.marca === marca).map((l) => l.provincia))];
-      const region = regionInicial(delPerfil, direcciones, disponibles);
+      const region = regionInicial(delPerfil, disponibles);
       if (region) {
         this.departamento.set(region);
         this.regionAuto.set(region);

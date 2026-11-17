@@ -2,7 +2,6 @@ import {
   beneficios,
   categoriasBeneficio,
   correosIniciales,
-  direccionesIniciales,
   slides,
   slidesBeneficios,
   user,
@@ -37,7 +36,7 @@ import type { Sesion } from "./sesiones";
 const clone = <T>(v: T): T => structuredClone(v);
 
 /** Clave de localStorage donde se guarda la base simulada. Subir la versión invalida datos viejos. */
-export const DB_KEY = "bancosolidario_mockdb_v46";
+export const DB_KEY = "bancosolidario_mockdb_v47";
 
 /**
  * "Base de datos" del backend simulado. Cada petición a /api/* se resuelve contra este estado,
@@ -56,7 +55,6 @@ const semilla = () => {
   return {
   usuario: { nombre: user.nombre, nivel: user.nivel },
   perfil: clone(perfil),
-  direcciones: clone(direccionesIniciales),
   correos: clone(correosIniciales),
   /** Avisos dentro del sitio (campanita), por participante. */
   notificaciones: notificacionesIniciales() as any[],

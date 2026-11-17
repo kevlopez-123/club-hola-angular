@@ -7,7 +7,6 @@ import { ApiError, type Route } from "./types";
 import { codigoAleatorio } from "../format";
 import { provinciasDe } from "../../tenants/presets";
 import { erroresPerfil } from "../validar-perfil";
-import { erroresDireccion } from "../validar-direccion";
 import { legalAMarkdown } from "../markdown";
 import { aplicarPromo } from "../promo";
 import { popupsPublicos, registrarEventoPopup } from "./popups";
@@ -40,7 +39,7 @@ import { sanearIntereses } from "../intereses";
 function conPromo<T extends { precio?: number | undefined }>(p: T): T {
   return aplicarPromo(p as any);
 }
-import type { Compra, CompraItem, Direccion } from "../models";
+import type { Compra, CompraItem } from "../models";
 
 const notFound = (what: string) => new ApiError(404, `${what} no encontrado`);
 
@@ -57,13 +56,6 @@ const nombreParticipante = () => (db.admin.participantes.find((p: any) => p.id =
 
 
 /** Ficha del panel de la participante demo (comparte datos con su sesión). */
-/** El servidor valida las direcciones igual que el formulario. */
-const validarDireccion = (d: any) => {
-  const pais = (db.config.tenant as any).pais;
-  const conEnvio = provinciasDe(pais.codigo, pais.provincias).filter((p) => p.envio).map((p) => p.nombre);
-  const primero = Object.values(erroresDireccion(d ?? {}, pais, conEnvio))[0];
-  if (primero) throw new ApiError(422, primero);
-};
 const fichaDemo = () => (db.admin.participantes as any[]).find((p) => p.id === "p1") ?? (() => { throw notFound("Participante"); })();
 
 /** Una cuenta bloqueada desde el admin no puede ingresar ni canjear. */
@@ -303,23 +295,6 @@ const customerRoutes: Route[] = [
     ficha.nombre = `${guardado.nombres} ${guardado.apellidos}`.trim() || ficha.nombre;
     if (guardado.telefono) ficha.celular = guardado.telefono;
     return guardado;
-  }],
-  ["GET", "me/direcciones", () => db.direcciones],
-  ["POST", "me/direcciones", ({ body }) => {
-    validarDireccion(body);
-    const d: Direccion = { ...body, id: body.id ?? `d${Date.now()}` };
-    db.direcciones.push(d);
-    return d;
-  }],
-  ["PUT", "me/direcciones/:id", ({ params, body }) => {
-    validarDireccion(body);
-    const i = db.direcciones.findIndex((d) => d.id === params["id"]);
-    if (i < 0) throw notFound("Dirección");
-    return (db.direcciones[i] = { ...body, id: params["id"]! });
-  }],
-  ["DELETE", "me/direcciones/:id", ({ params }) => {
-    db.direcciones = db.direcciones.filter((d) => d.id !== params["id"]);
-    return { ok: true };
   }],
   ["GET", "me/correos", () => db.correos],
   ["POST", "me/correos", ({ body }) => {

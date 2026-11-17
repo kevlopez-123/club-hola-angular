@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { erroresDireccion } from "./validar-direccion";
 import { nivelesDe, sugerenciasDe } from "./ubicaciones";
 import { camposIniciales } from "./mock-api/seed/admin";
 
@@ -19,12 +18,8 @@ describe("ubicación en Perú: departamento y distrito", () => {
     expect(nivelesDe("EC").region).toBe("Provincia");
     expect(nivelesDe("EC").local).toBe("Ciudad");
   });
-  it("el formulario de datos y los errores hablan de departamento y distrito", () => {
+  it("el formulario de datos habla de departamento y distrito", () => {
     expect(camposIniciales.find((c) => c.mapeo === "provincia")!.etiqueta).toBe("Departamento");
     expect(camposIniciales.find((c) => c.mapeo === "ciudad")!.etiqueta).toBe("Distrito");
-    const pais = { codigo: "PE", telefonoDigitos: 9, telefonoPrefijo: "+51" } as never;
-    const e = erroresDireccion({ alias: "Casa", recibe: "Ana Pérez", telefono: "999888777", direccion: "Av. Larco 100", distrito: "", provincia: "" }, pais, ["Lima"]);
-    expect(e["provincia"]).toMatch(/departamento/i);
-    expect(e["distrito"]).toMatch(/distrito/i);
   });
 });
