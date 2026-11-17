@@ -80,6 +80,7 @@ export const routes: Routes = [
 
       { path: "beneficios", title: "Beneficios Banco Solidario | Descuentos exclusivos para tarjetahabientes", loadComponent: () => catalog().then((m) => m.BeneficiosPage) },
       { path: "beneficios/:id", title: "Beneficio | Banco Solidario Puntos", loadComponent: () => catalog().then((m) => m.BeneficioDetallePage) },
+      { path: "cuotas-sin-intereses", title: "Cuotas sin intereses | Club Hola", loadComponent: () => import("./pages/cuotas-page").then((m) => m.CuotasSinInteresesPage) },
       { path: "libro-reclamaciones", title: "Libro de Reclamaciones | Club Hola", loadComponent: () => import("./pages/libro-page").then((m) => m.LibroReclamacionesPage) },
       { path: "mapa", title: "Mapa de establecimientos | Club Hola", loadComponent: () => import("./pages/map-page").then((m) => m.MapaPage) },
       { path: "buscar", title: "Resultados de búsqueda | Banco Solidario Puntos", loadComponent: () => catalog().then((m) => m.BuscarPage) },

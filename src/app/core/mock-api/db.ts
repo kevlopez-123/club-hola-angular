@@ -36,7 +36,7 @@ import type { Sesion } from "./sesiones";
 const clone = <T>(v: T): T => structuredClone(v);
 
 /** Clave de localStorage donde se guarda la base simulada. Subir la versión invalida datos viejos. */
-export const DB_KEY = "bancosolidario_mockdb_v41";
+export const DB_KEY = "bancosolidario_mockdb_v43";
 
 /**
  * "Base de datos" del backend simulado. Cada petición a /api/* se resuelve contra este estado,
@@ -107,6 +107,7 @@ const semilla = () => {
       { id: "beneficios", label: "Beneficios", activo: true, children: [
         { label: "Catálogo de beneficios", to: "/beneficios", activo: true },
         { label: "Mis beneficios", to: "/mis-beneficios", activo: true },
+        { label: "Cuotas sin intereses", to: "/cuotas-sin-intereses", activo: true },
         { label: "Mapa de establecimientos", to: "/mapa", activo: true },
       ] },
       { id: "nivel", label: "Mi nivel", to: "/mi-nivel", activo: true },
