@@ -42,11 +42,16 @@ import { NivelComoLlegarModalComponent, NivelResumenCardComponent } from "../sha
           @for (n of catalog.niveles(); track n.id; let i = $index) {
             <article class="flex flex-col rounded-2xl bg-card p-6 shadow-[var(--shadow-card)]"
               [class.ring-2]="n.id === actual()?.id" [style.--tw-ring-color]="n.id === actual()?.id ? n.color : null">
-              <span class="grid h-12 w-12 place-items-center rounded-full" [style.background]="n.color + '22'">
-                <app-icon name="Gem" class="h-6 w-6" [style.color]="n.color" />
-              </span>
-              <h3 class="mt-4 text-lg font-extrabold text-ink">{{ n.nombre }}</h3>
-              <ul class="mt-4 space-y-2 text-base text-muted-foreground">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full" [style.background]="n.color + '22'">
+                  <app-icon name="Gem" class="h-6 w-6" [style.color]="n.color" />
+                </span>
+                <h3 class="text-lg font-extrabold text-ink">{{ n.nombre }}</h3>
+                @if (n.id === actual()?.id) {
+                  <span class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground"><app-icon name="Check" class="h-3.5 w-3.5" /> Tu nivel actual</span>
+                }
+              </div>
+              <ul class="mt-4 mb-6 space-y-2 text-base text-muted-foreground">
                 @for (b of n.beneficios; track b) {
                   <li class="flex gap-2">
                     @if (i <= idxActual()) {
@@ -58,11 +63,8 @@ import { NivelComoLlegarModalComponent, NivelResumenCardComponent } from "../sha
                   </li>
                 }
               </ul>
-              @if (n.id === actual()?.id) {
-                <p class="mt-4"><span class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground"><app-icon name="Check" class="h-3.5 w-3.5" /> Tu nivel actual</span></p>
-              }
               <button type="button" (click)="comoLlegar.set(n)"
-                class="mt-auto inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-full border border-primary px-4 pt-0 text-sm font-bold text-primary hover:bg-secondary">
+                class="mt-auto inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-full border border-primary px-4 text-sm font-bold text-primary hover:bg-secondary">
                 <app-icon name="Info" class="h-4 w-4" /> ¿Cómo llegar a este nivel?
               </button>
             </article>

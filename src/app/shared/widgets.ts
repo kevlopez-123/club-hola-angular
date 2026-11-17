@@ -271,10 +271,6 @@ export class NivelComoLlegarModalComponent {
           </button>
         </div>
 
-        <ul class="mt-4 space-y-1 text-base text-muted-foreground">
-          @for (b of a.beneficios; track b) { <li class="flex gap-2"><span aria-hidden="true" class="text-primary">•</span>{{ b }}</li> }
-        </ul>
-
         <app-niveles-modal [open]="open()" [nivelActual]="nivel()" (closed)="open.set(false)" />
       </div>
     }
