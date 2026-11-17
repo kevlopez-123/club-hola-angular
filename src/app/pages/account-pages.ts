@@ -8,7 +8,7 @@ import { StoreService } from "../core/store.service";
 import { BrandService } from "../core/brand.service";
 import { estadoLabels } from "../core/labels";
 import { formatUSD } from "../core/format";
-import type { BeneficioUsuario, Compra, EstadoBeneficio, Notificacion } from "../core/models";
+import type { BeneficioUsuario, Compra, EstadoBeneficio, Nivel, Notificacion } from "../core/models";
 import { haceTiempo } from "../core/tiempo";
 import { descargarBlob } from "../core/pdf-base";
 import { ToastService } from "../shared/toast";
@@ -18,14 +18,14 @@ import { Countdown } from "../shared/countdown";
 import { EstadoErrorComponent } from "../shared/estado-error";
 import { EsqueletoListaComponent } from "../shared/esqueleto";
 import { LimpiarFiltrosComponent } from "../shared/limpiar-filtros";
-import { NivelResumenCardComponent } from "../shared/widgets";
+import { NivelComoLlegarModalComponent, NivelResumenCardComponent } from "../shared/widgets";
 
 /* ------------------------------------------------------------------ */
 /* Mi nivel                                                            */
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-mi-nivel-page",
-  imports: [IconComponent, NivelResumenCardComponent],
+  imports: [IconComponent, NivelResumenCardComponent, NivelComoLlegarModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-surface py-10 lg:py-14">
@@ -61,9 +61,14 @@ import { NivelResumenCardComponent } from "../shared/widgets";
               @if (n.id === actual()?.id) {
                 <p class="mt-4"><span class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground"><app-icon name="Check" class="h-3.5 w-3.5" /> Tu nivel actual</span></p>
               }
+              <button type="button" (click)="comoLlegar.set(n)"
+                class="mt-auto inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-full border border-primary px-4 pt-0 text-sm font-bold text-primary hover:bg-secondary">
+                <app-icon name="Info" class="h-4 w-4" /> ¿Cómo llegar a este nivel?
+              </button>
             </article>
           }
         </div>
+        <app-nivel-como-llegar-modal [open]="!!comoLlegar()" [nivel]="comoLlegar()" (closed)="comoLlegar.set(null)" />
       </div>
     </div>
   `,
@@ -77,6 +82,7 @@ export class MiNivelPage {
     return this.catalog.niveles().find((n) => n.id === nivel || n.nombre === nivel) ?? null;
   });
   protected readonly idxActual = computed(() => this.catalog.niveles().findIndex((n) => n.id === this.actual()?.id));
+  protected readonly comoLlegar = signal<Nivel | null>(null);
 }
 
 /* ------------------------------------------------------------------ */

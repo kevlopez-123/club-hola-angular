@@ -25,7 +25,7 @@ import {
   SectionTitleComponent,
 } from "../shared/ui";
 import {
-  BenefitsSectionComponent, NivelBenefitsSectionComponent, CategoryStripComponent, CtaDuoComponent, HomeCategoriesComponent,
+  BenefitsSectionComponent, NivelBenefitsSectionComponent, NivelComoLlegarModalComponent, CategoryStripComponent, CtaDuoComponent, HomeCategoriesComponent,
   OrdenSelectComponent, SearchFilterBarComponent, type OrdenCatalogo,
 } from "../shared/widgets";
 import { Countdown } from "../shared/countdown";
@@ -33,6 +33,7 @@ import { distanciaKm, textoDistancia } from "../core/geo";
 import { cargarQr } from "../core/qr";
 import { GuestGateDirective } from "../shared/guest-gate";
 import { MapaLocalesComponent } from "../shared/mapa-locales";
+import { MarkdownComponent } from "../shared/markdown.component";
 
 /* ------------------------------------------------------------------ */
 /* Inicio                                                              */
@@ -190,7 +191,7 @@ export class BeneficiosPage {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-beneficio-detalle-page",
-  imports: [RouterLink, IconComponent, ModalComponent, AddedToCartModalComponent, Countdown, MapaLocalesComponent],
+  imports: [RouterLink, IconComponent, ModalComponent, AddedToCartModalComponent, Countdown, MapaLocalesComponent, MarkdownComponent, NivelComoLlegarModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (beneficio(); as beneficio) {
@@ -252,7 +253,7 @@ export class BeneficiosPage {
                   @for (paso of beneficio.pasos; track paso; let i = $index) {
                     <li class="flex items-center gap-3 text-sm text-ink">
                       <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{{ i + 1 }}</span>
-                      {{ paso }}
+                      <app-markdown [texto]="paso" [enLinea]="true" clase="md-compacto" />
                     </li>
                   }
                 </ol>
@@ -261,7 +262,8 @@ export class BeneficiosPage {
               @if (faltaNivel(); as nv) {
                 <div role="status" class="mt-6 rounded-2xl border border-aviso-borde bg-aviso-fondo p-5">
                   <p class="flex items-start gap-2 text-sm font-semibold text-aviso"><app-icon name="Lock" class="mt-0.5 h-5 w-5 shrink-0" /> <span>Este beneficio está disponible desde el nivel {{ nv }}. Tu nivel actual es {{ store.usuario().nivel }}.</span></p>
-                  <a routerLink="/mi-nivel" class="mt-3 inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-bold uppercase tracking-wide text-primary-foreground">Ver mi nivel</a>
+                  <button type="button" (click)="comoSubir.set(true)" class="mt-3 inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-bold uppercase tracking-wide text-primary-foreground">¿Cómo subir de nivel?</button>
+                  <app-nivel-como-llegar-modal [open]="comoSubir()" [nivel]="nivelRequerido()" (closed)="comoSubir.set(false)" />
                 </div>
               } @else if (beneficio.tipo === "compra") {
                 <div class="mt-6 rounded-2xl border border-border p-5">
@@ -332,7 +334,7 @@ export class BeneficiosPage {
           <section class="mt-6 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] lg:p-8">
             <h2 class="text-lg font-bold text-ink">Especificaciones</h2>
             <ul class="mt-4 space-y-1.5 text-sm text-ink">
-              @for (e of beneficio.especificaciones; track e) { <li>• {{ e }}</li> }
+              @for (e of beneficio.especificaciones; track e) { <li class="flex gap-2"><span aria-hidden="true">•</span><app-markdown [texto]="e" [enLinea]="true" clase="md-compacto" /></li> }
             </ul>
           </section>
 
@@ -370,7 +372,7 @@ export class BeneficiosPage {
 
           <section class="mt-6 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] lg:p-8">
             <h2 class="text-lg font-bold text-ink">Términos y condiciones</h2>
-            <p class="mt-4 text-sm leading-relaxed text-ink">{{ beneficio.terminos }}</p>
+            <app-markdown [texto]="beneficio.terminos" clase="md-compacto mt-4 text-sm leading-relaxed text-ink" />
           </section>
         </div>
       </div>
@@ -449,6 +451,12 @@ export class BeneficioDetallePage {
     const b = this.beneficio();
     if (!b?.nivelMinimo || !this.sesion.logged()) return null;
     return tieneAcceso(this.catalog.niveles(), this.store.usuario().nivel, b.nivelMinimo) ? null : b.nivelMinimo;
+  });
+  protected readonly comoSubir = signal(false);
+  /** Nivel que pide el beneficio (para explicar cómo llegar a él). */
+  protected readonly nivelRequerido = computed(() => {
+    const min = this.beneficio()?.nivelMinimo;
+    return this.catalog.niveles().find((n) => n.id === min || n.nombre === min) ?? null;
   });
   protected readonly copiado = signal(false);
   protected copiar(texto: string) {

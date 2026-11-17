@@ -165,18 +165,18 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Disfruta de un pollo entero con papas fritas y ensalada para compartir en familia.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
     ],
-    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones, descuentos o cupones vigentes. El cliente deberá presentar el cupón digital generado a través de la plataforma Club Hola antes de efectuar el pago. Cada cupón tiene una validez de 3 horas desde su generación y puede utilizarse una sola vez. El cupón debe presentarse junto con un documento de identidad vigente. Limitado a un cupón por persona por día. El comercio se reserva el derecho de modificar o cancelar la promoción sin previo aviso. Esta promoción es operada por Motiva Soluciones, quien actúa únicamente como plataforma de beneficios y medio de validación.",
+    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones, descuentos o cupones vigentes. El cliente deberá presentar el cupón digital generado a través de la plataforma Club Hola antes de efectuar el pago. Cada cupón tiene una validez de 3 horas desde su generación y puede utilizarse una sola vez. El cupón debe presentarse junto con un documento de identidad vigente. Limitado a un cupón por persona por día. El comercio se reserva el derecho de modificar o cancelar la promoción sin previo aviso. Esta promoción es operada por Motiva Soluciones, quien actúa únicamente como plataforma de beneficios y medio de validación. Consulta los [términos de uso](https://www.banbif.com.pe) y la [política de privacidad](https://www.banbif.com.pe) completos.",
     "tipo": "cupon"
   },
   {
@@ -194,13 +194,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Lleva dos bebidas grandes de la carta pagando solo una, de lunes a jueves.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -223,13 +223,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Inicia tu plan Black con la mitad de descuento en tu primer mes.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -253,13 +253,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Descuento en toda la línea de cuidado personal y dermocosmética.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -282,13 +282,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Renueva tu clóset con descuento en las marcas de la nueva colección.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -312,13 +312,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Escápate un fin de semana con tarifa preferencial y desayuno incluido.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -343,13 +343,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Dos entradas al precio de una en funciones 2D de inicio de semana.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -374,13 +374,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Ahorra en tu compra semanal de productos frescos todos los viernes.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -404,13 +404,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Descuento en las tablas de makis y nigiris para dos o más personas.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -433,13 +433,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Lavado completo con encerado y aspirado profundo para tu vehículo.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -464,13 +464,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Disfruta de una cena de 5 tiempos en un restaurante exclusivo con maridaje, con cupos limitados.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -493,13 +493,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Descuento en audífonos, teclados y accesorios seleccionados de la tienda.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -522,13 +522,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Relájate con masajes descontracturantes y rituales de spa en sedes seleccionadas.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -552,13 +552,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Descuento en la matrícula de programas de idiomas presenciales y virtuales.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -581,13 +581,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Ahorra en alimento premium y accesorios para perros y gatos.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -610,13 +610,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Renueva tus ambientes con descuento en muebles y decoración seleccionada.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -639,13 +639,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Cupón de descuento en restaurantes afiliados pagando con tu tarjeta BanBif.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -668,13 +668,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Descuento en la primera cuota de tu SOAT o seguro vehicular full.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -698,13 +698,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Combo dulce para dos personas al canjear tu gift card digital.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -730,13 +730,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Paquetes turísticos a Cusco, Arequipa y el norte peruano con descuento.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -761,13 +761,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Entrada preferencial al show internacional en Lima. Beneficio exclusivo de pago con tarjeta BanBif.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -793,13 +793,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Cena de 5 tiempos con maridaje para dos personas. Solo disponible con pago íntegro con tu tarjeta BanBif.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."
@@ -916,13 +916,13 @@ export const beneficiosClubHola: Beneficio[] = [
     "descripcion": "Paquete con vuelos y hotel para dos personas. Beneficio exclusivo pagando solo con tarjeta BanBif.",
     "pasos": [
       "Genera el cupón para reservar",
-      "Acércate al local con tu DNI en físico.",
+      "Acércate al local con tu DNI en físico; ubica el más cercano en el [mapa de la marca](https://www.pardoschicken.com.pe).",
       "Presenta el cupón",
       "¡Disfruta!"
     ],
     "especificaciones": [
       "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
+      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano). Revisa la [carta](https://www.pardoschicken.com.pe).",
       "Válido hasta el 31/12/2026.",
       "Aplica solo con tarjeta BanBif.",
       "Válido para consumo en local y para llevar."

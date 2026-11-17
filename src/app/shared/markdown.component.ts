@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from "@angular/core";
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from "@angular/core";
+import { DomSanitizer } from "@angular/platform-browser";
 import { mdAHtml, mdEnLinea } from "../core/markdown";
 
 /** Muestra texto markdown (ver core/markdown.ts). Los clics en enlaces internos de ancla (#…) se emiten en `ancla`. */
@@ -14,7 +15,9 @@ export class MarkdownComponent {
   readonly enLinea = input(false);
   readonly clase = input("");
   readonly ancla = output<string>();
-  protected readonly html = computed(() => (this.enLinea() ? mdEnLinea(this.texto()) : mdAHtml(this.texto())));
+  private readonly san = inject(DomSanitizer);
+  /** core/markdown.ts escapa todo el texto y solo genera etiquetas conocidas; Angular recortaría el iframe y el video del contenido enriquecido. */
+  protected readonly html = computed(() => this.san.bypassSecurityTrustHtml(this.enLinea() ? mdEnLinea(this.texto()) : mdAHtml(this.texto())));
 
   protected clic(e: Event) {
     const a = (e.target as HTMLElement).closest("a");

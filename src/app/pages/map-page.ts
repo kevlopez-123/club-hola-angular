@@ -39,10 +39,6 @@ function cargarCssDeLeaflet() {
             <h1 class="text-xl font-extrabold text-ink sm:text-2xl">Mapa de establecimientos</h1>
             <p class="mt-1 text-sm text-muted-foreground">Encuentra dónde canjear tus beneficios, cerca de ti.</p>
           </div>
-          <button type="button" (click)="cerca()" [disabled]="buscandoPos()"
-            class="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.02] disabled:opacity-60">
-            <app-icon name="MapPin" class="h-4 w-4" /> {{ miPos() ? 'Actualizar mi ubicación' : 'Cerca de mí' }}
-          </button>
         </div>
         @if (avisoPos()) { <p role="status" class="mt-2 text-sm text-muted-foreground">{{ avisoPos() }}</p> }
 
@@ -67,7 +63,13 @@ function cargarCssDeLeaflet() {
         <p class="mt-4 text-sm text-muted-foreground" aria-live="polite">{{ lista().length }} {{ lista().length === 1 ? 'establecimiento' : 'establecimientos' }}</p>
 
         <div class="mt-3 grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div #mapa role="application" aria-label="Mapa de establecimientos aliados" class="relative z-0 h-[26rem] w-full overflow-hidden rounded-2xl border border-border bg-muted lg:h-[34rem]"></div>
+          <div class="relative h-[26rem] lg:h-[34rem]">
+            <div #mapa role="application" aria-label="Mapa de establecimientos aliados" class="relative z-0 h-full w-full overflow-hidden rounded-2xl border border-border bg-muted"></div>
+            <button type="button" (click)="cerca()" [disabled]="buscandoPos()"
+              class="absolute right-3 top-3 z-[1000] inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] disabled:opacity-60">
+              <app-icon name="MapPin" class="h-4 w-4" /> {{ buscandoPos() ? 'Ubicándote…' : miPos() ? 'Actualizar mi ubicación' : 'Cerca de mí' }}
+            </button>
+          </div>
           <ul class="max-h-[34rem] space-y-3 overflow-y-auto pr-1" aria-label="Lista de establecimientos">
             @for (l of lista(); track l.id) {
               <li [class]="'rounded-2xl border bg-card transition-colors hover:border-primary ' + (seleccionado() === l.id ? 'border-primary ring-2 ring-primary/30' : 'border-border')">
@@ -234,7 +236,24 @@ export class MapaPage implements OnDestroy {
       m.on("click", () => this.seleccionado.set(l.id));
       this.marcadores.set(l.id, m);
     }
-    if (filas.length) this.mapa.fitBounds(L.latLngBounds(filas.map((l) => [l.lat, l.lng] as [number, number])), { padding: [40, 40], maxZoom: 15 });
+    const foco = this.enfocarEn;
+    this.enfocarEn = null;
+    if (foco) this.encuadrarAlrededor(foco);
+    else if (filas.length) this.mapa.fitBounds(L.latLngBounds(filas.map((l) => [l.lat, l.lng] as [number, number])), { padding: [40, 40], maxZoom: 15 });
+  }
+
+  /** Posición a la que hay que acercar el mapa en cuanto se vuelvan a dibujar los pines (los pines se redibujan al cambiar la lista). */
+  private enfocarEn: { lat: number; lng: number } | null = null;
+
+  /** Acerca el mapa a la persona y a los locales que tiene alrededor (hasta 8 a menos de 5 km; si no hay, al más cercano). */
+  private encuadrarAlrededor(pos: { lat: number; lng: number }) {
+    const L = this.L;
+    if (!L || !this.mapa) return;
+    const ordenados = this.lista();
+    const cerca = ordenados.filter((l) => (l.distancia ?? Infinity) <= 5).slice(0, 8);
+    const puntos = (cerca.length ? cerca : ordenados.slice(0, 1)).map((l) => [l.lat, l.lng] as [number, number]);
+    const limites = L.latLngBounds([[pos.lat, pos.lng], ...puntos]);
+    this.mapa.fitBounds(limites, { padding: [60, 60], maxZoom: cerca.length ? 16 : 14 });
   }
 
   protected ver(l: Local) {
@@ -261,8 +280,8 @@ export class MapaPage implements OnDestroy {
         if (L && this.mapa) {
           this.miMarcador?.remove();
           this.miMarcador = L.circleMarker([pos.lat, pos.lng], { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).bindTooltip("Estás aquí").addTo(this.mapa);
-          const primero = this.lista()[0];
-          if (primero) this.mapa.fitBounds(L.latLngBounds([[pos.lat, pos.lng], [primero.lat, primero.lng]]), { padding: [50, 50], maxZoom: 15 });
+          // Los pines se redibujan al ordenarse por cercanía: el zoom se aplica ahí para que no lo pise el encuadre general.
+          this.enfocarEn = pos;
         }
       },
       () => { this.buscandoPos.set(false); this.avisoPos.set("No pudimos acceder a tu ubicación. Puedes buscar por distrito o marca."); },

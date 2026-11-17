@@ -961,6 +961,15 @@ footer li > button {
 .md a { color: var(--primary); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .md blockquote { border-left: 3px solid var(--primary); padding-left: 1rem; font-style: italic; }
 .md hr { border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+.md img { max-width: 100%; height: auto; border-radius: 0.75rem; margin: 0.75rem 0; display: block; }
+.md .md-video { position: relative; aspect-ratio: 16 / 9; margin: 1rem 0; overflow: hidden; border-radius: 0.75rem; background: #000; }
+.md .md-video iframe, .md .md-video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.md a.md-btn { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1.25rem; border-radius: 9999px; background: var(--primary); color: var(--primary-foreground); font-weight: 700; text-decoration: none; margin: 0.25rem 0.5rem 0.25rem 0; }
+.md a.md-btn:hover { filter: brightness(1.08); }
+/* Texto corto dentro de otro componente (pasos, especificaciones): hereda tamaño y color del contenedor. */
+.md.md-compacto { color: inherit; font-size: inherit; line-height: inherit; }
+.md.md-compacto p, .md.md-compacto ul, .md.md-compacto ol { margin: 0; }
+.md.md-compacto p + p { margin-top: 0.5rem; }
 
 .md-corto { font-size: 0.875rem; line-height: 1.5; text-align: center; margin-top: 1rem; }
 

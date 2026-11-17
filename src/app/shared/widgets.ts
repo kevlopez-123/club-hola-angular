@@ -10,7 +10,8 @@ import { BrandService } from "../core/brand.service";
 import { StoreService } from "../core/store.service";
 import { formatUSD } from "../core/format";
 import { SesionService } from "../core/sesion.service";
-import type { Categoria } from "../core/models";
+import type { Categoria, Nivel } from "../core/models";
+import { MarkdownComponent } from "./markdown.component";
 
 export type OrdenCatalogo = "recomendado" | "precio-asc" | "precio-desc" | "az";
 
@@ -196,31 +197,11 @@ export class SearchFilterBarComponent {
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-niveles-modal",
-  imports: [ModalComponent, RouterLink, IconComponent],
+  imports: [ModalComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-modal [open]="open()" title="¿Cómo funcionan los niveles?" maxWidth="max-w-2xl" (closed)="closed.emit()">
       <p class="text-base text-muted-foreground">{{ catalog.introNiveles() }}</p>
-
-      <ul class="mt-5 space-y-3">
-        @for (n of catalog.niveles(); track n.id) {
-          <li class="flex flex-wrap items-center gap-3 rounded-2xl border border-border p-4"
-            [style.border-color]="esActual(n) ? n.color : null" [style.border-width.px]="esActual(n) ? 2 : null">
-            <span class="grid h-10 w-10 place-items-center rounded-full" [style.background]="n.color + '22'">
-              <app-icon name="Gem" class="h-5 w-5" [style.color]="n.color" />
-            </span>
-            <div class="min-w-0 flex-1">
-              <p class="text-base font-extrabold text-ink">
-                {{ n.nombre }}
-                @if (esActual(n)) { <span class="ml-2 align-middle"><span class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground"><app-icon name="Check" class="h-3.5 w-3.5" /> Tu nivel actual</span></span> }
-              </p>
-              <ul class="mt-2 space-y-1 text-sm text-muted-foreground">
-                @for (b of n.beneficios; track b) { <li class="flex gap-2"><span aria-hidden="true" class="text-primary">•</span>{{ b }}</li> }
-              </ul>
-            </div>
-          </li>
-        }
-      </ul>
 
       <ul class="mt-5 space-y-2 rounded-2xl bg-surface p-4 text-base text-muted-foreground">
         @for (r of catalog.reglasNiveles(); track r) {
@@ -241,9 +222,32 @@ export class NivelesModalComponent {
   /** Nivel que le asignó el banco al participante (nombre o id). */
   readonly nivelActual = input.required<string>();
   readonly closed = output<void>();
-  protected esActual(n: { id: string; nombre: string }) {
-    return n.id === this.nivelActual() || n.nombre === this.nivelActual();
-  }
+}
+
+/** «¿Cómo llegar a este nivel?»: texto enriquecido (markdown) que se escribe en cada nivel. Se abre desde Mi nivel y desde los beneficios bloqueados por nivel. */
+@Component({
+  selector: "app-nivel-como-llegar-modal",
+  imports: [ModalComponent, MarkdownComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <app-modal [open]="open()" [title]="'¿Cómo llegar al nivel ' + (nivel()?.nombre ?? '') + '?'" maxWidth="max-w-2xl" (closed)="closed.emit()">
+      @if (nivel(); as n) {
+        <app-markdown [texto]="texto()" />
+        <button type="button" (click)="closed.emit()" class="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full border border-primary px-6 text-base font-bold text-primary hover:bg-secondary">Entendido</button>
+      }
+    </app-modal>
+  `,
+})
+export class NivelComoLlegarModalComponent {
+  private readonly catalog = inject(CatalogService);
+  private readonly brand = inject(BrandService);
+  readonly open = input(false);
+  readonly nivel = input<Nivel | null>(null);
+  readonly closed = output<void>();
+  protected readonly texto = computed(() => {
+    const t = this.nivel()?.comoLlegar?.trim() || this.catalog.introNiveles();
+    return t.replaceAll("{empresa}", this.brand.marca().nombre).replaceAll("{programa}", this.brand.programa());
+  });
 }
 
 @Component({
