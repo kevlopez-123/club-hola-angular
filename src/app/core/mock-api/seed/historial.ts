@@ -11,6 +11,8 @@ export type BeneficioUsuario = {
   estado: EstadoBeneficio;
   fecha: string;
   vence: string;
+  /** Lo que ahorró la persona al usar el cupón, en la moneda del programa. Solo existe en cupones usados (lo informa el comercio al canjearlo). */
+  ahorro?: number | undefined;
 };
 
 export const misBeneficios: BeneficioUsuario[] = [
@@ -37,6 +39,7 @@ export const misBeneficios: BeneficioUsuario[] = [
     estado: "usado",
     fecha: "18/07/2026",
     vence: "18/07/2026 19:00",
+    ahorro: 18.9,
   },
   {
     id: "mb4",
@@ -45,6 +48,7 @@ export const misBeneficios: BeneficioUsuario[] = [
     estado: "usado",
     fecha: "05/07/2026",
     vence: "05/07/2026 20:15",
+    ahorro: 42.5,
   },
   {
     id: "mb5",

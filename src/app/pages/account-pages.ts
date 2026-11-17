@@ -133,10 +133,18 @@ export class MiNivelPage {
                 }
               </div>
               <div class="flex flex-col items-start gap-3 sm:items-end">
-                <span [class]="'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold ' + estadoClase[x.estadoReal]">
-                  <app-icon name="Ticket" class="h-4 w-4" />
-                  {{ estadoLabels[x.estadoReal] }}
-                </span>
+                <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                  <span [class]="'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold ' + estadoClase[x.estadoReal]">
+                    <app-icon name="Ticket" class="h-4 w-4" />
+                    {{ estadoLabels[x.estadoReal] }}
+                  </span>
+                  @if (x.estadoReal === "usado" && x.mb.ahorro) {
+                    <span class="inline-flex items-center gap-2 rounded-full bg-lima/25 px-4 py-1.5 text-sm font-bold text-ink">
+                      <app-icon name="PiggyBank" class="h-4 w-4" />
+                      Ahorraste {{ usd(x.mb.ahorro) }}
+                    </span>
+                  }
+                </div>
                 <a [routerLink]="['/beneficios', x.b.id]"
                   [class]="'inline-flex min-h-11 items-center gap-2 rounded-full px-6 text-base font-bold lg:min-h-14 ' + (x.estadoReal === 'activo' ? 'bg-primary text-primary-foreground' : 'border border-border text-ink hover:border-primary hover:text-primary')">
                   <app-icon name="QrCode" class="h-4 w-4" />
@@ -185,6 +193,7 @@ export class MisBeneficiosPage {
   }
 
   protected readonly estadoLabels = estadoLabels;
+  protected readonly usd = formatUSD;
   protected readonly estadoClase: Record<EstadoBeneficio, string> = {
     activo: "bg-lima/25 text-ink",
     usado: "bg-secondary text-secondary-foreground",

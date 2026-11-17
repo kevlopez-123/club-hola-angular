@@ -241,7 +241,7 @@ export class BeneficiosPage {
                 <div class="min-w-0">
                   <p class="text-sm font-semibold uppercase text-ink">{{ beneficio.marca }}</p>
                   <a [href]="catalog.marcaPorNombre(beneficio.marca)?.web || beneficio.marcaUrl" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1 text-sm text-celeste hover:underline">
-                    Visitar página web <app-icon name="Link2" class="h-4 w-4" />
+                    Conocer más <app-icon name="Link2" class="h-4 w-4" />
                   </a>
                 </div>
               </div>
