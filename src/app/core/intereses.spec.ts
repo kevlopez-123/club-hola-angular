@@ -3,15 +3,15 @@ import { alternar, interesesVacios, sanearIntereses } from "./intereses";
 
 describe("intereses", () => {
   it("empiezan vacíos y sin push", () => {
-    expect(interesesVacios()).toEqual({ beneficios: [], eventos: [], push: false });
+    expect(interesesVacios()).toEqual({ beneficios: [], push: false });
   });
   it("sanea: descarta categorías que no existen, repetidas y valores raros", () => {
-    const r = sanearIntereses({ beneficios: ["moda", "moda", "inventada", 3], eventos: ["cena", null], push: true }, ["moda", "viajes"], ["cena"]);
-    expect(r).toEqual({ beneficios: ["moda"], eventos: ["cena"], push: true });
+    const r = sanearIntereses({ beneficios: ["moda", "moda", "inventada", 3], push: true }, ["moda", "viajes"]);
+    expect(r).toEqual({ beneficios: ["moda"], push: true });
   });
   it("una entrada inválida da la lista vacía", () => {
-    expect(sanearIntereses(null, ["a"], ["b"])).toEqual(interesesVacios());
-    expect(sanearIntereses({ beneficios: "moda", push: "si" }, ["moda"], [])).toEqual(interesesVacios());
+    expect(sanearIntereses(null, ["a"])).toEqual(interesesVacios());
+    expect(sanearIntereses({ beneficios: "moda", push: "si" }, ["moda"])).toEqual(interesesVacios());
   });
   it("alterna un slug", () => {
     expect(alternar(["a"], "b")).toEqual(["a", "b"]);

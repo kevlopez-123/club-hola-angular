@@ -399,8 +399,7 @@ const customerRoutes: Route[] = [
   ["GET", "me/intereses", () => db.intereses],
   ["PUT", "me/intereses", ({ body }) => {
     const beneficios = (db.catalogo.categoriasBeneficio as readonly { slug: string }[]).map((c) => c.slug);
-    const eventos = (db.admin.categoriasEvento as { slug: string; activo?: boolean }[]).filter((c) => c.activo !== false).map((c) => c.slug);
-    db.intereses = sanearIntereses(body, beneficios, eventos);
+    db.intereses = sanearIntereses(body, beneficios);
     return db.intereses;
   }],
   ["GET", "me/novedades", () => ({ recibe: recibeNovedades(fichaDemo()) })],

@@ -198,7 +198,7 @@ const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4
           } @else if (tab() === "intereses") {
             <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="int-titulo">
               <h2 id="int-titulo" class="text-lg font-extrabold text-ink">Mis intereses</h2>
-              <p class="mt-2 text-base text-muted-foreground">Elige qué quieres recibir. Te avisaremos solo de las promociones destacadas de las categorías que marques.</p>
+              <p class="mt-2 text-base text-muted-foreground">Elige las categorías de las que quieres recibir promociones destacadas. Solo te avisaremos de las que marques.</p>
 
               @if (errorIntereses() && !interesesListos()) {
                 <p role="alert" class="mt-5 rounded-2xl bg-aviso-fondo px-5 py-4 text-base font-semibold text-aviso">{{ errorIntereses() }}</p>
@@ -207,7 +207,7 @@ const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4
                   <legend class="flex items-center gap-2 text-base font-extrabold text-ink"><app-icon name="Gift" class="h-5 w-5 text-primary" /> Beneficios</legend>
                   <div class="mt-3 flex flex-wrap gap-2">
                     @for (c of catalog.categoriasBeneficio(); track c.slug) {
-                      <button type="button" [attr.aria-pressed]="selBeneficios().includes(c.slug)" (click)="alternarInteres('beneficios', c.slug)" [class]="chipInteres(selBeneficios().includes(c.slug))">
+                      <button type="button" [attr.aria-pressed]="selBeneficios().includes(c.slug)" (click)="alternarInteres(c.slug)" [class]="chipInteres(selBeneficios().includes(c.slug))">
                         @if (selBeneficios().includes(c.slug)) { <app-icon name="Check" class="h-4 w-4" /> }
                         {{ c.label }}
                       </button>
@@ -215,17 +215,6 @@ const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4
                   </div>
                 </fieldset>
 
-                <fieldset class="mt-6">
-                  <legend class="flex items-center gap-2 text-base font-extrabold text-ink"><app-icon name="Ticket" class="h-5 w-5 text-primary" /> Eventos</legend>
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    @for (c of catalog.categoriasEventoVisibles(); track c.slug) {
-                      <button type="button" [attr.aria-pressed]="selEventos().includes(c.slug)" (click)="alternarInteres('eventos', c.slug)" [class]="chipInteres(selEventos().includes(c.slug))">
-                        @if (selEventos().includes(c.slug)) { <app-icon name="Check" class="h-4 w-4" /> }
-                        {{ c.label }}
-                      </button>
-                    }
-                  </div>
-                </fieldset>
                 <p class="mt-4 text-sm text-muted-foreground" aria-live="polite">{{ totalIntereses() === 0 ? "Aún no elegiste ninguna categoría." : totalIntereses() + (totalIntereses() === 1 ? " categoría seleccionada" : " categorías seleccionadas") }}</p>
 
                 <h3 class="mt-8 text-base font-extrabold text-ink">¿Por dónde te avisamos?</h3>
@@ -320,7 +309,6 @@ export class PerfilPage {
 
   /* ---- Intereses: categorías de las que quiere recibir promociones (push y correo) ---- */
   protected readonly selBeneficios = signal<string[]>([]);
-  protected readonly selEventos = signal<string[]>([]);
   protected readonly pushInteres = signal(false);
   /** Lo que se eligió para el correo sin guardar; null = lo que ya está guardado (consentimiento de novedades). */
   private readonly correoElegido = signal<boolean | null>(null);
@@ -328,23 +316,22 @@ export class PerfilPage {
   protected readonly interesesListos = signal(false);
   protected readonly errorIntereses = signal("");
   protected readonly interesesGuardados = signal(false);
-  protected readonly totalIntereses = computed(() => this.selBeneficios().length + this.selEventos().length);
+  protected readonly totalIntereses = computed(() => this.selBeneficios().length);
   private readonly cargaIntereses = effect(() => {
     if (this.tab() !== "intereses" || this.interesesListos()) return;
     this.errorIntereses.set("");
     this.api.get<Intereses>("me/intereses").subscribe({
       next: (r) => {
         this.selBeneficios.set(r.beneficios);
-        this.selEventos.set(r.eventos);
         this.pushInteres.set(r.push);
         this.interesesListos.set(true);
       },
       error: () => this.errorIntereses.set("No pudimos cargar tus intereses. Inténtalo de nuevo más tarde."),
     });
   });
-  protected alternarInteres(grupo: "beneficios" | "eventos", slug: string) {
+  protected alternarInteres(slug: string) {
     this.interesesGuardados.set(false);
-    (grupo === "beneficios" ? this.selBeneficios : this.selEventos).update((l) => alternar(l, slug));
+    this.selBeneficios.update((l) => alternar(l, slug));
   }
   protected cambiarCanal(canal: "push" | "correo", valor: boolean) {
     this.interesesGuardados.set(false);
@@ -355,10 +342,9 @@ export class PerfilPage {
     if (!this.interesesListos()) return;
     this.errorIntereses.set("");
     this.interesesGuardados.set(false);
-    this.api.put<Intereses>("me/intereses", { beneficios: this.selBeneficios(), eventos: this.selEventos(), push: this.pushInteres() }).subscribe({
+    this.api.put<Intereses>("me/intereses", { beneficios: this.selBeneficios(), push: this.pushInteres() }).subscribe({
       next: (r) => {
         this.selBeneficios.set(r.beneficios);
-        this.selEventos.set(r.eventos);
         this.pushInteres.set(r.push);
         const correo = this.correoElegido();
         if (correo !== null && correo !== this.recibeNovedades()) this.cambiarNovedades(correo);
