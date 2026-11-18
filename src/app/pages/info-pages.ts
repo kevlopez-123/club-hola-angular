@@ -128,7 +128,7 @@ export class NotFoundPage {}
           }
           @case ("activa") {
             <p class="mt-4 text-base text-ink">Hoy recibes nuestras novedades y promociones. ¿Quieres dejar de recibirlas?</p>
-            <p class="mt-2 text-sm text-muted-foreground">Seguirás recibiendo los avisos de tu cuenta: código de acceso, pedidos y puntos.</p>
+            <p class="mt-2 text-sm text-muted-foreground">Seguirás recibiendo los avisos de tu cuenta, como tu código de acceso.</p>
             @if (error()) { <p role="alert" class="mt-3 text-sm font-semibold text-destructive">{{ error() }}</p> }
             <button type="button" (click)="cambiar(false)" [disabled]="enviando()" class="mt-6 min-h-12 rounded-full bg-primary px-8 text-base font-bold text-primary-foreground disabled:opacity-60">Dejar de recibir novedades</button>
           }

@@ -381,7 +381,7 @@ export class DetalleCompraPage {
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 class="text-2xl font-extrabold text-ink lg:text-3xl">Notificaciones</h1>
-            <p class="mt-2 max-w-2xl text-base text-muted-foreground">Novedades de tus pedidos, puntos y beneficios.</p>
+            <p class="mt-2 max-w-2xl text-base text-muted-foreground">Novedades de tus beneficios.</p>
           </div>
           @if (store.noLeidas()) {
             <button type="button" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground hover:bg-primary/90" (click)="store.marcarLeidas()">

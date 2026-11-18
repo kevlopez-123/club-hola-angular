@@ -1,4 +1,3 @@
-import { NgTemplateOutlet } from "@angular/common";
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChildren } from "@angular/core";
 import { Router, RouterLink, ActivatedRoute } from "@angular/router";
 import { ApiService } from "../core/api.service";
@@ -7,31 +6,24 @@ import { BrandService } from "../core/brand.service";
 import { StoreService } from "../core/store.service";
 import { SesionService } from "../core/sesion.service";
 import { IconComponent } from "../shared/icon.component";
-import { ComboboxComponent } from "../shared/combobox";
-import { ciudadesDe, hayCiudadesFijas, sugerenciasDe } from "../core/ubicaciones";
-import { limitesNacimiento } from "../core/validaciones";
 import { limpiarNumeroDocumento, validarNumeroDocumento } from "../core/documento";
 import { nombreDispositivo } from "../core/dispositivo";
 import { haceTiempo } from "../core/tiempo";
 import { environment } from "../../environments/environment";
-import { agruparCampos, claveExtra, erroresPerfil } from "../core/validar-perfil";
-import { TelefonoInputComponent } from "../shared/telefono-input";
 import { FlagComponent } from "../shared/flag.component";
 import { LogoComponent, ModalComponent } from "../shared/ui";
 import { MarkdownComponent } from "../shared/markdown.component";
 import { legalAMarkdown } from "../core/markdown";
 import { alternar, type Intereses } from "../core/intereses";
 
-const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-base text-ink focus:ring-2 focus:ring-primary/50";
 
 /* ------------------------------------------------------------------ */
 /* Mi perfil                                                           */
 /* ------------------------------------------------------------------ */
 @Component({
   selector: "app-perfil-page",
-  imports: [IconComponent, ModalComponent, TelefonoInputComponent, NgTemplateOutlet, ComboboxComponent],
+  imports: [IconComponent, ModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { "(window:beforeunload)": "antesDeCerrar($event)" },
   template: `
     <div class="bg-surface py-10 lg:py-14">
       <div class="page-container">
@@ -48,152 +40,19 @@ const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4
 
         <div class="mx-auto mt-8 max-w-3xl">
           @if (tab() === "datos") {
-            @if (perfil(); as p) {
-              <form class="grid gap-6" (submit)="guardarDatos($event)">
-                <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]">
-                  <h2 class="text-lg font-extrabold text-ink">Mis datos</h2>
-                  <dl class="mt-4 grid gap-2 rounded-2xl bg-surface p-5 text-base sm:grid-cols-2">
-                    <dt class="text-muted-foreground">Tipo de documento</dt><dd class="font-semibold text-ink">{{ p.tipoDocumento }}</dd>
-                    <dt class="text-muted-foreground">Código de participante</dt><dd class="font-semibold text-ink">{{ p.codigoParticipante }}</dd>
-                    <dt class="text-muted-foreground">Correo de acceso</dt><dd class="font-semibold text-ink">{{ p.correo }}</dd>
-                  </dl>
-
-                  <div class="mt-6 space-y-8">
-                    <fieldset>
-                      <legend class="text-base font-extrabold text-ink">Datos personales</legend>
-                      <div class="mt-3 grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <label class="text-base font-semibold text-ink" for="pf-nombres">Nombres *</label>
-                          <input id="pf-nombres" autocomplete="given-name" maxlength="60" [value]="datos().nombres" (input)="setDato('nombres', $event)" (blur)="tocar('nombres')" [attr.aria-invalid]="!!ver('nombres')" [attr.aria-describedby]="ver('nombres') ? 'err-pf-nombres' : null" [class]="input + (ver('nombres') ? ' ring-2 ring-destructive/70' : '')" />
-                          @if (ver('nombres'); as m) { <p id="err-pf-nombres" role="alert" class="mt-1 text-sm font-semibold text-destructive">{{ m }}</p> }
-                        </div>
-                        @if (!apellidosSeparados()) {
-                          <div>
-                            <label class="text-base font-semibold text-ink" for="pf-apellidos">Apellidos *</label>
-                            <input id="pf-apellidos" autocomplete="family-name" maxlength="60" [value]="datos().apellidos" (input)="setDato('apellidos', $event)" (blur)="tocar('apellidos')" [attr.aria-invalid]="!!ver('apellidos')" [attr.aria-describedby]="ver('apellidos') ? 'err-pf-apellidos' : null" [class]="input + (ver('apellidos') ? ' ring-2 ring-destructive/70' : '')" />
-                            @if (ver('apellidos'); as m) { <p id="err-pf-apellidos" role="alert" class="mt-1 text-sm font-semibold text-destructive">{{ m }}</p> }
-                          </div>
-                        }
-                        @for (c of grupos().personal; track c.id) { <ng-container [ngTemplateOutlet]="campoTpl" [ngTemplateOutletContext]="{ $implicit: c }" /> }
-                      </div>
-                    </fieldset>
-
-                    <fieldset>
-                      <legend class="text-base font-extrabold text-ink">Contacto</legend>
-                      <div class="mt-3 grid gap-4 sm:grid-cols-2">
-                        @for (c of grupos().contacto; track c.id) { <ng-container [ngTemplateOutlet]="campoTpl" [ngTemplateOutletContext]="{ $implicit: c }" /> }
-                        @if (!campoCelular()) {
-                          <div>
-                            <label class="text-base font-semibold text-ink" for="pf-telefono">Teléfono *</label>
-                            <div class="mt-2"><app-telefono-input inputId="pf-telefono" [valor]="datos().telefono" [invalido]="!!ver('telefono')" [describe]="ver('telefono') ? 'err-pf-telefono' : ''" (valorChange)="setTelefono($event)" (tocado)="tocar('telefono')" /></div>
-                            <p class="mt-1 text-sm text-muted-foreground">Solo el número: {{ brand.pais().telefonoDigitos }} dígitos.</p>
-                            @if (ver('telefono'); as m) { <p id="err-pf-telefono" role="alert" class="mt-1 text-sm font-semibold text-destructive">{{ m }}</p> }
-                          </div>
-                        }
-                      </div>
-                    </fieldset>
-
-                    @if (grupos().ubicacion.length) {
-                      <fieldset>
-                        <legend class="text-base font-extrabold text-ink">Ubicación</legend>
-                        <div class="mt-3 grid gap-4 sm:grid-cols-2">
-                          @for (c of grupos().ubicacion; track c.id) { <ng-container [ngTemplateOutlet]="campoTpl" [ngTemplateOutletContext]="{ $implicit: c }" /> }
-                        </div>
-                      </fieldset>
-                    }
-
-                    @if (grupos().otros.length) {
-                      <fieldset>
-                        <legend class="text-base font-extrabold text-ink">Otros datos</legend>
-                        <div class="mt-3 grid gap-4 sm:grid-cols-2">
-                          @for (c of grupos().otros; track c.id) { <ng-container [ngTemplateOutlet]="campoTpl" [ngTemplateOutletContext]="{ $implicit: c }" /> }
-                        </div>
-                      </fieldset>
-                    }
-                  </div>
-
-                  <ng-template #campoTpl let-c>
-          <div [class]="c.ancho === 'completa' ? 'sm:col-span-2' : ''">
-            @switch (c.tipo) {
-              @case ("checkbox") {
-                <label class="flex min-h-12 items-center gap-3 text-base font-semibold text-ink">
-                  <input type="checkbox" [checked]="!!valor(c.id)" (change)="setExtra(c.id, $any($event.target).checked)" class="h-5 w-5 accent-[var(--color-primary)]" />
-                  {{ etiqueta(c) }}
-                </label>
-              }
-              @case ("select") {
-                <label class="text-base font-semibold text-ink">{{ etiqueta(c) }}
-                  @if (c.mapeo === "ciudad" && ciudadFija()) {
-                    <select [id]="'pf-' + c.id" [class]="input + ' select-field' + (ver(clave(c.id)) ? ' ring-2 ring-destructive/70' : '')" [disabled]="!provinciaElegida()" [attr.aria-invalid]="!!ver(clave(c.id))" (change)="setExtra(c.id, $any($event.target).value)" (blur)="tocar(clave(c.id))">
-                      <option value="" [selected]="!valor(c.id)">{{ provinciaElegida() ? "Selecciona tu ciudad" : "Elige primero la provincia" }}</option>
-                      @for (o of ciudadesElegidas(); track o) { <option [value]="o" [selected]="valor(c.id) === o">{{ o }}</option> }
-                    </select>
-                  } @else {
-                    <select [id]="'pf-' + c.id" [class]="input + ' select-field' + (ver(clave(c.id)) ? ' ring-2 ring-destructive/70' : '')" [attr.aria-invalid]="!!ver(clave(c.id))" (change)="cambiarSelect(c, $any($event.target).value)" (blur)="tocar(clave(c.id))">
-                      <option value="" [selected]="!valor(c.id)">Selecciona</option>
-                      @for (o of c.opciones ?? []; track o) { <option [value]="o" [selected]="valor(c.id) === o">{{ o }}</option> }
-                    </select>
+            @if (perfil()) {
+              <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="dat-titulo">
+                <h2 id="dat-titulo" class="text-lg font-extrabold text-ink">Mis datos</h2>
+                <p class="mt-2 text-base text-muted-foreground">Estos datos vienen del padrón de {{ brand.marca().nombre }} y no se pueden editar aquí. Si alguno no es correcto, comunícate con {{ brand.marca().nombre }}.</p>
+                <dl class="mt-5 grid gap-x-6 gap-y-4 rounded-2xl bg-surface p-5 text-base sm:grid-cols-2">
+                  @for (f of filasDatos(); track f.etiqueta) {
+                    <div class="min-w-0">
+                      <dt class="text-sm text-muted-foreground">{{ f.etiqueta }}</dt>
+                      <dd class="break-words font-semibold text-ink">{{ f.valor }}</dd>
+                    </div>
                   }
-                </label>
-              }
-              @case ("textarea") {
-                <label class="text-base font-semibold text-ink">{{ etiqueta(c) }}
-                  <textarea rows="3" maxlength="500" [class]="input + ' h-auto py-3' + (ver(clave(c.id)) ? ' ring-2 ring-destructive/70' : '')" [attr.aria-invalid]="!!ver(clave(c.id))" [value]="valor(c.id) || ''" (input)="setExtra(c.id, $any($event.target).value)" (blur)="tocar(clave(c.id))"></textarea>
-                </label>
-              }
-              @default {
-                <label class="text-base font-semibold text-ink">{{ etiqueta(c) }}
-                  @if (c.mapeo === "ciudad") {
-                    <span class="mt-1 block"><app-combobox [libre]="true" [opciones]="sugerenciasDistrito()" [inputId]="'pf-' + c.id" [maxlength]="80" [invalido]="!!ver(clave(c.id))"
-                      [claseInput]="input.replace('mt-1 ', '') + ' pr-11' + (ver(clave(c.id)) ? ' ring-2 ring-destructive/70' : '')" [value]="textoDe(c.id)" (valueChange)="setExtra(c.id, $event)" (tocado)="tocar(clave(c.id))" /></span>
-                  } @else if ($any(c).tipo === "telefono") {
-                    <span class="mt-1 block"><app-telefono-input [inputId]="'pf-' + c.id" [valor]="textoDe(c.id)" [invalido]="!!ver(clave(c.id))" (valorChange)="setExtra(c.id, $event)" (tocado)="tocar(clave(c.id))" /></span>
-                  } @else if (c.mapeo === "fecha_nacimiento") {
-                    <input [id]="'pf-' + c.id" type="date" [attr.min]="limNac.min" [attr.max]="limNac.max" [class]="input + (ver(clave(c.id)) ? ' ring-2 ring-destructive/70' : '')" [attr.aria-invalid]="!!ver(clave(c.id))" [value]="valor(c.id) || ''" (input)="setExtra(c.id, $any($event.target).value)" (blur)="tocar(clave(c.id))" />
-                  } @else {
-                    <input [id]="'pf-' + c.id" [type]="tipoInput(c.tipo)" [attr.inputmode]="$any(c).tipo === 'telefono' ? 'tel' : null" [attr.maxlength]="c.tipo === 'fecha' ? null : 100" [class]="input + (ver(clave(c.id)) ? ' ring-2 ring-destructive/70' : '')" [attr.aria-invalid]="!!ver(clave(c.id))" [value]="valor(c.id) || ''" (input)="setExtra(c.id, $any($event.target).value)" (blur)="tocar(clave(c.id))" />
-                  }
-                </label>
-              }
-            }
-            @if (c.mapeo === "fecha_nacimiento") { <p class="mt-1 text-sm text-muted-foreground">Debes ser mayor de 18 años.</p> }
-            @if (c.ayuda) { <p class="mt-1 text-sm text-muted-foreground">{{ c.ayuda }}</p> }
-            @if (ver(clave(c.id)); as m) { <p role="alert" class="mt-1 text-sm font-semibold text-destructive">{{ m }}</p> }
-          </div>
-                  </ng-template>
-                </section>
-
-                <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="com-titulo">
-                  <h2 id="com-titulo" class="text-lg font-extrabold text-ink">Comunicaciones</h2>
-                  <label class="mt-4 flex cursor-pointer items-start gap-3 text-base text-ink">
-                    <input type="checkbox" class="mt-1 h-5 w-5 accent-[var(--color-primary)]" [checked]="recibeNovedades()" [disabled]="recibeNovedades() === null" (change)="cambiarNovedades($any($event.target).checked)" />
-                    <span><b>Quiero recibir novedades y promociones por correo</b><br /><span class="text-sm text-muted-foreground">Puedes cambiarlo cuando quieras. Los avisos de tu cuenta (código de acceso, pedidos, puntos) los recibes siempre.</span></span>
-                  </label>
-                  @if (errorNovedades()) { <p role="alert" class="mt-2 text-sm font-semibold text-destructive">{{ errorNovedades() }}</p> }
-                  @if (novedadesGuardado()) { <p role="status" class="mt-2 text-sm text-ink">Preferencia guardada.</p> }
-                </section>
-
-                @if (errorForm()) {
-                  <p role="alert" class="rounded-2xl bg-aviso-fondo px-5 py-4 text-base font-semibold text-aviso">{{ errorForm() }}</p>
-                }
-
-                <!-- Barra de guardado: queda a la vista al final de la pantalla aunque el formulario sea largo -->
-                <div class="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">
-                  <p role="status" aria-live="polite" class="min-w-0 px-2 text-base">
-                    @if (sucio()) {
-                      <span class="font-semibold text-ink">Tienes cambios sin guardar</span>
-                    } @else if (guardado()) {
-                      <span class="inline-flex items-center gap-2 text-ink"><app-icon name="Check" class="h-5 w-5 text-primary" /> Tus cambios se guardaron correctamente.</span>
-                    }
-                  </p>
-                  <div class="ml-auto flex flex-wrap gap-2">
-                    @if (sucio()) {
-                      <button type="button" (click)="descartar()" class="min-h-12 rounded-full border border-border px-6 text-base font-bold text-ink transition-colors hover:border-primary hover:text-primary lg:min-h-14">Descartar</button>
-                    }
-                    <button type="submit" class="min-h-12 rounded-full bg-primary px-8 text-base font-bold uppercase tracking-wide text-primary-foreground lg:min-h-14">Guardar cambios</button>
-                  </div>
-                </div>
-              </form>
+                </dl>
+              </section>
             }
           } @else if (tab() === "intereses") {
             <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="int-titulo">
@@ -252,7 +111,7 @@ const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4
           } @else {
             <section class="rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]" aria-labelledby="seg-titulo">
               <h2 id="seg-titulo" class="text-lg font-extrabold text-ink">Dispositivos con sesión iniciada</h2>
-              <p class="mt-2 text-base text-muted-foreground">Tu sesión se mantiene en cada dispositivo y se renueva cada vez que entras; vence si pasan 30 días sin usarla. Si no reconoces alguno, cierra todas las sesiones.</p>
+              <p class="mt-2 text-base text-muted-foreground">Tu sesión dura como máximo 5 días en cada dispositivo; pasado ese plazo debes volver a ingresar con tu documento y un código. Si no reconoces alguno, cierra todas las sesiones.</p>
 
               @if (errorSesiones()) {
                 <p role="alert" class="mt-5 rounded-2xl bg-aviso-fondo px-5 py-4 text-base font-semibold text-aviso">No pudimos cargar tus dispositivos. Inténtalo de nuevo más tarde.</p>
@@ -298,7 +157,6 @@ const INPUT = "mt-1 h-12 w-full rounded-2xl border border-border bg-surface px-4
 export class PerfilPage {
   protected readonly store = inject(StoreService);
   private readonly api = inject(ApiService);
-  protected readonly input = INPUT;
   protected readonly tabs = [
     { value: "datos", label: "Datos" },
     { value: "intereses", label: "Intereses" },
@@ -379,32 +237,24 @@ export class PerfilPage {
     this.sesionApp.salirDeTodos();
   }
   protected readonly perfil = this.store.perfil;
-  protected readonly guardado = signal(false);
   protected readonly catalog = inject(CatalogService);
-  /** Campos extra que el admin configura en Admin → Formulario de datos. */
+  /** Campos extra que el admin configura en Admin → Formulario de datos (los datos vienen del padrón y aquí solo se muestran). */
   protected readonly camposExtra = computed(() => this.catalog.config()?.formulario ?? []);
-  private readonly extraEditado = signal<Record<string, string | boolean>>({});
-  protected readonly errorForm = signal("");
-  protected readonly intentoGuardar = signal(false);
 
-  /** Consentimiento de novedades por correo; null mientras carga. Se guarda al marcarlo. */
+  /** Consentimiento de novedades por correo; null mientras carga. Se guarda junto con los intereses. */
   protected readonly recibeNovedades = signal<boolean | null>(null);
-  protected readonly errorNovedades = signal("");
-  protected readonly novedadesGuardado = signal(false);
-  private readonly cargaNovedades = this.api.get<{ recibe: boolean }>("me/novedades").subscribe({ next: (r) => this.recibeNovedades.set(r.recibe), error: () => this.errorNovedades.set("No pudimos cargar tu preferencia de novedades.") });
+  private readonly cargaNovedades = this.api.get<{ recibe: boolean }>("me/novedades").subscribe({ next: (r) => this.recibeNovedades.set(r.recibe), error: () => undefined });
   protected cambiarNovedades(recibe: boolean) {
-    this.errorNovedades.set("");
-    this.novedadesGuardado.set(false);
     const antes = this.recibeNovedades();
     this.recibeNovedades.set(recibe);
     this.api.put<{ recibe: boolean }>("me/novedades", { recibe }).subscribe({
-      next: (r) => { this.recibeNovedades.set(r.recibe); this.novedadesGuardado.set(true); },
-      error: () => { this.recibeNovedades.set(antes); this.errorNovedades.set("No pudimos guardar tu preferencia. Inténtalo de nuevo."); },
+      next: (r) => this.recibeNovedades.set(r.recibe),
+      error: () => this.recibeNovedades.set(antes),
     });
   }
 
-  protected valor(id: string) {
-    const v = this.extraEditado()[id] ?? this.perfil()?.extra?.[id];
+  private valor(id: string) {
+    const v = this.perfil()?.extra?.[id];
     if (v !== undefined) return v;
     // Apellido paterno y materno se completan con los apellidos que ya tiene la cuenta.
     const m = this.camposExtra().find((c) => c.id === id)?.mapeo;
@@ -415,133 +265,30 @@ export class PerfilPage {
     }
     return undefined;
   }
-  protected textoDe(id: string): string {
-    const v = this.valor(id);
-    return typeof v === "string" ? v : "";
-  }
   /** Con apellido paterno y materno configurados, el campo "Apellidos" sobra: se arma con ellos. */
-  protected readonly apellidosSeparados = computed(() => this.camposExtra().some((c) => c.mapeo === "apellido_paterno"));
-  /** Si el formulario trae "N.º de celular", ese es el teléfono de la cuenta y no se pide otro. */
-  protected readonly campoCelular = computed(() => this.camposExtra().find((c) => c.mapeo === "celular"));
-  /** Orden lógico del formulario: datos personales, contacto, ubicación y el resto. */
-  protected readonly grupos = computed(() => agruparCampos(this.camposExtra()));
-  protected setTelefono(v: string) {
-    this.edits.update((x) => ({ ...x, telefono: v }));
-    this.marcarSucio();
-  }
-  protected setExtra(id: string, v: string | boolean) {
-    this.extraEditado.update((x) => ({ ...x, [id]: v }));
-    this.marcarSucio();
-  }
+  private readonly apellidosSeparados = computed(() => this.camposExtra().some((c) => c.mapeo === "apellido_paterno"));
+  /** Si el formulario trae "N.º de celular", ese es el teléfono de la cuenta y no se repite. */
+  private readonly campoCelular = computed(() => this.camposExtra().find((c) => c.mapeo === "celular"));
 
-  /** Hay cambios que todavía no se guardaron (la barra de guardado y el aviso al salir dependen de esto). */
-  readonly sucio = signal(false);
-  private avisoGuardado: ReturnType<typeof setTimeout> | undefined;
-  private marcarSucio() {
-    clearTimeout(this.avisoGuardado);
-    this.guardado.set(false);
-    this.sucio.set(true);
-  }
-  /** Vuelve a lo que está guardado. */
-  protected descartar() {
-    this.edits.set({});
-    this.extraEditado.set({});
-    this.tocados.set(new Set());
-    this.intentoGuardar.set(false);
-    this.errorForm.set("");
-    this.sucio.set(false);
-  }
-  protected antesDeCerrar(e: Event) {
-    if (this.sucio()) e.preventDefault();
-  }
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  /** Lleva la vista y el foco al primer campo con error. */
-  private irAlPrimerError() {
-    setTimeout(() => {
-      const el = this.host.nativeElement.querySelector<HTMLElement>('[aria-invalid="true"]');
-      el?.scrollIntoView({ block: "center", behavior: "smooth" });
-      el?.focus({ preventScroll: true });
-    });
-  }
-
-  /* ---- Validación en vivo: el error aparece al salir del campo o al intentar guardar ---- */
-  protected readonly limNac = limitesNacimiento();
-  protected readonly clave = claveExtra;
-  private readonly tocados = signal<ReadonlySet<string>>(new Set());
-  protected tocar(k: string) {
-    if (!this.tocados().has(k)) this.tocados.update((s) => new Set(s).add(k));
-  }
-  private readonly extraActual = computed(() => {
-    const base = { ...(this.perfil()?.extra ?? {}), ...this.extraEditado() } as Record<string, string | boolean | undefined>;
-    for (const c of this.camposExtra()) if (base[c.id] === undefined) base[c.id] = this.valor(c.id);
-    return base;
-  });
-  /** Apellidos que se guardan: los de paterno + materno si están configurados. */
-  private apellidosFinal() {
-    if (!this.apellidosSeparados()) return this.datos().apellidos.trim();
-    const v = (m: string) => String(this.extraActual()[this.camposExtra().find((c) => c.mapeo === m)?.id ?? ""] ?? "").trim();
-    return `${v("apellido_paterno")} ${v("apellido_materno")}`.trim();
-  }
-  protected readonly errores = computed(() => erroresPerfil({ ...this.datos(), apellidos: this.apellidosSeparados() ? "x" : this.datos().apellidos, telefono: this.campoCelular() ? "999999990" : this.datos().telefono }, this.extraActual(), this.camposExtra(), this.brand.pais(), this.brand.provinciasEnvio()));
-  protected ver(k: string): string {
-    return this.intentoGuardar() || this.tocados().has(k) ? (this.errores()[k] ?? "") : "";
-  }
-
-  /* ---- Provincia y ciudad en cascada: listas fijas, la ciudad depende de la provincia ---- */
-  protected readonly ciudadFija = computed(() => hayCiudadesFijas(this.brand.pais().codigo));
-  private readonly campoProvincia = computed(() => this.camposExtra().find((c) => c.mapeo === "provincia"));
-  private readonly campoCiudad = computed(() => this.camposExtra().find((c) => c.mapeo === "ciudad"));
-  protected readonly provinciaElegida = computed(() => String(this.extraActual()[this.campoProvincia()?.id ?? ""] ?? ""));
-  protected readonly ciudadesElegidas = computed(() => ciudadesDe(this.brand.pais().codigo, this.provinciaElegida()));
-  /** Distritos que se sugieren al escribir (Lima y Callao); se puede escribir otro. */
-  protected readonly sugerenciasDistrito = computed(() => sugerenciasDe(this.brand.pais().codigo, this.provinciaElegida()));
-  /** Al cambiar la provincia, la ciudad elegida deja de valer y se borra. */
-  protected cambiarSelect(c: { id: string; mapeo?: string | undefined }, v: string) {
-    const antes = String(this.valor(c.id) ?? "");
-    this.setExtra(c.id, v);
-    if (c.mapeo === "provincia" && v !== antes && this.campoCiudad()) this.setExtra(this.campoCiudad()!.id, "");
-  }
-  protected etiqueta(c: { etiqueta: string; obligatorio: boolean }) {
-    return c.etiqueta + (c.obligatorio ? " *" : "");
-  }
-  protected tipoInput(t: string) {
-    return ({ email: "email", telefono: "tel", numero: "number", fecha: "date" } as Record<string, string>)[t] ?? "text";
-  }
-  private readonly edits = signal<Partial<{ nombres: string; apellidos: string; telefono: string }>>({});
-  protected readonly datos = computed(() => {
+  /** Datos del padrón, solo lectura. */
+  protected readonly filasDatos = computed(() => {
     const p = this.perfil();
-    return { nombres: p?.nombres ?? "", apellidos: p?.apellidos ?? "", telefono: p?.telefono ?? "", ...this.edits() };
-  });
-
-  protected setDato(k: "nombres" | "apellidos" | "telefono", e: Event) {
-    this.edits.update((x) => ({ ...x, [k]: (e.target as HTMLInputElement).value }));
-    this.marcarSucio();
-  }
-  protected guardarDatos(e: Event) {
-    e.preventDefault();
-    this.intentoGuardar.set(true);
-    const n = Object.keys(this.errores()).length;
-    if (n) {
-      this.guardado.set(false);
-      this.errorForm.set(`Revisa ${n === 1 ? "el campo marcado" : `los ${n} campos marcados`} antes de guardar.`);
-      this.irAlPrimerError();
-      return;
+    if (!p) return [];
+    const filas: { etiqueta: string; valor: string }[] = [
+      { etiqueta: "Tipo de documento", valor: p.tipoDocumento },
+      { etiqueta: "Código de participante", valor: p.codigoParticipante },
+      { etiqueta: "Correo de acceso", valor: p.correo },
+      { etiqueta: "Nombres", valor: p.nombres },
+    ];
+    if (!this.apellidosSeparados()) filas.push({ etiqueta: "Apellidos", valor: p.apellidos });
+    if (!this.campoCelular()) filas.push({ etiqueta: "Teléfono", valor: p.telefono });
+    for (const c of this.camposExtra()) {
+      if (c.mapeo === "fecha_nacimiento") continue;
+      const v = this.valor(c.id);
+      filas.push({ etiqueta: c.etiqueta, valor: typeof v === "boolean" ? (v ? "Sí" : "No") : String(v ?? "") });
     }
-    this.errorForm.set("");
-    const extra = Object.fromEntries(Object.entries({ ...(this.perfil()?.extra ?? {}), ...this.extraActual() }).filter(([, v]) => v !== undefined)) as Record<string, string | boolean>;
-    const celular = this.campoCelular() ? String(this.extraActual()[this.campoCelular()!.id] ?? "").trim() : "";
-    const datos = { ...this.datos(), nombres: this.datos().nombres.trim(), apellidos: this.apellidosFinal(), telefono: this.campoCelular() ? celular : this.datos().telefono.trim() };
-    this.api.put("me/perfil", { ...datos, extra }).subscribe({
-      next: () => {
-        this.store.perfil.update((p) => (p ? { ...p, ...datos, extra } : p));
-        this.sucio.set(false);
-        this.guardado.set(true);
-        clearTimeout(this.avisoGuardado);
-        this.avisoGuardado = setTimeout(() => this.guardado.set(false), 5000);
-      },
-      error: (er) => { this.guardado.set(false); this.errorForm.set(er?.error?.message ?? "No pudimos guardar tus datos. Inténtalo de nuevo."); },
-    });
-  }
+    return filas.map((x) => ({ etiqueta: x.etiqueta, valor: x.valor?.trim() ? x.valor : "—" }));
+  });
 
   protected readonly brand = inject(BrandService);
 }

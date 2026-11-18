@@ -36,7 +36,7 @@ import type { Sesion } from "./sesiones";
 const clone = <T>(v: T): T => structuredClone(v);
 
 /** Clave de localStorage donde se guarda la base simulada. Subir la versión invalida datos viejos. */
-export const DB_KEY = "bancosolidario_mockdb_v48";
+export const DB_KEY = "bancosolidario_mockdb_v49";
 
 /**
  * "Base de datos" del backend simulado. Cada petición a /api/* se resuelve contra este estado,

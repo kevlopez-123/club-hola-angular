@@ -932,36 +932,6 @@ export const beneficiosClubHola: Beneficio[] = [
     "precio": 1290
   },
   {
-    "id": "bq1",
-    "marca": "Bembos",
-    "marcaUrl": "https://www.bembos.com.pe",
-    "nombre": "Hamburguesa clásica gratis por tu cumpleaños",
-    "descuento": "Gratis",
-    "categoria": "Restaurante",
-    "categoriaSlug": "restaurantes",
-    "imagen": "img/b-polleria.jpg",
-    "galeria": [
-      "img/b-polleria.jpg"
-    ],
-    "descripcion": "Genera tu código y díctalo en caja para recibir una hamburguesa clásica sin costo.",
-    "pasos": [
-      "Presiona Generar código",
-      "Acércate a caja",
-      "Dicta o muestra el código",
-      "¡Disfruta!"
-    ],
-    "especificaciones": [
-      "No acumulable con otras promociones.",
-      "Local: Av. Manuel Villarán Nro. 702 (Alt. cdra. 20 de Av. Tomás Marsano).",
-      "Válido hasta el 31/12/2026.",
-      "Aplica solo con tarjeta BanBif.",
-      "Válido para consumo en local y para llevar."
-    ],
-    "terminos": "Promoción válida del 01/01/2026 al 31/12/2026 en todos los locales participantes en Perú. El descuento aplica sobre el precio regular y no es acumulable con otras promociones, descuentos o cupones vigentes. El cliente deberá presentar el cupón digital generado a través de la plataforma Club Hola antes de efectuar el pago. Cada cupón tiene una validez de 3 horas desde su generación y puede utilizarse una sola vez. El cupón debe presentarse junto con un documento de identidad vigente. Limitado a un cupón por persona por día. El comercio se reserva el derecho de modificar o cancelar la promoción sin previo aviso. Esta promoción es operada por Motiva Soluciones, quien actúa únicamente como plataforma de beneficios y medio de validación.",
-    "tipo": "cupon",
-    "cuponSinQr": true
-  },
-  {
     "id": "bq2",
     "marca": "Cineplanet",
     "marcaUrl": "https://www.cineplanet.com.pe",

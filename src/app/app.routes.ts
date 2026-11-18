@@ -6,7 +6,6 @@ import { CatalogService } from "./core/catalog.service";
 import { SiteLayoutComponent } from "./shared/layout";
 
 import { participanteGuard, sitioCerradoGuard } from "./core/participante.guard";
-import { salirSinGuardar } from "./core/salir-sin-guardar.guard";
 
 /** Bloquea las rutas que el admin deshabilitó en el menú. */
 const rutaHabilitada: CanActivateChildFn = async (_ruta, estado) => {
@@ -100,7 +99,7 @@ export const routes: Routes = [
       { path: "mis-compras", canActivate: [participanteGuard], title: "Historial de compras | Banco Solidario Puntos", loadComponent: () => account().then((m) => m.MisComprasPage) },
       { path: "mis-compras/:codigo", canActivate: [participanteGuard], title: "Detalle de compra | Banco Solidario Puntos", loadComponent: () => account().then((m) => m.DetalleCompraPage) },
 
-      { path: "perfil", canActivate: [participanteGuard], canDeactivate: [salirSinGuardar], title: "Mi perfil | Banco Solidario Puntos", loadComponent: () => profile().then((m) => m.PerfilPage) },
+      { path: "perfil", canActivate: [participanteGuard], title: "Mi perfil | Banco Solidario Puntos", loadComponent: () => profile().then((m) => m.PerfilPage) },
       { path: "contacto", title: "Contáctanos | Banco Solidario Puntos", loadComponent: () => profile().then((m) => m.ContactoPage) },
 
 

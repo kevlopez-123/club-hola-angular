@@ -216,7 +216,7 @@ const customerRoutes: Route[] = [
       throw new ApiError(422, "Ingresa los 6 dígitos del código.");
     }
     verificarOtp(body.codigo.join(""));
-    // Una sesión por dispositivo: se renueva al usarse y vence tras 30 días sin usarse. El token simulado lleva su id.
+    // Una sesión por dispositivo: dura como máximo 5 días desde el ingreso (no se alarga al usarla). El token simulado lleva su id.
     const sesion = nuevaSesion(db.sesiones, String(body?.dispositivo ?? ""));
     return { token: `mock.participante.${sesion.id}`, usuario: db.usuario };
   }],
